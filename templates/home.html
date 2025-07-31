@@ -252,17 +252,91 @@
                         </div>
                     </div>
 
-                    <!-- Insights & Tips -->
+                    <!-- Personality & Insights -->
                     <div class="glass rounded-2xl p-6">
-                        <h2 class="text-xl font-semibold mb-4">💡 Insights & Tips</h2>
-                        <div class="space-y-4 max-h-60 overflow-y-auto">
-                            <div class="glass-dark rounded-lg p-4">
-                                <h3 class="font-medium mb-2">🌟 Today's Insight</h3>
-                                <p class="text-sm text-gray-300">You've been consistently checking in with your mood. This self-awareness is a key step in emotional growth!</p>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-xl font-semibold">🧠 Personality & Insights</h2>
+                            <a href="{% url 'personality:dashboard' %}" class="text-purple-400 hover:text-purple-300 text-sm">View Full Dashboard</a>
+                        </div>
+                        
+                        <!-- Personality Quick View -->
+                        <div x-show="personalityData" class="mb-6">
+                            <h3 class="font-medium mb-3">Your Personality Profile</h3>
+                            <div class="grid grid-cols-5 gap-2 mb-4">
+                                <div class="text-center">
+                                    <div class="text-xs text-purple-300">O</div>
+                                    <div class="w-full bg-gray-700 rounded-full h-1">
+                                        <div class="bg-purple-500 h-1 rounded-full" :style="`width: ${(personalityData.openness || 0) * 100}%`"></div>
+                                    </div>
+                                    <div class="text-xs text-gray-400" x-text="Math.round((personalityData.openness || 0) * 100) + '%'"></div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-xs text-blue-300">C</div>
+                                    <div class="w-full bg-gray-700 rounded-full h-1">
+                                        <div class="bg-blue-500 h-1 rounded-full" :style="`width: ${(personalityData.conscientiousness || 0) * 100}%`"></div>
+                                    </div>
+                                    <div class="text-xs text-gray-400" x-text="Math.round((personalityData.conscientiousness || 0) * 100) + '%'"></div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-xs text-green-300">E</div>
+                                    <div class="w-full bg-gray-700 rounded-full h-1">
+                                        <div class="bg-green-500 h-1 rounded-full" :style="`width: ${(personalityData.extraversion || 0) * 100}%`"></div>
+                                    </div>
+                                    <div class="text-xs text-gray-400" x-text="Math.round((personalityData.extraversion || 0) * 100) + '%'"></div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-xs text-yellow-300">A</div>
+                                    <div class="w-full bg-gray-700 rounded-full h-1">
+                                        <div class="bg-yellow-500 h-1 rounded-full" :style="`width: ${(personalityData.agreeableness || 0) * 100}%`"></div>
+                                    </div>
+                                    <div class="text-xs text-gray-400" x-text="Math.round((personalityData.agreeableness || 0) * 100) + '%'"></div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-xs text-red-300">ES</div>
+                                    <div class="w-full bg-gray-700 rounded-full h-1">
+                                        <div class="bg-red-500 h-1 rounded-full" :style="`width: ${(1 - (personalityData.neuroticism || 0)) * 100}%`"></div>
+                                    </div>
+                                    <div class="text-xs text-gray-400" x-text="Math.round((1 - (personalityData.neuroticism || 0)) * 100) + '%'"></div>
+                                </div>
                             </div>
-                            <div class="glass-dark rounded-lg p-4">
-                                <h3 class="font-medium mb-2">💪 Wellness Tip</h3>
-                                <p class="text-sm text-gray-300">Try the 5-4-3-2-1 grounding technique: Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste.</p>
+                            <div class="text-center">
+                                <button @click="window.location.href='{% url 'personality:assessment' %}'" 
+                                        class="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-sm transition-colors">
+                                    Take New Assessment
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- No Personality Data -->
+                        <div x-show="!personalityData" class="text-center py-4 mb-6">
+                            <div class="text-4xl mb-2">📝</div>
+                            <h3 class="font-medium mb-2">Discover Your Personality</h3>
+                            <p class="text-sm text-gray-400 mb-3">Help NOOR understand you better by taking a personality assessment</p>
+                            <button @click="window.location.href='{% url 'personality:assessment' %}'" 
+                                    class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded transition-colors">
+                                Start Assessment
+                            </button>
+                        </div>
+                        
+                        <!-- Dynamic Insights -->
+                        <div class="space-y-3 max-h-40 overflow-y-auto">
+                            <template x-for="insight in personalityInsights" :key="insight.id">
+                                <div class="glass-dark rounded-lg p-3">
+                                    <h4 class="font-medium text-sm mb-1" x-text="insight.title"></h4>
+                                    <p class="text-xs text-gray-300" x-text="insight.description"></p>
+                                </div>
+                            </template>
+                            
+                            <!-- Default insights when no personality data -->
+                            <div x-show="personalityInsights.length === 0" class="space-y-3">
+                                <div class="glass-dark rounded-lg p-3">
+                                    <h4 class="font-medium text-sm mb-1">🌟 Welcome to NOOR</h4>
+                                    <p class="text-xs text-gray-300">I'm here to learn about your personality and adapt to help you better!</p>
+                                </div>
+                                <div class="glass-dark rounded-lg p-3">
+                                    <h4 class="font-medium text-sm mb-1">💪 Personal Growth</h4>
+                                    <p class="text-xs text-gray-300">Take the personality assessment to unlock personalized insights and recommendations.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -386,6 +460,10 @@ function noorApp() {
         // Search
         searchQuery: '',
         
+        // Personality data
+        personalityData: null,
+        personalityInsights: [],
+        
         // Chat system
         chatMessages: [
             {
@@ -399,12 +477,47 @@ function noorApp() {
         isNoorTyping: false,
         
         // Initialize
-        init() {
+        async init() {
             this.noorExpression = '😊';
+            await this.loadPersonalityData();
             // Add some welcome interactions
             setTimeout(() => {
                 this.showWelcomeMessage();
             }, 2000);
+        },
+        
+        // Load personality data
+        async loadPersonalityData() {
+            try {
+                const response = await fetch('{% url "personality:api_insights" %}');
+                const data = await response.json();
+                
+                if (data.success && data.current_assessment) {
+                    this.personalityData = data.current_assessment;
+                    this.personalityInsights = data.insights || [];
+                    this.adaptNoorToPersonality();
+                }
+            } catch (error) {
+                console.log('No personality data available yet');
+            }
+        },
+        
+        // Adapt NOOR based on personality
+        adaptNoorToPersonality() {
+            if (!this.personalityData) return;
+            
+            // Adapt greeting based on extraversion
+            if (this.personalityData.extraversion > 0.7) {
+                this.chatMessages[0].text = 'Hey there! I\'m NOOR, and I\'m super excited to meet you! Let\'s chat and have some fun together! 🎉';
+            } else if (this.personalityData.extraversion < 0.3) {
+                this.chatMessages[0].text = 'Hello, I\'m NOOR. I\'m here whenever you need me, no pressure to chat if you prefer some quiet time. 😌';
+            }
+            
+            // Adapt expression based on openness
+            if (this.personalityData.openness > 0.7) {
+                this.noorExpression = '🤔';
+                this.noorMessage = 'I can sense your creative spirit! ✨';
+            }
         },
         
         showWelcomeMessage() {
@@ -500,24 +613,72 @@ function noorApp() {
             let response = '';
             let expression = '😊';
             
-            if (text.includes('sad') || text.includes('down') || text.includes('upset')) {
-                response = 'I\'m sorry you\'re feeling that way. Would you like to try some calming music or a mindfulness exercise?';
+            // Check for personality keywords first
+            if (text.includes('personality') || text.includes('assessment') || text.includes('test')) {
+                if (!this.personalityData) {
+                    response = 'I\'d love to learn more about your personality! Taking the personality assessment will help me understand you better and adapt my responses. Would you like to start?';
+                    expression = '🧠';
+                } else {
+                    response = 'I can see from your personality profile that you\'re quite unique! Would you like to see your dashboard or take another assessment to track changes?';
+                    expression = '📊';
+                }
+            } else if (text.includes('sad') || text.includes('down') || text.includes('upset')) {
+                // Adapt response based on agreeableness and extraversion
+                if (this.personalityData?.agreeableness > 0.7) {
+                    response = 'I can sense you\'re going through a tough time, and that\'s completely okay. You seem like someone who cares deeply about others - remember to show yourself the same kindness. Would you like some gentle music or breathing exercises?';
+                } else {
+                    response = 'I\'m sorry you\'re feeling that way. Sometimes processing difficult emotions on your own can be helpful. Would you like some calming music or space to think?';
+                }
                 expression = '🤗';
             } else if (text.includes('happy') || text.includes('great') || text.includes('good')) {
-                response = 'That\'s wonderful! I love hearing when you\'re doing well. What\'s making you happy today?';
-                expression = '😄';
+                // Adapt response based on extraversion
+                if (this.personalityData?.extraversion > 0.7) {
+                    response = 'That\'s absolutely fantastic! Your positive energy is contagious! I can tell you really know how to embrace the good moments. What\'s got you feeling so great today?';
+                    expression = '🎉';
+                } else {
+                    response = 'That\'s wonderful to hear. I\'m glad you\'re feeling good. Sometimes the quiet moments of happiness are the most meaningful.';
+                    expression = '�';
+                }
             } else if (text.includes('music') || text.includes('song')) {
-                response = 'I\'d love to help you find some music! Check out the media suggestions on the left. What genre are you in the mood for?';
+                // Suggest music based on openness and extraversion
+                let musicSuggestion = 'Check out the media suggestions on the left';
+                if (this.personalityData?.openness > 0.7) {
+                    musicSuggestion = 'Given your openness to new experiences, you might enjoy exploring some experimental or world music in addition to our regular suggestions';
+                } else if (this.personalityData?.extraversion > 0.7) {
+                    musicSuggestion = 'I bet you\'d love some upbeat, energetic tracks! Check out our upbeat collection';
+                }
+                response = `I\'d love to help you find some music! ${musicSuggestion}. What genre matches your mood right now?`;
                 expression = '🎵';
             } else if (text.includes('game') || text.includes('play')) {
-                response = 'Games are fun! I have some RPG games that can help with personal growth. Want to try Personality Quest or Mood Dungeon?';
+                // Suggest games based on conscientiousness and openness
+                let gameSuggestion = 'I have some great RPG games';
+                if (this.personalityData?.conscientiousness > 0.7) {
+                    gameSuggestion = 'Given your organized nature, you might really enjoy Personality Quest - it has structured progression and meaningful goals';
+                } else if (this.personalityData?.openness > 0.7) {
+                    gameSuggestion = 'With your creative mind, Mood Dungeon offers lots of imaginative scenarios and creative problem-solving';
+                }
+                response = `Games are fantastic for growth! ${gameSuggestion}. Want to try one?`;
                 expression = '🎮';
             } else if (text.includes('help') || text.includes('support')) {
-                response = 'I\'m here to support you! I can suggest music, guide you through games, or just chat. What would help you most right now?';
+                // Tailor support based on personality
+                if (this.personalityData?.neuroticism > 0.6) {
+                    response = 'I\'m here for you, and I understand that sometimes support is exactly what we need. Let\'s take this one step at a time. I can suggest calming activities, help you organize your thoughts, or just listen.';
+                } else {
+                    response = 'I\'m here to support you! I can suggest music, guide you through games, help with personal insights, or just chat. What would be most helpful right now?';
+                }
                 expression = '💪';
             } else {
-                response = 'That\'s interesting! Tell me more about that. I\'m here to listen and help however I can.';
-                expression = '🤔';
+                // General response adapted to personality
+                if (this.personalityData?.openness > 0.7) {
+                    response = 'That\'s fascinating! I love how your mind works. Tell me more about that - I\'m here to explore ideas and discover new perspectives with you.';
+                    expression = '🤔';
+                } else if (this.personalityData?.agreeableness > 0.7) {
+                    response = 'That\'s really thoughtful of you to share that. I appreciate our conversation and I\'m here to listen and help however I can.';
+                    expression = '�';
+                } else {
+                    response = 'That\'s interesting! Tell me more about that. I\'m here to listen and help however I can.';
+                    expression = '🤔';
+                }
             }
             
             const noorMessage = {

@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+
+{% block title %}Personality Dashboard - NOOR{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 text-white" x-data="personalityDashboard()">
+    <!-- Header -->
+    <header class="bg-gray-800/50 backdrop-blur-lg border-b border-gray-700/50 sticky top-0 z-40">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-bold neon-text">Personality Dashboard</h1>
+                    <span class="text-gray-400">Your Personality Journey</span>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="{% url 'personality:assessment' %}" class="btn-secondary">Take Assessment</a>
+                    <a href="{% url 'home' %}" class="btn-primary">Back to NOOR</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-6 py-8">
+        <!-- Loading State -->
+        <div x-show="isLoading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mb-4"></div>
+            <p class="text-gray-400">Loading your personality data...</p>
+        </div>
+
+        <!-- Main Content -->
+        <div x-show="!isLoading" style="display: none;">
+            <!-- Personality Overview -->
+            <div class="glass rounded-2xl p-8 mb-8">
+                <div class="text-center mb-8">
+                    <div class="text-6xl mb-4">🧠</div>
+                    <h2 class="text-3xl font-bold mb-4">Your Personality Profile</h2>
+                    <p class="text-gray-300 text-lg" x-show="assessmentCount > 0">
+                        Based on <span x-text="assessmentCount"></span> assessment(s)
+                    </p>
+                    <p class="text-gray-300 text-lg" x-show="assessmentCount === 0">
+                        Complete your first assessment to see your personality profile
+                    </p>
+                </div>
+
+                <!-- Big Five Traits -->
+                <div x-show="currentAssessment" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                    <!-- Openness -->
+                    <div class="trait-card">
+                        <div class="text-3xl mb-2">🎨</div>
+                        <h3 class="text-lg font-semibold text-purple-300 mb-2">Openness</h3>
+                        <div class="trait-score" x-text="Math.round(currentAssessment.openness * 100) + '%'"></div>
+                        <div class="trait-bar mt-2">
+                            <div class="trait-fill bg-purple-500" :style="`width: ${currentAssessment.openness * 100}%`"></div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2" x-text="getTraitDescription('openness', currentAssessment.openness)"></p>
+                    </div>
+
+                    <!-- Conscientiousness -->
+                    <div class="trait-card">
+                        <div class="text-3xl mb-2">📋</div>
+                        <h3 class="text-lg font-semibold text-blue-300 mb-2">Conscientiousness</h3>
+                        <div class="trait-score" x-text="Math.round(currentAssessment.conscientiousness * 100) + '%'"></div>
+                        <div class="trait-bar mt-2">
+                            <div class="trait-fill bg-blue-500" :style="`width: ${currentAssessment.conscientiousness * 100}%`"></div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2" x-text="getTraitDescription('conscientiousness', currentAssessment.conscientiousness)"></p>
+                    </div>
+
+                    <!-- Extraversion -->
+                    <div class="trait-card">
+                        <div class="text-3xl mb-2">👥</div>
+                        <h3 class="text-lg font-semibold text-green-300 mb-2">Extraversion</h3>
+                        <div class="trait-score" x-text="Math.round(currentAssessment.extraversion * 100) + '%'"></div>
+                        <div class="trait-bar mt-2">
+                            <div class="trait-fill bg-green-500" :style="`width: ${currentAssessment.extraversion * 100}%`"></div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2" x-text="getTraitDescription('extraversion', currentAssessment.extraversion)"></p>
+                    </div>
+
+                    <!-- Agreeableness -->
+                    <div class="trait-card">
+                        <div class="text-3xl mb-2">🤝</div>
+                        <h3 class="text-lg font-semibold text-yellow-300 mb-2">Agreeableness</h3>
+                        <div class="trait-score" x-text="Math.round(currentAssessment.agreeableness * 100) + '%'"></div>
+                        <div class="trait-bar mt-2">
+                            <div class="trait-fill bg-yellow-500" :style="`width: ${currentAssessment.agreeableness * 100}%`"></div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2" x-text="getTraitDescription('agreeableness', currentAssessment.agreeableness)"></p>
+                    </div>
+
+                    <!-- Neuroticism -->
+                    <div class="trait-card">
+                        <div class="text-3xl mb-2">🧘</div>
+                        <h3 class="text-lg font-semibold text-red-300 mb-2">Emotional Stability</h3>
+                        <div class="trait-score" x-text="Math.round((1 - currentAssessment.neuroticism) * 100) + '%'"></div>
+                        <div class="trait-bar mt-2">
+                            <div class="trait-fill bg-red-500" :style="`width: ${(1 - currentAssessment.neuroticism) * 100}%`"></div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2" x-text="getTraitDescription('neuroticism', currentAssessment.neuroticism)"></p>
+                    </div>
+                </div>
+
+                <!-- No Assessment State -->
+                <div x-show="!currentAssessment" class="text-center py-8">
+                    <div class="text-6xl mb-4">📝</div>
+                    <h3 class="text-xl font-semibold mb-4">No Assessment Data</h3>
+                    <p class="text-gray-400 mb-6">Complete your first personality assessment to see your profile here.</p>
+                    <a href="{% url 'personality:assessment' %}" class="btn-primary">Start Assessment</a>
+                </div>
+            </div>
+
+            <!-- Personality Insights -->
+            <div x-show="insights.length > 0" class="glass rounded-2xl p-8 mb-8">
+                <h3 class="text-2xl font-bold mb-6">🔍 Personality Insights</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <template x-for="insight in insights" :key="insight.id">
+                        <div class="insight-card">
+                            <div class="flex items-start justify-between mb-3">
+                                <span class="insight-type" x-text="insight.insight_type"></span>
+                                <span class="text-xs text-gray-500" x-text="formatDate(insight.created_at)"></span>
+                            </div>
+                            <h4 class="font-semibold mb-2" x-text="insight.title"></h4>
+                            <p class="text-gray-300 text-sm mb-3" x-text="insight.description"></p>
+                            <div class="flex items-center justify-between">
+                                <span class="confidence-badge" x-text="'Confidence: ' + Math.round(insight.confidence * 100) + '%'"></span>
+                                <span class="text-xs" :class="insight.actionable ? 'text-green-400' : 'text-gray-500'">
+                                    <span x-show="insight.actionable">💡 Actionable</span>
+                                    <span x-show="!insight.actionable">📊 Observation</span>
+                                </span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Assessment History -->
+            <div x-show="assessmentHistory.length > 1" class="glass rounded-2xl p-8 mb-8">
+                <h3 class="text-2xl font-bold mb-6">📈 Personality Evolution</h3>
+                <div class="space-y-4">
+                    <template x-for="assessment in assessmentHistory.slice(0, 5)" :key="assessment.id">
+                        <div class="assessment-history-item">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-medium" x-text="formatDate(assessment.created_at)"></span>
+                                <span class="text-sm text-gray-400" x-text="assessment.assessment_type"></span>
+                            </div>
+                            <div class="grid grid-cols-5 gap-2">
+                                <div class="mini-trait">
+                                    <div class="text-xs text-purple-300">O</div>
+                                    <div class="mini-bar">
+                                        <div class="mini-fill bg-purple-500" :style="`width: ${assessment.openness * 100}%`"></div>
+                                    </div>
+                                </div>
+                                <div class="mini-trait">
+                                    <div class="text-xs text-blue-300">C</div>
+                                    <div class="mini-bar">
+                                        <div class="mini-fill bg-blue-500" :style="`width: ${assessment.conscientiousness * 100}%`"></div>
+                                    </div>
+                                </div>
+                                <div class="mini-trait">
+                                    <div class="text-xs text-green-300">E</div>
+                                    <div class="mini-bar">
+                                        <div class="mini-fill bg-green-500" :style="`width: ${assessment.extraversion * 100}%`"></div>
+                                    </div>
+                                </div>
+                                <div class="mini-trait">
+                                    <div class="text-xs text-yellow-300">A</div>
+                                    <div class="mini-bar">
+                                        <div class="mini-fill bg-yellow-500" :style="`width: ${assessment.agreeableness * 100}%`"></div>
+                                    </div>
+                                </div>
+                                <div class="mini-trait">
+                                    <div class="text-xs text-red-300">N</div>
+                                    <div class="mini-bar">
+                                        <div class="mini-fill bg-red-500" :style="`width: ${assessment.neuroticism * 100}%`"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- NOOR Adaptation Info -->
+            <div class="glass rounded-2xl p-8">
+                <h3 class="text-2xl font-bold mb-6">🤖 NOOR's Understanding</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="adaptation-card">
+                        <h4 class="font-semibold mb-3">Communication Style</h4>
+                        <p class="text-gray-300 text-sm mb-3" x-text="adaptationInfo.communication_style"></p>
+                        <div class="text-xs text-gray-500">
+                            Adapted based on your personality traits
+                        </div>
+                    </div>
+                    <div class="adaptation-card">
+                        <h4 class="font-semibold mb-3">Interaction Preferences</h4>
+                        <p class="text-gray-300 text-sm mb-3" x-text="adaptationInfo.interaction_preferences"></p>
+                        <div class="text-xs text-gray-500">
+                            Personalized for optimal engagement
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function personalityDashboard() {
+    return {
+        isLoading: true,
+        currentAssessment: null,
+        assessmentHistory: [],
+        assessmentCount: 0,
+        insights: [],
+        adaptationInfo: {
+            communication_style: "Loading...",
+            interaction_preferences: "Loading..."
+        },
+        
+        async init() {
+            await this.loadDashboardData();
+            this.isLoading = false;
+        },
+        
+        async loadDashboardData() {
+            try {
+                const response = await fetch('{% url "personality:api_insights" %}');
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.currentAssessment = data.current_assessment;
+                    this.assessmentHistory = data.assessment_history || [];
+                    this.assessmentCount = data.assessment_count || 0;
+                    this.insights = data.insights || [];
+                    
+                    if (this.currentAssessment) {
+                        this.adaptationInfo = this.generateAdaptationInfo(this.currentAssessment);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        },
+        
+        generateAdaptationInfo(assessment) {
+            let communicationStyle = "Balanced and adaptive";
+            let interactionPreferences = "Flexible interaction style";
+            
+            if (assessment.extraversion > 0.7) {
+                communicationStyle = "Energetic and social conversations";
+                interactionPreferences = "Interactive features and social elements";
+            } else if (assessment.extraversion < 0.3) {
+                communicationStyle = "Calm and thoughtful discussions";
+                interactionPreferences = "Focused, one-on-one interactions";
+            }
+            
+            if (assessment.openness > 0.7) {
+                communicationStyle += ", with creative and imaginative elements";
+                interactionPreferences += ", exploring new ideas and concepts";
+            }
+            
+            if (assessment.conscientiousness > 0.7) {
+                interactionPreferences += ", organized and structured approach";
+            }
+            
+            return {
+                communication_style: communicationStyle,
+                interaction_preferences: interactionPreferences
+            };
+        },
+        
+        getTraitDescription(trait, score) {
+            const descriptions = {
+                openness: {
+                    high: "Creative and open to new experiences",
+                    medium: "Balanced openness to new ideas",
+                    low: "Prefers familiar and traditional approaches"
+                },
+                conscientiousness: {
+                    high: "Organized and goal-oriented",
+                    medium: "Moderately organized and reliable",
+                    low: "Flexible and spontaneous"
+                },
+                extraversion: {
+                    high: "Outgoing and energetic",
+                    medium: "Balanced social energy",
+                    low: "Thoughtful and introspective"
+                },
+                agreeableness: {
+                    high: "Cooperative and trusting",
+                    medium: "Balanced in social cooperation",
+                    low: "Independent and competitive"
+                },
+                neuroticism: {
+                    high: "Emotionally stable and calm",
+                    medium: "Moderate emotional resilience",
+                    low: "Sensitive and emotionally responsive"
+                }
+            };
+            
+            let level = 'medium';
+            if (trait === 'neuroticism') {
+                // For neuroticism, we show emotional stability (inverted)
+                const stabilityScore = 1 - score;
+                if (stabilityScore > 0.7) level = 'high';
+                else if (stabilityScore < 0.3) level = 'low';
+            } else {
+                if (score > 0.7) level = 'high';
+                else if (score < 0.3) level = 'low';
+            }
+            
+            return descriptions[trait][level];
+        },
+        
+        formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    };
+}
+</script>
+
+<style>
+.trait-card {
+    @apply bg-gray-800/50 rounded-lg p-6 text-center border border-gray-700/30;
+}
+
+.trait-score {
+    @apply text-2xl font-bold;
+}
+
+.trait-bar {
+    @apply w-full bg-gray-700 rounded-full h-2;
+}
+
+.trait-fill {
+    @apply h-full rounded-full transition-all duration-300;
+}
+
+.insight-card {
+    @apply bg-gray-800/30 rounded-lg p-4 border border-gray-700/30;
+}
+
+.insight-type {
+    @apply bg-purple-500/20 text-purple-300 px-2 py-1 rounded text-xs font-medium;
+}
+
+.confidence-badge {
+    @apply bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs;
+}
+
+.assessment-history-item {
+    @apply bg-gray-800/30 rounded-lg p-4 border border-gray-700/30;
+}
+
+.mini-trait {
+    @apply text-center;
+}
+
+.mini-bar {
+    @apply w-full bg-gray-700 rounded-full h-1 mt-1;
+}
+
+.mini-fill {
+    @apply h-full rounded-full;
+}
+
+.adaptation-card {
+    @apply bg-gray-800/30 rounded-lg p-4 border border-gray-700/30;
+}
+</style>
+{% endblock %}
