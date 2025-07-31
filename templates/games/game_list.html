@@ -1,0 +1,362 @@
+{% extends 'base.html' %}
+
+{% block title %}NOOR Games - RPG Adventures{% endblock %}
+
+{% block content %}
+<div class="min-h-screen" x-data="gamesApp()">
+    <!-- Games Header -->
+    <div class="glass p-6 border-b border-gray-600">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold neon-text">🎮 NOOR Games</h1>
+                    <p class="text-gray-400">Interactive RPG adventures for personality discovery</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="glass px-4 py-2 rounded-lg">
+                        <span class="text-yellow-400">⭐</span>
+                        <span x-text="playerStats.totalPoints"></span> XP
+                    </div>
+                    <div class="glass px-4 py-2 rounded-lg">
+                        <span class="text-purple-400">🏆</span>
+                        <span x-text="playerStats.achievements"></span> Achievements
+                    </div>
+                    <a href="{% url 'home' %}" class="glass px-4 py-2 rounded-lg hover:neon-glow">
+                        🏠 Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game Selection Grid -->
+    <div class="p-8">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                
+                <!-- Personality Quest -->
+                <div class="glass rounded-2xl p-6 hover:neon-glow transition-all cursor-pointer"
+                     @click="selectGame('personality-quest')"
+                     :class="selectedGame === 'personality-quest' ? 'neon-glow' : ''">
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-3xl">🏰</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">Personality Quest</h3>
+                        <p class="text-gray-400 mb-4">Embark on a journey to discover your hidden personality traits through interactive scenarios.</p>
+                        
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Progress</span>
+                                <span>45%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-purple-500 h-2 rounded-full" style="width: 45%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between text-sm text-gray-400">
+                            <span>🎯 15 Scenarios</span>
+                            <span>⏱️ ~10 min</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mood Dungeon -->
+                <div class="glass rounded-2xl p-6 hover:neon-glow transition-all cursor-pointer"
+                     @click="selectGame('mood-dungeon')"
+                     :class="selectedGame === 'mood-dungeon' ? 'neon-glow' : ''">
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-gradient-to-r from-green-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-3xl">🌟</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">Mood Dungeon</h3>
+                        <p class="text-gray-400 mb-4">Battle negative thoughts and emotions in this engaging RPG adventure.</p>
+                        
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Progress</span>
+                                <span>70%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 70%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between text-sm text-gray-400">
+                            <span>⚔️ 12 Battles</span>
+                            <span>⏱️ ~8 min</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Social Arena -->
+                <div class="glass rounded-2xl p-6 hover:neon-glow transition-all cursor-pointer"
+                     @click="selectGame('social-arena')"
+                     :class="selectedGame === 'social-arena' ? 'neon-glow' : ''">
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-gradient-to-r from-pink-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-3xl">👥</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">Social Arena</h3>
+                        <p class="text-gray-400 mb-4">Practice social skills through realistic conversation scenarios.</p>
+                        
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Progress</span>
+                                <span>20%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-pink-500 h-2 rounded-full" style="width: 20%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between text-sm text-gray-400">
+                            <span>💬 20 Scenarios</span>
+                            <span>⏱️ ~12 min</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Stress Survival -->
+                <div class="glass rounded-2xl p-6 hover:neon-glow transition-all cursor-pointer"
+                     @click="selectGame('stress-survival')"
+                     :class="selectedGame === 'stress-survival' ? 'neon-glow' : ''">
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-3xl">⚔️</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">Stress Survival</h3>
+                        <p class="text-gray-400 mb-4">Learn and master coping skills through challenging stress scenarios.</p>
+                        
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Progress</span>
+                                <span>60%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-orange-500 h-2 rounded-full" style="width: 60%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between text-sm text-gray-400">
+                            <span>🛡️ 18 Challenges</span>
+                            <span>⏱️ ~15 min</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mindfulness Mystery -->
+                <div class="glass rounded-2xl p-6 hover:neon-glow transition-all cursor-pointer"
+                     @click="selectGame('mindfulness-mystery')"
+                     :class="selectedGame === 'mindfulness-mystery' ? 'neon-glow' : ''">
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-3xl">🧘</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">Mindfulness Mystery</h3>
+                        <p class="text-gray-400 mb-4">Solve puzzles while practicing mindfulness and meditation techniques.</p>
+                        
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Progress</span>
+                                <span>85%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-indigo-500 h-2 rounded-full" style="width: 85%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between text-sm text-gray-400">
+                            <span>🧩 10 Puzzles</span>
+                            <span>⏱️ ~6 min</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Emotion Explorer -->
+                <div class="glass rounded-2xl p-6 hover:neon-glow transition-all cursor-pointer"
+                     @click="selectGame('emotion-explorer')"
+                     :class="selectedGame === 'emotion-explorer' ? 'neon-glow' : ''">
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-gradient-to-r from-teal-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-3xl">💝</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">Emotion Explorer</h3>
+                        <p class="text-gray-400 mb-4">Navigate through different emotional landscapes and learn about feelings.</p>
+                        
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Progress</span>
+                                <span>30%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-teal-500 h-2 rounded-full" style="width: 30%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between text-sm text-gray-400">
+                            <span>🗺️ 25 Zones</span>
+                            <span>⏱️ ~20 min</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Game Preview -->
+            <div x-show="selectedGame" class="glass rounded-3xl p-8 mb-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold mb-4" x-text="gameDetails[selectedGame]?.title"></h2>
+                    <p class="text-xl text-gray-300" x-text="gameDetails[selectedGame]?.description"></p>
+                </div>
+                
+                <div class="grid md:grid-cols-3 gap-6 mb-8">
+                    <div class="text-center">
+                        <div class="text-3xl mb-2" x-text="gameDetails[selectedGame]?.difficulty"></div>
+                        <p class="text-gray-400">Difficulty</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl mb-2" x-text="gameDetails[selectedGame]?.duration"></div>
+                        <p class="text-gray-400">Duration</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl mb-2" x-text="gameDetails[selectedGame]?.reward"></div>
+                        <p class="text-gray-400">XP Reward</p>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <button @click="startGame()" 
+                            class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-4 rounded-full text-xl font-bold transition-all transform hover:scale-105 neon-glow">
+                        🚀 Start Adventure
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Recent Achievements -->
+            <div class="glass rounded-3xl p-8">
+                <h3 class="text-2xl font-bold mb-6 text-center">🏆 Recent Achievements</h3>
+                
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="glass-dark rounded-lg p-4 text-center">
+                        <div class="text-3xl mb-2">🌟</div>
+                        <h4 class="font-semibold">First Quest</h4>
+                        <p class="text-sm text-gray-400">Complete your first personality quest</p>
+                        <div class="mt-2 px-3 py-1 bg-green-600 rounded-full text-xs">Earned</div>
+                    </div>
+                    
+                    <div class="glass-dark rounded-lg p-4 text-center">
+                        <div class="text-3xl mb-2">💪</div>
+                        <h4 class="font-semibold">Mood Warrior</h4>
+                        <p class="text-sm text-gray-400">Win 5 battles in Mood Dungeon</p>
+                        <div class="mt-2 px-3 py-1 bg-green-600 rounded-full text-xs">Earned</div>
+                    </div>
+                    
+                    <div class="glass-dark rounded-lg p-4 text-center">
+                        <div class="text-3xl mb-2">🗣️</div>
+                        <h4 class="font-semibold">Social Butterfly</h4>
+                        <p class="text-sm text-gray-400">Master social scenarios</p>
+                        <div class="mt-2 px-3 py-1 bg-gray-600 rounded-full text-xs">Locked</div>
+                    </div>
+                    
+                    <div class="glass-dark rounded-lg p-4 text-center">
+                        <div class="text-3xl mb-2">🧘</div>
+                        <h4 class="font-semibold">Zen Master</h4>
+                        <p class="text-sm text-gray-400">Complete mindfulness challenges</p>
+                        <div class="mt-2 px-3 py-1 bg-green-600 rounded-full text-xs">Earned</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function gamesApp() {
+    return {
+        selectedGame: null,
+        
+        playerStats: {
+            totalPoints: 1250,
+            achievements: 12,
+            level: 5
+        },
+        
+        gameDetails: {
+            'personality-quest': {
+                title: '🏰 Personality Quest',
+                description: 'Embark on an epic journey through different scenarios that reveal your unique personality traits. Make choices that shape your character and discover hidden aspects of yourself.',
+                difficulty: '⭐⭐⭐',
+                duration: '10 min',
+                reward: '+150 XP'
+            },
+            'mood-dungeon': {
+                title: '🌟 Mood Dungeon',
+                description: 'Battle against negative thoughts and emotions in this engaging RPG adventure. Learn coping strategies while having fun defeating mood monsters.',
+                difficulty: '⭐⭐',
+                duration: '8 min',
+                reward: '+120 XP'
+            },
+            'social-arena': {
+                title: '👥 Social Arena',
+                description: 'Practice real-world social situations in a safe, game-like environment. Build confidence and improve your communication skills.',
+                difficulty: '⭐⭐⭐⭐',
+                duration: '12 min',
+                reward: '+200 XP'
+            },
+            'stress-survival': {
+                title: '⚔️ Stress Survival',
+                description: 'Navigate through stressful scenarios and learn effective coping mechanisms. Build resilience while completing challenging missions.',
+                difficulty: '⭐⭐⭐⭐⭐',
+                duration: '15 min',
+                reward: '+250 XP'
+            },
+            'mindfulness-mystery': {
+                title: '🧘 Mindfulness Mystery',
+                description: 'Solve intriguing puzzles while practicing mindfulness techniques. Combine mental challenge with relaxation and focus.',
+                difficulty: '⭐⭐',
+                duration: '6 min',
+                reward: '+100 XP'
+            },
+            'emotion-explorer': {
+                title: '💝 Emotion Explorer',
+                description: 'Journey through different emotional landscapes and learn about the complexity of human feelings. Develop emotional intelligence.',
+                difficulty: '⭐⭐⭐',
+                duration: '20 min',
+                reward: '+300 XP'
+            }
+        },
+        
+        selectGame(gameId) {
+            this.selectedGame = gameId;
+            
+            // Scroll to preview
+            this.$nextTick(() => {
+                document.querySelector('[x-show="selectedGame"]').scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            });
+        },
+        
+        startGame() {
+            if (!this.selectedGame) return;
+            
+            // Show loading effect
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            
+            // Simulate game loading
+            setTimeout(() => {
+                document.getElementById('loading-overlay').classList.add('hidden');
+                
+                // In a real app, this would navigate to the actual game
+                alert(`🎮 Starting ${this.gameDetails[this.selectedGame].title}!\n\nThis would normally launch the interactive game experience. For the demo, this shows the game selection interface.`);
+                
+                // Redirect to game URL (when games are implemented)
+                // window.location.href = `/games/${this.selectedGame}/play/`;
+            }, 2000);
+        }
+    }
+}
+</script>
+{% endblock %}

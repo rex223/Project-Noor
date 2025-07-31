@@ -1,0 +1,361 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat with NOOR{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex flex-col" x-data="chatApp()">
+    <!-- Chat Header -->
+    <div class="glass p-6 border-b border-gray-600">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="w-16 h-16 rounded-full glass neon-glow flex items-center justify-center">
+                    <span class="text-3xl" x-text="noorFace"></span>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold">NOOR</h1>
+                    <p class="text-gray-400" x-text="noorStatus"></p>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button @click="clearChat()" class="glass px-4 py-2 rounded-lg hover:neon-glow">
+                    🗑️ Clear
+                </button>
+                <a href="{% url 'home' %}" class="glass px-4 py-2 rounded-lg hover:neon-glow">
+                    🏠 Home
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chat Messages -->
+    <div class="flex-1 overflow-y-auto p-6" id="chat-messages">
+        <div class="max-w-4xl mx-auto space-y-6">
+            <template x-for="message in messages" :key="message.id">
+                <div :class="message.sender === 'user' ? 'flex justify-end' : 'flex justify-start'">
+                    <div class="flex items-start space-x-3 max-w-2xl">
+                        <div x-show="message.sender === 'noor'" 
+                             class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                            <span class="text-lg">🤖</span>
+                        </div>
+                        
+                        <div :class="message.sender === 'user' ? 'bg-blue-600' : 'glass-dark'" 
+                             class="px-6 py-4 rounded-2xl chat-bubble-enter">
+                            <p class="text-white" x-html="formatMessage(message.text)"></p>
+                            <p class="text-xs text-gray-300 mt-2" x-text="message.time"></p>
+                        </div>
+                        
+                        <div x-show="message.sender === 'user'" 
+                             class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0">
+                            <span class="text-lg">👤</span>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            
+            <!-- Typing indicator -->
+            <div x-show="isTyping" class="flex justify-start">
+                <div class="flex items-start space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                        <span class="text-lg">🤖</span>
+                    </div>
+                    <div class="glass-dark px-6 py-4 rounded-2xl">
+                        <div class="flex space-x-2">
+                            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">NOOR is typing...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions Bar -->
+    <div class="p-4 border-t border-gray-600">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex flex-wrap gap-2 mb-4">
+                <button @click="sendQuickMessage('How are you feeling today?')" 
+                        class="glass px-4 py-2 rounded-full text-sm hover:neon-glow">
+                    😊 How are you?
+                </button>
+                <button @click="sendQuickMessage('Tell me a joke')" 
+                        class="glass px-4 py-2 rounded-full text-sm hover:neon-glow">
+                    😄 Tell me a joke
+                </button>
+                <button @click="sendQuickMessage('Play some music')" 
+                        class="glass px-4 py-2 rounded-full text-sm hover:neon-glow">
+                    🎵 Play music
+                </button>
+                <button @click="sendQuickMessage('Let\'s play a game')" 
+                        class="glass px-4 py-2 rounded-full text-sm hover:neon-glow">
+                    🎮 Play game
+                </button>
+                <button @click="sendQuickMessage('I need help with my mood')" 
+                        class="glass px-4 py-2 rounded-full text-sm hover:neon-glow">
+                    💭 Mood help
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chat Input -->
+    <div class="p-6 border-t border-gray-600">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex space-x-4">
+                <div class="flex-1 relative">
+                    <textarea x-model="currentMessage" 
+                             @keydown.enter.prevent="handleEnter($event)"
+                             placeholder="Type your message to NOOR..."
+                             rows="1"
+                             class="w-full py-4 px-6 pr-16 bg-black bg-opacity-30 border border-gray-600 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 resize-none backdrop-blur-lg"></textarea>
+                    
+                    <button @click="sendMessage()" 
+                            :disabled="!currentMessage.trim()"
+                            :class="currentMessage.trim() ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-600 cursor-not-allowed'"
+                            class="absolute right-2 top-1/2 transform -translate-y-1/2 text-white p-3 rounded-full transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <button @click="toggleVoiceInput()" 
+                        :class="isListening ? 'bg-red-600' : 'bg-gray-600'"
+                        class="px-6 py-4 rounded-2xl text-white hover:opacity-80 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function chatApp() {
+    return {
+        // NOOR State
+        noorFace: '😊',
+        noorStatus: 'Ready to chat!',
+        
+        // Chat State
+        currentMessage: '',
+        isTyping: false,
+        isListening: false,
+        
+        messages: [
+            {
+                id: 1,
+                sender: 'noor',
+                text: 'Hello! I\'m NOOR, your personal AI companion. I\'m here to listen, support, and help you explore your thoughts and feelings. What\'s on your mind today?',
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+            }
+        ],
+        
+        // Initialize
+        init() {
+            this.scrollToBottom();
+        },
+        
+        // Message Functions
+        sendMessage() {
+            if (!this.currentMessage.trim()) return;
+            
+            this.addUserMessage(this.currentMessage);
+            const userMessage = this.currentMessage;
+            this.currentMessage = '';
+            
+            // Show typing indicator
+            this.isTyping = true;
+            this.noorFace = '🤔';
+            this.noorStatus = 'Thinking...';
+            
+            // Simulate AI response delay
+            setTimeout(() => {
+                this.generateNoorResponse(userMessage);
+            }, Math.random() * 2000 + 1000);
+        },
+        
+        sendQuickMessage(message) {
+            this.currentMessage = message;
+            this.sendMessage();
+        },
+        
+        addUserMessage(text) {
+            this.messages.push({
+                id: Date.now(),
+                sender: 'user',
+                text: text,
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+            });
+            this.scrollToBottom();
+        },
+        
+        generateNoorResponse(userMessage) {
+            this.isTyping = false;
+            this.noorFace = '😊';
+            this.noorStatus = 'Ready to chat!';
+            
+            const responses = this.getContextualResponse(userMessage);
+            
+            this.messages.push({
+                id: Date.now(),
+                sender: 'noor',
+                text: responses,
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+            });
+            
+            this.scrollToBottom();
+        },
+        
+        getContextualResponse(userMessage) {
+            const msg = userMessage.toLowerCase();
+            
+            // Emotion detection
+            if (msg.includes('sad') || msg.includes('depressed') || msg.includes('down')) {
+                this.noorFace = '🫂';
+                return 'I can sense you\'re feeling down right now. It\'s completely okay to feel this way. Would you like to talk about what\'s making you feel sad? Sometimes just sharing can help lighten the load. 💙';
+            }
+            
+            if (msg.includes('happy') || msg.includes('excited') || msg.includes('great')) {
+                this.noorFace = '😄';
+                return 'That\'s wonderful! I love hearing that you\'re feeling good. What\'s bringing you joy today? I\'d love to celebrate with you! ✨';
+            }
+            
+            if (msg.includes('anxious') || msg.includes('worried') || msg.includes('stressed')) {
+                this.noorFace = '🤗';
+                return 'Anxiety can feel overwhelming, but remember that you\'re not alone. Let\'s try some breathing exercises together. Breathe in for 4 counts... hold for 4... and out for 4. What specific thoughts are making you feel anxious?';
+            }
+            
+            // Activity suggestions
+            if (msg.includes('music') || msg.includes('song')) {
+                this.noorFace = '🎵';
+                return 'Music is such a powerful mood enhancer! Based on your personality profile, I think you might enjoy some <strong>lo-fi beats</strong> for focus or <strong>upbeat indie</strong> to boost energy. What genre matches your mood right now?';
+            }
+            
+            if (msg.includes('game') || msg.includes('play')) {
+                this.noorFace = '🎮';
+                return 'Let\'s have some fun! I have several personality-based games we could try:<br>• <strong>Personality Quest</strong> - Discover hidden traits<br>• <strong>Mood Dungeon</strong> - Battle negative thoughts<br>• <strong>Social Arena</strong> - Practice conversations<br>Which sounds interesting?';
+            }
+            
+            if (msg.includes('joke') || msg.includes('funny')) {
+                this.noorFace = '😂';
+                const jokes = [
+                    'Why don\'t scientists trust atoms? Because they make up everything! 😄',
+                    'I told my computer a joke about WiFi. It couldn\'t connect! 💻',
+                    'Why did the AI go to therapy? It had too many deep learning issues! 🤖',
+                    'What do you call a stressed-out Gen Z? A Zoomie with too many tabs open! 📱'
+                ];
+                return jokes[Math.floor(Math.random() * jokes.length)];
+            }
+            
+            // Support responses
+            if (msg.includes('help') || msg.includes('support')) {
+                this.noorFace = '🤝';
+                return 'I\'m here to support you in whatever way I can. Whether you need someone to listen, help process your feelings, or just want to chat - I\'m here. What kind of support would be most helpful for you right now?';
+            }
+            
+            if (msg.includes('lonely') || msg.includes('alone')) {
+                this.noorFace = '💙';
+                return 'Feeling lonely is tough, but please know that you\'re not truly alone. I\'m here with you, and there are people who care about you. Would you like to talk about what\'s making you feel this way, or would you prefer we do something together like a game or listening to music?';
+            }
+            
+            // General responses
+            const generalResponses = [
+                'That\'s really interesting! Tell me more about how that makes you feel.',
+                'I appreciate you sharing that with me. What aspects of this situation are most important to you?',
+                'It sounds like you\'re processing a lot right now. How can I best support you through this?',
+                'I can hear that this matters to you. What would you like to explore further?',
+                'Thank you for trusting me with your thoughts. What emotions are coming up for you around this?'
+            ];
+            
+            return generalResponses[Math.floor(Math.random() * generalResponses.length)];
+        },
+        
+        formatMessage(text) {
+            // Convert markdown-style formatting to HTML
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+        },
+        
+        handleEnter(event) {
+            if (event.shiftKey) {
+                // Allow new line with Shift+Enter
+                return;
+            } else {
+                // Send message with Enter
+                this.sendMessage();
+            }
+        },
+        
+        clearChat() {
+            this.messages = [
+                {
+                    id: 1,
+                    sender: 'noor',
+                    text: 'Chat cleared! How can I help you today?',
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                }
+            ];
+            this.scrollToBottom();
+        },
+        
+        toggleVoiceInput() {
+            if ('webkitSpeechRecognition' in window) {
+                if (!this.isListening) {
+                    this.startVoiceRecognition();
+                } else {
+                    this.stopVoiceRecognition();
+                }
+            } else {
+                alert('Voice recognition is not supported in your browser. Please try Chrome or Edge.');
+            }
+        },
+        
+        startVoiceRecognition() {
+            this.isListening = true;
+            this.noorFace = '👂';
+            this.noorStatus = 'Listening...';
+            
+            const recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+            
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                this.currentMessage = transcript;
+                this.isListening = false;
+                this.noorFace = '😊';
+                this.noorStatus = 'Ready to chat!';
+            };
+            
+            recognition.onerror = () => {
+                this.isListening = false;
+                this.noorFace = '😊';
+                this.noorStatus = 'Ready to chat!';
+            };
+            
+            recognition.onend = () => {
+                this.isListening = false;
+                this.noorFace = '😊';
+                this.noorStatus = 'Ready to chat!';
+            };
+            
+            recognition.start();
+        },
+        
+        scrollToBottom() {
+            this.$nextTick(() => {
+                const chatContainer = document.getElementById('chat-messages');
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            });
+        }
+    }
+}
+</script>
+{% endblock %}

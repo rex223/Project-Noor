@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}The Last Neuron - NOOR{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Alpine.js for reactivity -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Anime.js for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    
+    <!-- Particles.js for background effects -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🧠</text></svg>">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; }
+        .code-font { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Gradient backgrounds */
+        .bg-neural {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .bg-neural-dark {
+            background: linear-gradient(135deg, #2D3748 0%, #1A202C 100%);
+        }
+        
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .glass-dark {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.5); }
+        
+        /* Neon glow effects */
+        .neon-glow { box-shadow: 0 0 20px rgba(102, 126, 234, 0.5); }
+        .neon-text { text-shadow: 0 0 10px rgba(102, 126, 234, 0.8); }
+        
+        /* Floating animation */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .float-animation { animation: float 3s ease-in-out infinite; }
+        
+        /* Pulse animation */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(102, 126, 234, 0.8); }
+        }
+        .pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+        
+        /* Chat bubble animations */
+        .chat-bubble-enter { animation: bubbleIn 0.3s ease-out; }
+        @keyframes bubbleIn {
+            from { opacity: 0; transform: scale(0.8) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        
+        /* NOOR face reactions */
+        .face-happy { transform: scale(1.1); }
+        .face-excited { animation: bounce 0.5s ease-in-out; }
+        .face-thinking { animation: tilt 1s ease-in-out infinite; }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes tilt {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+        
+        /* Media card hover effects */
+        .media-card {
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+        .media-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-neural-dark text-white min-h-screen overflow-hidden">
+    <!-- Particles background -->
+    <div id="particles-js" class="fixed inset-0 z-0"></div>
+    
+    <!-- Main content -->
+    <div class="relative z-10">
+        {% block content %}
+        {% endblock %}
+    </div>
+    
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center hidden">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <p class="text-white text-lg">Loading...</p>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script>
+        // Initialize particles
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: "#667eea" },
+                shape: { type: "circle", stroke: { width: 0, color: "#000000" } },
+                opacity: { value: 0.5, random: false, anim: { enable: false } },
+                size: { value: 3, random: true, anim: { enable: false } },
+                line_linked: { enable: true, distance: 150, color: "#667eea", opacity: 0.4, width: 1 },
+                move: { enable: true, speed: 2, direction: "none", random: false, straight: false, out_mode: "out", bounce: false }
+            },
+            interactivity: {
+                detect_on: "canvas",
+                events: { onhover: { enable: true, mode: "repulse" }, onclick: { enable: true, mode: "push" }, resize: true },
+                modes: { repulse: { distance: 200, duration: 0.4 }, push: { particles_nb: 4 } }
+            },
+            retina_detect: true
+        });
+        
+        // Global functions
+        function showLoading() { document.getElementById('loading-overlay').classList.remove('hidden'); }
+        function hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); }
+        
+        // HTMX loading indicators
+        document.addEventListener('htmx:beforeRequest', showLoading);
+        document.addEventListener('htmx:afterRequest', hideLoading);
+        
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🧠 The Last Neuron - NOOR is ready!');
+        });
+    </script>
+    
+    {% block extra_js %}
+    {% endblock %}
+</body>
+</html>

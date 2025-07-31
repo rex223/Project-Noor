@@ -1,0 +1,357 @@
+/* Custom CSS for The Last Neuron - NOOR Enhanced */
+
+:root {
+    --primary-color: #3b82f6;
+    --secondary-color: #8b5cf6;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --error-color: #ef4444;
+    --neutral-color: #6b7280;
+    --neon-blue: #667eea;
+    --neon-purple: #764ba2;
+}
+
+/* NOOR Interface Enhancements */
+.custom-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.custom-shadow {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.text-glow {
+    text-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+}
+
+/* NOOR character enhancements */
+.noor-character {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.noor-character:hover {
+    transform: scale(1.05);
+}
+
+.noor-character:active {
+    transform: scale(0.95);
+}
+
+/* Animation enhancements */
+@keyframes slideIn {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.slide-in {
+    animation: slideIn 0.5s ease-out;
+}
+
+/* Chat Interface Styles */
+.chat-container {
+    height: 600px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: white;
+}
+
+.message {
+    margin-bottom: 1rem;
+    animation: fadeInUp 0.3s ease;
+}
+
+.message.user {
+    text-align: right;
+}
+
+.message.agent {
+    text-align: left;
+}
+
+.message-bubble {
+    display: inline-block;
+    max-width: 70%;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    word-wrap: break-word;
+}
+
+.message.user .message-bubble {
+    background-color: var(--primary-color);
+    color: white;
+    border-bottom-right-radius: 0.25rem;
+}
+
+.message.agent .message-bubble {
+    background-color: #f3f4f6;
+    color: #374151;
+    border-bottom-left-radius: 0.25rem;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: #f3f4f6;
+    border-radius: 1rem;
+    border-bottom-left-radius: 0.25rem;
+    max-width: 70%;
+}
+
+.typing-indicator .dot {
+    height: 8px;
+    width: 8px;
+    margin: 0 2px;
+    background-color: #6b7280;
+    border-radius: 50%;
+    opacity: 0.4;
+    animation: typing 1.4s infinite;
+}
+
+.typing-indicator .dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-indicator .dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-10px);
+        opacity: 1;
+    }
+}
+
+/* Personality Chart Styles */
+.personality-chart {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Game Styles */
+.game-card {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.game-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.game-choice {
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.game-choice:hover {
+    border-color: var(--primary-color);
+    background: #eff6ff;
+}
+
+.game-choice.selected {
+    border-color: var(--primary-color);
+    background: #dbeafe;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Progress Bars */
+.progress-bar {
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+    height: 0.5rem;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    background-color: var(--primary-color);
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.3s ease;
+}
+
+/* Mood Selector */
+.mood-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.mood-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mood-option:hover {
+    border-color: var(--primary-color);
+    background-color: #eff6ff;
+}
+
+.mood-option.selected {
+    border-color: var(--primary-color);
+    background-color: #dbeafe;
+}
+
+.mood-emoji {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Achievements */
+.achievement {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.achievement::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shine 2s infinite;
+}
+
+@keyframes shine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Notifications */
+.notification {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid var(--primary-color);
+    z-index: 1000;
+    animation: slideInRight 0.3s ease;
+    max-width: 300px;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Personality Traits */
+.trait-high {
+    color: var(--success-color);
+}
+
+.trait-medium {
+    color: var(--warning-color);
+}
+
+.trait-low {
+    color: var(--neutral-color);
+}
+
+/* Animation Classes */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.5s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .message-bubble {
+        max-width: 85%;
+    }
+    
+    .chat-container {
+        height: 400px;
+    }
+    
+    .mood-selector {
+        grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #1f2937;
+        --text-color: #f9fafb;
+        --card-bg: #374151;
+    }
+}
+
+/* Loading States */
+.loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
