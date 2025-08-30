@@ -4,8 +4,38 @@ Development settings for The Last Neuron project.
 
 from .base import *
 
-# Development specific settings
-DEBUG = True
+# Application definition
+DJANGO_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+]
+
+THIRD_PARTY_APPS = [
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
+    'channels',
+    'django_htmx',
+    'widget_tweaks',
+    'django_extensions',
+    'axes',
+]
+
+LOCAL_APPS = [
+    'apps.accounts',
+    'apps.personality',
+    'apps.chat',
+    'apps.games',
+    'apps.recommendations',
+    'apps.ml',
+    'apps.api',
+]
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # Use SQLite for development if PostgreSQL is not available
 DATABASES = {
@@ -39,6 +69,10 @@ CACHES = {
 # Development logging
 LOGGING['handlers']['console']['level'] = 'DEBUG'
 LOGGING['root']['level'] = 'DEBUG'
+
+# Use WSGI instead of ASGI for development to avoid async/sync issues
+WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = None
 
 # Django Debug Toolbar (if installed)
 if 'debug_toolbar' in INSTALLED_APPS:

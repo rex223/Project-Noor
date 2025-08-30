@@ -33,10 +33,34 @@ The Last Neuron is not just a chatbot - it's an autonomous digital twin agent de
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.9+
-- PostgreSQL 15+
-- Redis 6+
-- Node.js (for Tailwind CSS)
+- **Python 3.12+** (required for virtual environment)
+- PostgreSQL 15+ (optional, SQLite used by default in development)
+- Redis 6+ (required for Celery and real-time features)
+- Node.js (for Tailwind CSS, optional)
+
+### Installing Dependencies
+
+#### Option 1: Using Docker (Recommended)
+```bash
+# Install Docker Desktop from https://www.docker.com/products/docker-desktop
+# Then run Redis in Docker:
+docker run -p 6379:6379 redis
+```
+
+#### Option 2: Install Redis Natively (Windows)
+```powershell
+# Download Redis for Windows from:
+# https://github.com/tporadowski/redis/releases
+# Extract and run redis-server.exe
+```
+
+#### Option 3: Using Windows Subsystem for Linux (WSL)
+```bash
+# Install WSL and Ubuntu, then:
+sudo apt update
+sudo apt install redis-server
+redis-server
+```
 
 ### Installation
 
@@ -44,8 +68,11 @@ The Last Neuron is not just a chatbot - it's an autonomous digital twin agent de
 ```bash
 git clone <repository-url>
 cd the-last-neuron
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python3.12 -m venv venv
+# On Windows:
+venv\Scripts\activate
+# On Linux/Mac:
+source venv/bin/activate
 ```
 
 2. **Install dependencies**
