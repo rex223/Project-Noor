@@ -179,7 +179,7 @@ export default function SignUpPage() {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="space-y-4 lg:space-y-6"
             >
-              <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 tracking-tight leading-tight">
+              <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold text-foreground tracking-tight leading-tight">
                 Start your journey with Bondhu
               </h1>
               <p className="text-lg lg:text-xl text-muted-foreground leading-relaxed">
@@ -194,7 +194,7 @@ export default function SignUpPage() {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="space-y-6 lg:space-y-8"
             >
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900">
+              <h2 className="text-xl lg:text-2xl font-semibold text-foreground">
                 What makes Bondhu different?
               </h2>
               <div className="space-y-4 lg:space-y-6">
@@ -210,7 +210,7 @@ export default function SignUpPage() {
                       <benefit.icon className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-semibold text-gray-900 text-sm lg:text-base">{benefit.title}</h3>
+                      <h3 className="font-semibold text-foreground text-sm lg:text-base">{benefit.title}</h3>
                       <p className="text-muted-foreground leading-relaxed text-sm lg:text-base">{benefit.description}</p>
                     </div>
                   </motion.div>
@@ -231,9 +231,9 @@ export default function SignUpPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 1.0 + index * 0.2 }}
-                  className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50 shadow-sm"
+                  className="bg-card/80 backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-sm"
                 >
-                  <p className="text-gray-700 mb-4 italic leading-relaxed">
+                  <p className="text-foreground mb-4 italic leading-relaxed">
                     &quot;{testimonial.text}&quot;
                   </p>
                   <div className="flex items-center space-x-3">
@@ -243,7 +243,7 @@ export default function SignUpPage() {
                       </span>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{testimonial.author}</p>
+                      <p className="font-medium text-foreground">{testimonial.author}</p>
                       <p className="text-sm text-muted-foreground">{testimonial.location}</p>
                     </div>
                   </div>
@@ -264,7 +264,7 @@ export default function SignUpPage() {
         </div>
 
         {/* Right Panel - Form */}
-        <div className="w-full lg:w-2/5 flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-white/80 backdrop-blur-sm min-h-screen lg:min-h-auto">
+        <div className="w-full lg:w-2/5 flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-background/80 backdrop-blur-sm min-h-screen lg:min-h-auto border-l border-border/20">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -278,7 +278,7 @@ export default function SignUpPage() {
 
             {/* Form Header */}
             <div className="text-center space-y-2">
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Create your account</h1>
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Create your account</h1>
               <p className="text-sm sm:text-base text-muted-foreground">
                 Begin your personalized mental health journey with AI support
               </p>
@@ -297,7 +297,7 @@ export default function SignUpPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 lg:space-y-6">
               {/* Full Name Field */}
               <div className="space-y-2">
-                <label htmlFor="full_name" className="text-sm font-medium text-gray-900">
+                <label htmlFor="full_name" className="text-sm font-medium text-foreground">
                   Full name
                 </label>
                 <Input
@@ -313,7 +313,7 @@ export default function SignUpPage() {
 
               {/* Email Field */}
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-gray-900">
+                <label htmlFor="email" className="text-sm font-medium text-foreground">
                   Email address
                 </label>
                 <Input
@@ -329,7 +329,7 @@ export default function SignUpPage() {
 
               {/* Password Field */}
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-gray-900">
+                <label htmlFor="password" className="text-sm font-medium text-foreground">
                   Create password
                 </label>
                 <div className="relative">
@@ -366,7 +366,7 @@ export default function SignUpPage() {
                     disabled={isLoading}
                     className="mt-0.5"
                   />
-                  <label htmlFor="privacy_policy" className="text-sm leading-5 text-gray-700">
+                  <label htmlFor="privacy_policy" className="text-sm leading-5 text-foreground">
                     I agree to Bondhu's{" "}
                     <Link href="/privacy" className="text-primary hover:underline font-medium" target="_blank">
                       Privacy Policy
@@ -385,7 +385,7 @@ export default function SignUpPage() {
                     disabled={isLoading}
                     className="mt-0.5"
                   />
-                  <label htmlFor="terms_of_service" className="text-sm leading-5 text-gray-700">
+                  <label htmlFor="terms_of_service" className="text-sm leading-5 text-foreground">
                     I accept the{" "}
                     <Link href="/terms" className="text-primary hover:underline font-medium" target="_blank">
                       Terms of Service
@@ -404,7 +404,7 @@ export default function SignUpPage() {
                     disabled={isLoading}
                     className="mt-0.5"
                   />
-                  <label htmlFor="age_confirmation" className="text-sm leading-5 text-gray-700">
+                  <label htmlFor="age_confirmation" className="text-sm leading-5 text-foreground">
                     I confirm I am 18 years or older
                   </label>
                 </div>
@@ -433,17 +433,17 @@ export default function SignUpPage() {
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-200" />
+                <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground font-medium">OR CONTINUE WITH</span>
+                <span className="bg-background px-2 text-muted-foreground font-medium">OR CONTINUE WITH</span>
               </div>
             </div>
 
             {/* Google Sign Up */}
             <Button
               variant="outline"
-              className="w-full h-10 sm:h-11 border-gray-200 hover:bg-gray-50"
+              className="w-full h-10 sm:h-11"
               onClick={handleGoogleSignUp}
               disabled={isLoading}
             >
@@ -477,8 +477,8 @@ export default function SignUpPage() {
             </p>
 
             {/* Mobile Benefits Preview */}
-            <div className="lg:hidden mt-8 pt-8 border-t border-gray-200 space-y-4">
-              <h3 className="text-center text-lg font-semibold text-gray-900 mb-4">
+            <div className="lg:hidden mt-8 pt-8 border-t border-border space-y-4">
+              <h3 className="text-center text-lg font-semibold text-foreground mb-4">
                 Why choose Bondhu?
               </h3>
               <div className="grid grid-cols-2 gap-4">
@@ -487,7 +487,7 @@ export default function SignUpPage() {
                     <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center mx-auto">
                       <benefit.icon className="w-5 h-5 text-primary" />
                     </div>
-                    <h4 className="text-xs font-medium text-gray-900">{benefit.title}</h4>
+                    <h4 className="text-xs font-medium text-foreground">{benefit.title}</h4>
                   </div>
                 ))}
               </div>
