@@ -57,7 +57,7 @@ export function EnhancedHeroCTA({ onHover }: EnhancedHeroCTAProps) {
           className="h-12 px-8 relative overflow-hidden group backdrop-blur-sm border-primary/20 hover:border-primary/40"
           asChild
         >
-          <Link href="/sign-in" className="flex items-center gap-2 relative z-10">
+          <Link href="#demo" className="flex items-center gap-2 relative z-10">
             <motion.div
               animate={{
                 rotate: isSecondaryHovered ? 360 : 0,

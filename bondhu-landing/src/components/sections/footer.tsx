@@ -203,7 +203,7 @@ export function Footer() {
           <div className="inline-flex items-center space-x-2 text-sm text-muted-foreground">
             <span>Ready to meet your digital বন্ধু?</span>
             <Button size="sm" variant="outline" asChild>
-              <Link href="#demo">Start Chatting</Link>
+              <Link href="/sign-up">Start Chatting</Link>
             </Button>
           </div>
         </motion.div>
