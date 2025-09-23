@@ -13,6 +13,14 @@ import { Slider } from "@/components/ui/slider"
 import { Progress } from "@/components/ui/progress"
 import { MessageCircle, User, Settings, Play, Send, Mic, Heart, Sword, Shield, Zap, Volume2, TrendingUp, BarChart3, Camera, Headphones, Gamepad2, Pause } from "lucide-react"
 import type { Profile } from "@/types/auth"
+import { Logo } from "@/components/logo"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { HeroBackground } from "@/components/sections/hero-background"
+import { DashboardStats } from "@/components/ui/dashboard-stats"
+import { DashboardGrid } from "@/components/ui/dashboard-grid"
+import { DashboardWelcome } from "@/components/ui/dashboard-welcome"
+import { EnhancedChat } from "@/components/ui/enhanced-chat"
+import Link from "next/link"
 import { PuzzleMaster } from "@/components/games/PuzzleMaster"
 import { MemoryPalace } from "@/components/games/MemoryPalace"
 import { ColorSymphony } from "@/components/games/ColorSymphony"
@@ -23,6 +31,7 @@ import { aiLearningEngine } from "@/lib/ai-learning-engine"
 export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [activeSection, setActiveSection] = useState('chat')
   const router = useRouter()
   const supabase = createClient()
 
@@ -86,17 +95,28 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 relative overflow-hidden">
+      {/* Background Animation */}
+      <HeroBackground intensity="subtle" className="opacity-30" />
+      
+      <div className="relative z-10">
       {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo Section */}
           <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">বন্ধু</span>
+              <Link href="/" className="flex items-center">
+                <Logo width={140} height={50} />
+              </Link>
+              <div className="hidden sm:block">
+                <h1 className="text-lg font-semibold text-muted-foreground">Dashboard</h1>
             </div>
-            <h1 className="text-2xl font-bold">Bondhu Dashboard</h1>
           </div>
-          <div className="flex items-center space-x-4">
+
+            {/* Right Section */}
+            <div className="flex items-center space-x-3">
+              <ThemeToggle />
             <Avatar>
               <AvatarFallback>
                 {profile.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
@@ -106,48 +126,101 @@ export default function DashboardPage() {
               <p className="text-sm font-medium">{profile.full_name}</p>
               <p className="text-xs text-muted-foreground">Level 1 Explorer</p>
             </div>
-            <Button variant="outline" onClick={handleSignOut}>
+              <Button variant="outline" onClick={handleSignOut} size="sm">
               Sign Out
             </Button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">
-            Welcome back, {profile.full_name?.split(' ')[0] || 'Friend'}! 👋
-          </h2>
-          <p className="text-muted-foreground">
-            Your AI companion awaits - explore, discover, and grow together!
-          </p>
+      <main className="container mx-auto px-4 py-6">
+        {/* Compact Welcome Section */}
+        <DashboardWelcome userName={profile.full_name?.split(' ')[0] || 'Friend'} compact={true} />
+
+        {/* Main Dashboard Layout - 50% Chat + 50% Explore More */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6">
+          {/* Chat Section - 50% width */}
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-bold">Chat with Bondhu</h3>
+                <p className="text-muted-foreground">Your AI companion is ready to listen and support you</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span>Online</span>
+                </div>
+              </div>
+            </div>
+            <EnhancedChat profile={profile} />
+          </div>
+
+          {/* Right Column - Explore More + Your Progress */}
+          <div className="space-y-8">
+            {/* Explore More Section */}
+            <div>
+              <div className="mb-4">
+                <h3 className="text-xl font-bold">Explore More</h3>
+                <p className="text-sm text-muted-foreground">Discover features and tools for your mental wellness journey</p>
+              </div>
+              <DashboardGrid 
+                onSectionChange={setActiveSection}
+                activeSection={activeSection}
+              />
+            </div>
+
+            {/* Your Progress Section */}
+            <div>
+              <div className="mb-4">
+                <h3 className="text-xl font-bold">Your Progress</h3>
+                <p className="text-sm text-muted-foreground">Track your mental wellness journey</p>
+              </div>
+              <DashboardStats />
+            </div>
+          </div>
         </div>
 
-        {/* Main Dashboard Tabs */}
-        <Tabs defaultValue="chat" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
-            <TabsTrigger value="chat" className="flex items-center gap-2">
+        {/* Additional Dashboard Tabs - Now Secondary */}
+        <Tabs value={activeSection} onValueChange={setActiveSection} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-8 h-12">
+            <TabsTrigger value="chat" className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2">
               <MessageCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Chat</span>
+              <span className="text-xs sm:text-sm font-medium">Chat</span>
             </TabsTrigger>
-            <TabsTrigger value="entertainment" className="flex items-center gap-2">
+            <TabsTrigger value="entertainment" className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2">
               <Play className="h-4 w-4" />
-              <span className="hidden sm:inline">Entertainment</span>
+              <span className="text-xs sm:text-sm font-medium">Entertainment</span>
             </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center gap-2">
+            <TabsTrigger value="profile" className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2">
               <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Profile</span>
+              <span className="text-xs sm:text-sm font-medium">Profile</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
+            <TabsTrigger value="settings" className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2">
               <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Settings</span>
+              <span className="text-xs sm:text-sm font-medium">Settings</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Chat Tab */}
           <TabsContent value="chat" className="space-y-6">
-            <ChatInterface profile={profile} />
+            <div className="text-center py-12 bg-muted/30 rounded-xl border border-dashed border-border">
+              <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Main Chat Above</h3>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Your primary chat with Bondhu is featured above for easy access. 
+                Scroll up to continue your conversation with your AI companion.
+              </p>
+              <Button 
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="mt-4"
+                variant="outline"
+              >
+                Go to Chat
+              </Button>
+            </div>
           </TabsContent>
 
           {/* Entertainment Tab */}
@@ -166,6 +239,7 @@ export default function DashboardPage() {
           </TabsContent>
         </Tabs>
       </main>
+      </div>
     </div>
   )
 }
@@ -236,7 +310,7 @@ function ChatInterface({ profile }: { profile: Profile }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">বন্ধু</span>
+                  <Heart className="h-5 w-5 text-white" />
                 </div>
                 <div>
                   <CardTitle>Bondhu AI Companion</CardTitle>
@@ -748,12 +822,54 @@ function MusicSection({ profile }: { profile: Profile }) {
   const [volume, setVolume] = useState(0.7)
 
   const moods = [
-    { name: 'Focus', emoji: '🎯', color: 'bg-blue-100', description: 'Deep work and concentration' },
-    { name: 'Relax', emoji: '🌊', color: 'bg-green-100', description: 'Calm and peaceful' },
-    { name: 'Energy', emoji: '⚡', color: 'bg-orange-100', description: 'Upbeat and motivating' },
-    { name: 'Creative', emoji: '🎨', color: 'bg-purple-100', description: 'Inspiration and flow' },
-    { name: 'Social', emoji: '🎉', color: 'bg-pink-100', description: 'Social and uplifting' },
-    { name: 'Sleep', emoji: '😴', color: 'bg-indigo-100', description: 'Wind down and rest' }
+    { 
+      name: 'Focus', 
+      emoji: '🎯', 
+      color: 'bg-blue-100', 
+      description: 'Deep work and concentration',
+      gradient: 'from-blue-500 to-cyan-500',
+      hoverGradient: 'from-blue-600 to-cyan-600'
+    },
+    { 
+      name: 'Relax', 
+      emoji: '🌊', 
+      color: 'bg-green-100', 
+      description: 'Calm and peaceful',
+      gradient: 'from-green-500 to-emerald-500',
+      hoverGradient: 'from-green-600 to-emerald-600'
+    },
+    { 
+      name: 'Energy', 
+      emoji: '⚡', 
+      color: 'bg-orange-100', 
+      description: 'Upbeat and motivating',
+      gradient: 'from-orange-500 to-red-500',
+      hoverGradient: 'from-orange-600 to-red-600'
+    },
+    { 
+      name: 'Creative', 
+      emoji: '🎨', 
+      color: 'bg-purple-100', 
+      description: 'Inspiration and flow',
+      gradient: 'from-purple-500 to-pink-500',
+      hoverGradient: 'from-purple-600 to-pink-600'
+    },
+    { 
+      name: 'Social', 
+      emoji: '🎉', 
+      color: 'bg-pink-100', 
+      description: 'Social and uplifting',
+      gradient: 'from-pink-500 to-rose-500',
+      hoverGradient: 'from-pink-600 to-rose-600'
+    },
+    { 
+      name: 'Sleep', 
+      emoji: '😴', 
+      color: 'bg-indigo-100', 
+      description: 'Wind down and rest',
+      gradient: 'from-indigo-500 to-purple-500',
+      hoverGradient: 'from-indigo-600 to-purple-600'
+    }
   ]
 
   const playlists = [
@@ -881,18 +997,60 @@ function MusicSection({ profile }: { profile: Profile }) {
   return (
     <div className="space-y-6">
       {/* Mood Selection */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         {moods.map((mood) => (
-          <Button
+          <div
             key={mood.name}
-            variant={selectedMood === mood.name ? 'default' : 'outline'}
             onClick={() => setSelectedMood(mood.name)}
-            className="h-20 flex flex-col space-y-1 p-3"
+            className={`
+              relative overflow-hidden rounded-xl p-6 cursor-pointer transition-all duration-300 ease-in-out transform hover:scale-105 group
+              ${selectedMood === mood.name 
+                ? `bg-gradient-to-br ${mood.gradient} text-white shadow-lg shadow-${mood.gradient.split('-')[1]}-500/25` 
+                : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+              }
+            `}
           >
-            <span className="text-2xl">{mood.emoji}</span>
-            <span className="text-sm font-medium">{mood.name}</span>
-            <span className="text-xs opacity-70">{mood.description}</span>
-          </Button>
+            {/* Background gradient overlay for selected state */}
+            {selectedMood === mood.name && (
+              <div className={`absolute inset-0 bg-gradient-to-br ${mood.hoverGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+            )}
+            
+            {/* Content */}
+            <div className="relative z-10 flex flex-col items-center text-center space-y-2">
+              <div className={`
+                text-3xl mb-1 transition-transform duration-300 group-hover:scale-110
+                ${selectedMood === mood.name ? 'drop-shadow-sm' : ''}
+              `}>
+                {mood.emoji}
+              </div>
+              <h3 className={`
+                font-semibold text-sm 
+                ${selectedMood === mood.name 
+                  ? 'text-white' 
+                  : 'text-gray-900 dark:text-gray-100'
+                }
+              `}>
+                {mood.name}
+              </h3>
+              <p className={`
+                text-xs leading-tight
+                ${selectedMood === mood.name 
+                  ? 'text-white/80' 
+                  : 'text-gray-500 dark:text-gray-400'
+                }
+              `}>
+                {mood.description}
+              </p>
+            </div>
+
+            {/* Shine effect for unselected buttons */}
+            {selectedMood !== mood.name && (
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                <div className={`absolute inset-0 bg-gradient-to-r ${mood.gradient} opacity-5`} />
+                <div className="absolute -inset-x-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 animate-shine" />
+              </div>
+            )}
+          </div>
         ))}
       </div>
 

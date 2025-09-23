@@ -215,3 +215,4 @@ function getNeuroticismGrowthSuggestions(score: number): string[] {
   return ["Practice self-compassion", "Use calming techniques", "Build a strong support network"]
 }
 
+
