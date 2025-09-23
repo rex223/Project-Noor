@@ -47,7 +47,7 @@ export function Navigation() {
           <div className="hidden md:flex items-center space-x-2">
             <ThemeToggle />
             <Button size="sm" asChild>
-              <Link href="#demo">Get Started</Link>
+              <Link href="/sign-up">Get Started</Link>
             </Button>
           </div>
 
@@ -86,7 +86,7 @@ export function Navigation() {
               ))}
               <div className="pt-2">
                 <Button size="sm" className="w-full" asChild>
-                  <Link href="#demo" onClick={() => setIsMenuOpen(false)}>
+                  <Link href="/sign-up" onClick={() => setIsMenuOpen(false)}>
                     Get Started
                   </Link>
                 </Button>

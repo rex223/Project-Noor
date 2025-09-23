@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { MessageCircle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export function FloatingCTA() {
   const [isVisible, setIsVisible] = useState(false)
@@ -53,12 +54,12 @@ export function FloatingCTA() {
               className="rounded-full h-14 px-6 shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground"
               asChild
             >
-              <a href="#demo" className="flex items-center space-x-2">
+              <Link href="/sign-up" className="flex items-center space-x-2">
                 <MessageCircle className="h-5 w-5" />
                 <span className="hidden sm:inline">Chat with Bondhu</span>
-              </a>
+              </Link>
             </Button>
-            
+
             <Button
               variant="ghost"
               size="sm"

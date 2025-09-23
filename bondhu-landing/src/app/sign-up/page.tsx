@@ -18,7 +18,7 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const router = useRouter()
   const supabase = createClient()
 
@@ -55,18 +55,24 @@ export default function SignUpPage() {
       }
 
       if (authData.user) {
-        // Create profile record
+        // Update or create profile record (use upsert to handle trigger-created profiles)
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
+          .upsert({
             id: authData.user.id,
             full_name: data.full_name,
-            onboarding_completed: false
+            onboarding_completed: false,
+            personality_data: {}
+          }, {
+            onConflict: 'id'
           })
 
         if (profileError) {
           console.error('Profile creation error:', profileError)
+          console.error('Profile error details:', JSON.stringify(profileError, null, 2))
           // Don't throw here, user is created, just continue
+        } else {
+          console.log('Profile created/updated successfully for user:', authData.user.id)
         }
 
         // Redirect to personality questionnaire
@@ -121,7 +127,7 @@ export default function SignUpPage() {
 
   const benefits = [
     "🎮 Gamified personality discovery",
-    "🤖 AI that grows with you", 
+    "🤖 AI that grows with you",
     "💬 Safe space for authentic conversations",
     "📱 Always available, never judges"
   ]
@@ -258,9 +264,9 @@ export default function SignUpPage() {
             )}
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full" 
+          <Button
+            type="submit"
+            className="w-full"
             disabled={isLoading}
           >
             {isLoading ? (

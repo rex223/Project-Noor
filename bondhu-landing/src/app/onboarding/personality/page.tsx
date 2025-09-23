@@ -15,7 +15,7 @@ const questions = [
     trait: 'Openness to Experience'
   },
   {
-    id: 'conscientiousness', 
+    id: 'conscientiousness',
     question: 'I am organized and like to plan ahead',
     trait: 'Conscientiousness'
   },
@@ -50,7 +50,7 @@ export default function PersonalityQuestionnairePage() {
   const [answers, setAnswers] = useState<Record<string, number>>({})
   const [selectedGoals, setSelectedGoals] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  
+
   const router = useRouter()
   const supabase = createClient()
 
@@ -74,8 +74,8 @@ export default function PersonalityQuestionnairePage() {
   }
 
   const handleGoalToggle = (goal: string) => {
-    setSelectedGoals(prev => 
-      prev.includes(goal) 
+    setSelectedGoals(prev =>
+      prev.includes(goal)
         ? prev.filter(g => g !== goal)
         : [...prev, goal]
     )
@@ -83,36 +83,123 @@ export default function PersonalityQuestionnairePage() {
 
   const handleComplete = async () => {
     setIsLoading(true)
-    
+
     try {
+      console.log('Starting onboarding completion...')
+
       const personalityData = {
         ...answers,
         mental_health_goals: selectedGoals,
         completed_at: new Date().toISOString()
       }
 
-      const { data: { user } } = await supabase.auth.getUser()
-      
+      console.log('Personality data:', personalityData)
+      console.log('Getting user...')
+
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+      if (userError) {
+        console.error('User fetch error:', userError)
+        throw userError
+      }
+
       if (!user) {
         throw new Error('No authenticated user')
       }
 
-      const { error } = await supabase
+      console.log('User found:', user.id)
+
+      // Test database connection first
+      console.log('Testing database connection...')
+      const { data: testData, error: testError } = await supabase
         .from('profiles')
-        .update({
-          personality_data: personalityData,
-          onboarding_completed: true,
-          updated_at: new Date().toISOString()
-        })
+        .select('count')
+        .limit(1)
+
+      if (testError) {
+        console.error('Database connection test failed:', testError)
+        throw new Error(`Database connection failed: ${testError.message}`)
+      }
+
+      console.log('Database connection successful')
+
+      // First, try to get the existing profile
+      console.log('Checking for existing profile...')
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('id, full_name, onboarding_completed')
         .eq('id', user.id)
+        .single()
 
-      if (error) throw error
+      console.log('Profile check result:', { existingProfile, fetchError })
 
+      let result
+      if (existingProfile && !fetchError) {
+        // Update existing profile
+        console.log('Updating existing profile...')
+        result = await supabase
+          .from('profiles')
+          .update({
+            personality_data: personalityData,
+            onboarding_completed: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id)
+          .select()
+      } else if (fetchError?.code === 'PGRST116') {
+        // Profile doesn't exist, create new one
+        console.log('Creating new profile...')
+        result = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+            personality_data: personalityData,
+            onboarding_completed: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+      } else {
+        // Other error occurred
+        throw fetchError
+      }
+
+      console.log('Database operation result:', result)
+
+      if (result.error) {
+        console.error('Database operation error:', result.error)
+        throw result.error
+      }
+
+      console.log('Success! Redirecting to dashboard...')
       router.push('/dashboard')
-      router.refresh()
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Error saving personality data:', error)
-      // Handle error - could show toast or error message
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        stack: error?.stack
+      })
+
+      // More detailed error handling
+      let errorMessage = 'There was an error saving your data. '
+
+      if (error?.message?.includes('JWT') || error?.message?.includes('auth')) {
+        errorMessage += 'Authentication issue. Please sign in again.'
+        setTimeout(() => router.push('/sign-in'), 2000)
+      } else if (error?.code === 'PGRST301' || error?.message?.includes('connection')) {
+        errorMessage += 'Database connection issue. Please check your internet connection and try again.'
+      } else if (error?.code?.startsWith('PGRST') || error?.message?.includes('profiles')) {
+        errorMessage += `Database error (${error?.code}): ${error?.message}. Please contact support.`
+      } else {
+        errorMessage += `${error?.message || 'Unknown error'}. Please try again or contact support.`
+      }
+
+      alert(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -127,7 +214,7 @@ export default function PersonalityQuestionnairePage() {
 
   const scaleLabels = [
     'Strongly Disagree',
-    'Disagree', 
+    'Disagree',
     'Neutral',
     'Agree',
     'Strongly Agree'
@@ -174,11 +261,10 @@ export default function PersonalityQuestionnairePage() {
                     <button
                       key={index}
                       onClick={() => handleAnswerSelect(questions[currentStep].id, index + 1)}
-                      className={`p-4 text-left rounded-lg border transition-colors ${
-                        answers[questions[currentStep].id] === index + 1
+                      className={`p-4 text-left rounded-lg border transition-colors ${answers[questions[currentStep].id] === index + 1
                           ? 'border-primary bg-primary/10'
                           : 'border-border hover:border-primary/50'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         <span>{label}</span>
@@ -212,11 +298,10 @@ export default function PersonalityQuestionnairePage() {
                     <button
                       key={index}
                       onClick={() => handleGoalToggle(goal)}
-                      className={`p-4 text-left rounded-lg border transition-colors ${
-                        selectedGoals.includes(goal)
+                      className={`p-4 text-left rounded-lg border transition-colors ${selectedGoals.includes(goal)
                           ? 'border-primary bg-primary/10'
                           : 'border-border hover:border-primary/50'
-                      }`}
+                        }`}
                     >
                       {goal}
                     </button>
@@ -236,7 +321,7 @@ export default function PersonalityQuestionnairePage() {
           >
             Back
           </Button>
-          
+
           {currentStep < questions.length ? (
             <Button
               onClick={handleNext}
