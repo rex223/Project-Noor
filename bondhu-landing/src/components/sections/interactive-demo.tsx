@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import Link from "next/link"
 
 export function InteractiveDemo() {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0)
@@ -72,9 +73,9 @@ export function InteractiveDemo() {
         <div className={`flex items-start max-w-[80%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
           {!isUser && (
             <Avatar className="w-8 h-8 mr-2">
-              <AvatarImage 
-                src="/Light mode logo.svg" 
-                alt="Bondhu" 
+              <AvatarImage
+                src="/Light mode logo.svg"
+                alt="Bondhu"
                 className="object-contain p-1"
               />
               <AvatarFallback className="text-xs bg-primary/10 text-primary">
@@ -82,14 +83,13 @@ export function InteractiveDemo() {
               </AvatarFallback>
             </Avatar>
           )}
-          
-          <div className={`rounded-2xl px-4 py-2 ${
-            isUser 
-              ? "bg-primary text-primary-foreground" 
+
+          <div className={`rounded-2xl px-4 py-2 ${isUser
+              ? "bg-primary text-primary-foreground"
               : isTyping
                 ? "bg-muted"
                 : "bg-secondary"
-          }`}>
+            }`}>
             {isTyping ? (
               <div className="flex space-x-1">
                 {[0, 1, 2].map((i) => (
@@ -108,7 +108,7 @@ export function InteractiveDemo() {
             ) : (
               <p className="text-sm">{message.message}</p>
             )}
-            
+
             {message.timestamp && (
               <p className={`text-xs mt-1 ${isUser ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                 {message.timestamp}
@@ -151,9 +151,9 @@ export function InteractiveDemo() {
                 {/* Chat Header */}
                 <div className="border-b p-4 flex items-center space-x-3">
                   <Avatar className="w-10 h-10">
-                    <AvatarImage 
-                      src="/Light mode logo.svg" 
-                      alt="Bondhu" 
+                    <AvatarImage
+                      src="/Light mode logo.svg"
+                      alt="Bondhu"
                       className="object-contain p-1"
                     />
                     <AvatarFallback className="bg-primary/10 text-primary">
@@ -183,8 +183,8 @@ export function InteractiveDemo() {
 
                 {/* Demo Controls */}
                 <div className="border-t p-4">
-                  <Button 
-                    onClick={resetDemo} 
+                  <Button
+                    onClick={resetDemo}
                     className="w-full"
                     disabled={isPlaying && currentMessageIndex < messages.length - 1}
                   >
@@ -229,23 +229,11 @@ export function InteractiveDemo() {
                   </div>
                 </div>
 
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button size="lg" className="w-full">
-                      Try a Full Conversation
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <div className="text-center py-8">
-                      <div className="text-6xl mb-4">🚀</div>
-                      <h3 className="text-2xl font-bold mb-4">Ready to Meet Bondhu?</h3>
-                      <p className="text-muted-foreground mb-6">
-                        Sign up now to start your personalized journey with your AI companion
-                      </p>
-                      <Button size="lg">Start Your Journey</Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <Button size="lg" className="w-full" asChild>
+                  <Link href="/sign-up">
+                    Try a Full Conversation
+                  </Link>
+                </Button>
               </div>
             </motion.div>
           </div>

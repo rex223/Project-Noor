@@ -1,168 +1,209 @@
-# The Last Neuron - Agentic AI Companion
+# Bondhu - AI Mental Health Companion Landing Page
 
-A personality-adaptive digital twin companion for Gen Z built with Django, leveraging reinforcement learning and NLP for dynamic personality modeling.
+A modern, responsive landing page built with Next.js 15, TypeScript, and shadcn/ui for Bondhu, an AI mental health companion designed for Gen Z.
 
-## 🧠 About The Last Neuron
+## 🌟 Features
 
-The Last Neuron is not just a chatbot - it's an autonomous digital twin agent designed to evolve alongside its user. Built specifically for Gen Z in India, it addresses the growing mental health challenges and digital isolation through:
+- **Modern Design**: Clean, responsive design with dark/light theme support
+- **Interactive Elements**: Animated chat demo, floating CTA, and smooth scrolling
+- **Accessibility**: WCAG 2.1 AA compliant with proper ARIA labels and keyboard navigation
+- **Performance**: Optimized for Core Web Vitals with Next.js Image optimization
+- **Animations**: Subtle Framer Motion animations for enhanced user experience
+- **Bengali Support**: Includes Bengali script "বন্ধু" (friend) throughout the design
 
-- **Gamified Self-Discovery**: Interactive RPG scenarios to understand personality
-- **Reinforcement Learning Adaptation**: Continuously learns from user interactions
-- **Mood-Aware Media Curation**: Suggests content based on real-time emotional analysis
-- **Privacy-First Architecture**: Secure and anonymized user data
-- **Proactive Engagement**: Initiates conversations and suggests activities
+## 🚀 Tech Stack
 
-## 🏗️ Architecture
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn/ui
+- **Animations**: Framer Motion
+- **Icons**: Lucide React
+- **Font**: Inter from Google Fonts
+- **Theme**: next-themes for dark/light mode
 
-### Tech Stack
-- **Backend**: Django 4.2 LTS + Django Channels + DRF
-- **Real-time**: WebSockets via Django Channels + Redis
-- **Database**: PostgreSQL (primary) + MongoDB (flexible schemas)
-- **ML/AI**: Stable-Baselines3, scikit-learn, spaCy, Transformers
-- **Frontend**: Django Templates + HTMX + Tailwind CSS
-- **Tasks**: Celery + Redis
-- **Security**: JWT + AES encryption + Row-level security
+## 📱 Sections
 
-### Key Components
-1. **Personality Engine**: Dynamic personality modeling using RL
-2. **Game Engine**: RPG-style scenarios for personality assessment
-3. **Chat Engine**: Real-time conversation with NLP analysis
-4. **Recommendation Engine**: Mood-aware media suggestions
-5. **Anti-Gaming System**: Prevents manipulation of personality model
+1. **Navigation** - Sticky header with theme toggle and mobile menu
+2. **Hero Section** - Animated background with Bengali elements and CTAs
+3. **Problem Section** - Statistics and pain points about Gen Z mental health
+4. **Solution Section** - How Bondhu works in 3 steps
+5. **Interactive Demo** - Live chat interface preview
+6. **Features Section** - 6 key features with benefits
+7. **Social Proof** - Testimonials and usage statistics
+8. **Pricing Section** - Free beta and upcoming premium tiers
+9. **Footer** - Links, newsletter signup, and social media
 
-## 🚀 Quick Start
+## 🛠️ Setup Instructions
 
 ### Prerequisites
-- Python 3.9+
-- PostgreSQL 15+
-- Redis 6+
-- Node.js (for Tailwind CSS)
+
+- Node.js 18+ and npm
+- Git
 
 ### Installation
 
-1. **Clone and setup virtual environment**
+1. **Clone and navigate to the project**:
+   ```bash
+   cd bondhu-landing
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Run the development server**:
+   ```bash
+   npm run dev
+   ```
+
+4. **Open your browser**:
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+### Build for Production
+
 ```bash
-git clone <repository-url>
-cd the-last-neuron
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-2. **Install dependencies**
-```bash
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
-```
-
-3. **Environment setup**
-```bash
-cp .env.example .env
-# Edit .env with your database and Redis configurations
-```
-
-4. **Database setup**
-```bash
-python manage.py migrate
-python manage.py createsuperuser
-```
-
-5. **Run the development server**
-```bash
-# Terminal 1: Django server
-python manage.py runserver
-
-# Terminal 2: Celery worker
-celery -A the_last_neuron worker -l info
-
-# Terminal 3: Celery beat scheduler
-celery -A the_last_neuron beat -l info
+npm run build
+npm start
 ```
 
 ## 📁 Project Structure
 
 ```
-the_last_neuron/
-├── apps/
-│   ├── accounts/          # User authentication & profiles
-│   ├── personality/       # Personality modeling & assessment
-│   ├── chat/             # Real-time chat system
-│   ├── games/            # RPG scenarios & mini-games
-│   ├── recommendations/  # Media recommendation engine
-│   ├── ml/               # Machine learning models
-│   └── api/              # REST API endpoints
-├── config/               # Django settings
-├── static/               # Static files
-├── templates/            # HTML templates
-├── media/                # User uploads
-├── requirements.txt      # Python dependencies
-├── docker-compose.yml    # Container orchestration
+bondhu-landing/
+├── src/
+│   ├── app/
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── ui/                  # shadcn/ui components
+│   │   ├── sections/            # Landing page sections
+│   │   │   ├── navigation.tsx
+│   │   │   ├── hero-section.tsx
+│   │   │   ├── problem-section.tsx
+│   │   │   ├── solution-section.tsx
+│   │   │   ├── interactive-demo.tsx
+│   │   │   ├── features-section.tsx
+│   │   │   ├── social-proof.tsx
+│   │   │   ├── pricing-section.tsx
+│   │   │   └── footer.tsx
+│   │   ├── floating-cta.tsx
+│   │   ├── theme-provider.tsx
+│   │   └── theme-toggle.tsx
+│   └── lib/
+│       └── utils.ts
+├── components.json
+├── tailwind.config.ts
 └── README.md
 ```
 
-## 🎮 Core Features
+## 🎨 Design System
 
-### 1. Gamified Onboarding
-- Interactive personality assessment through RPG scenarios
-- Big Five + MBTI-style questionnaires
-- Dynamic scenario generation based on user responses
+### Colors
+- **Light Mode**: Clean whites with blue primary (#3b82f6)
+- **Dark Mode**: Dark grays with lighter blue primary (#60a5fa)
+- **Secondary**: Subtle grays for backgrounds and muted text
 
-### 2. Agentic Behavior
-- Proactive conversation initiation
-- Context-aware response generation
-- Goal-directed interaction planning
+### Typography
+- **Font**: Inter for excellent readability
+- **Headings**: Bold, tracking-tight for impact
+- **Body**: Comfortable line height and spacing
 
-### 3. Personality Adaptation
-- Continuous learning from user interactions
-- Reinforcement learning-based personality updates
-- Anti-gaming mechanisms for authentic modeling
+### Components
+- Consistent border radius (0.625rem)
+- Subtle shadows and hover effects
+- Smooth transitions (300ms duration)
+- Accessible color contrast ratios
 
-### 4. Real-time Features
-- WebSocket-based chat interface
-- Live personality progress visualization
-- Instant mood detection and response
+## 🔧 Customization
 
-## 🔒 Security & Privacy
+### Theme Colors
+Edit the CSS variables in `src/app/globals.css` to customize colors:
 
-- **End-to-End Encryption**: All chat logs encrypted with AES-256
-- **Data Anonymization**: Training data detached from PII
-- **Secure Authentication**: JWT with brute-force protection
-- **Row-Level Security**: PostgreSQL RLS for data isolation
+```css
+:root {
+  --primary: your-color;
+  --secondary: your-color;
+  /* ... */
+}
+```
 
-## 📊 Success Metrics
+### Content
+Update the content in each section component:
+- Hero messaging in `hero-section.tsx`
+- Features in `features-section.tsx`
+- Testimonials in `social-proof.tsx`
+- Pricing in `pricing-section.tsx`
 
-- Personality Prediction Accuracy: >75%
-- User Retention (7-day): >40%
-- Game Completion Rate: >60%
-- Recommendation Uptake: >50%
-- Average Session Duration: >8 minutes
+### Animations
+Modify Framer Motion animations in each component or disable them by removing the motion components.
 
-## 🛣️ Roadmap
+## 📱 Responsive Design
 
-- **V1**: Web-based MVP with core personality modeling
-- **V2**: Voice input/output capabilities
-- **V3**: Android app with Flutter
-- **V4**: Multimodal interaction (text + voice + image)
-- **V5**: Group interactions and social features
-- **V6**: Open API for third-party developers
+- **Mobile**: Single column, touch-friendly buttons, simplified navigation
+- **Tablet**: Two-column layouts, condensed sections
+- **Desktop**: Full multi-column layouts, hover states, optimal typography
+
+## ♿ Accessibility
+
+- Semantic HTML structure
+- ARIA labels for interactive elements
+- Keyboard navigation support
+- High contrast color schemes
+- Screen reader friendly
+- Focus indicators
+
+## 🚀 Performance
+
+- Next.js Image optimization
+- Tree-shaking for unused code
+- CSS optimization with Tailwind
+- Lazy loading for animations
+- Minimal JavaScript bundle
+
+## 🔗 Key Features
+
+### Interactive Elements
+- **Theme Toggle**: Smooth light/dark mode switching
+- **Chat Demo**: Animated typing indicators and message flow
+- **Floating CTA**: Appears on scroll with pulse animation
+- **Hover Effects**: Scale and glow on cards and buttons
+
+### Bengali Integration
+- Bengali script "বন্ধু" (friend) featured prominently
+- Cultural sensitivity in design choices
+- Localized for Indian Gen Z audience
+
+### Mental Health Focus
+- Empathetic copy and messaging
+- Statistics from Indian mental health research
+- Gen Z-focused pain points and solutions
+- Community and support emphasis
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-## 📜 License
+## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is created for Bondhu AI Mental Health Companion. All rights reserved.
 
 ## 🙏 Acknowledgments
 
-- Built for Gen Z mental health awareness
-- Inspired by the need for authentic digital companionship
-- Powered by open-source AI/ML technologies
+- **shadcn/ui** for beautiful, accessible components
+- **Framer Motion** for smooth animations
+- **Lucide** for consistent iconography
+- **Next.js** team for the excellent framework
+- **Tailwind CSS** for utility-first styling
 
 ---
 
-**"An AI that doesn't just talk — it understands, remembers, and grows with you."**
+**Made with ❤️ for Gen Z mental health**
+
+For questions or support, please contact the Bondhu team.
