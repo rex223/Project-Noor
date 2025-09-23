@@ -1,344 +1,383 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { createClient } from "@/lib/supabase/client"
+import { PersonalityStackingCards } from "@/components/ui/personality-stacking-cards"
+import { PersonalityRadarChart } from "@/components/ui/personality-radar-chart"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
+import { personalityTraits } from "@/data/personality-questions"
+import { calculatePersonalityScores, generateTraitInsights } from "@/lib/personality-scoring"
+import { generateLLMContext } from "@/lib/personality-llm-context"
+import { PersonalityScores, AssessmentResults } from "@/types/personality"
 
-const questions = [
-  {
-    id: 'openness',
-    question: 'I enjoy exploring new ideas and experiences',
-    trait: 'Openness to Experience'
-  },
-  {
-    id: 'conscientiousness',
-    question: 'I am organized and like to plan ahead',
-    trait: 'Conscientiousness'
-  },
-  {
-    id: 'extraversion',
-    question: 'I feel energized when around other people',
-    trait: 'Extraversion'
-  },
-  {
-    id: 'agreeableness',
-    question: 'I tend to trust others and assume they have good intentions',
-    trait: 'Agreeableness'
-  },
-  {
-    id: 'neuroticism',
-    question: 'I often worry about things that might go wrong',
-    trait: 'Emotional Stability'
-  }
-]
-
-const mentalHealthGoals = [
-  'Reduce anxiety and stress',
-  'Improve mood and emotional regulation',
-  'Better sleep quality',
-  'Increase self-confidence',
-  'Develop coping strategies',
-  'Build better relationships'
-]
+type AssessmentPhase = 'assessment' | 'results' | 'completion'
 
 export default function PersonalityQuestionnairePage() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [answers, setAnswers] = useState<Record<string, number>>({})
-  const [selectedGoals, setSelectedGoals] = useState<string[]>([])
+  const [currentPhase, setCurrentPhase] = useState<AssessmentPhase>('assessment')
+  const [responses, setResponses] = useState<Record<number, number>>({})
+  const [assessmentResults, setAssessmentResults] = useState<AssessmentResults | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const router = useRouter()
   const supabase = createClient()
 
-  const totalSteps = questions.length + 1 // +1 for goals step
-  const progress = ((currentStep + 1) / totalSteps) * 100
+  // Check if user is authenticated on mount
+  useEffect(() => {
+    checkAuthentication()
+  }, [])
 
-  const handleAnswerSelect = (questionId: string, value: number) => {
-    setAnswers(prev => ({ ...prev, [questionId]: value }))
-  }
-
-  const handleNext = () => {
-    if (currentStep < totalSteps - 1) {
-      setCurrentStep(prev => prev + 1)
-    }
-  }
-
-  const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(prev => prev - 1)
-    }
-  }
-
-  const handleGoalToggle = (goal: string) => {
-    setSelectedGoals(prev =>
-      prev.includes(goal)
-        ? prev.filter(g => g !== goal)
-        : [...prev, goal]
-    )
-  }
-
-  const handleComplete = async () => {
-    setIsLoading(true)
-
+  const checkAuthentication = async () => {
     try {
-      console.log('Starting onboarding completion...')
-
-      const personalityData = {
-        ...answers,
-        mental_health_goals: selectedGoals,
-        completed_at: new Date().toISOString()
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError || !session) {
+        router.push('/sign-in?redirectTo=/onboarding/personality')
+        return
       }
 
-      console.log('Personality data:', personalityData)
-      console.log('Getting user...')
-
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-      if (userError) {
-        console.error('User fetch error:', userError)
-        throw userError
-      }
-
-      if (!user) {
-        throw new Error('No authenticated user')
-      }
-
-      console.log('User found:', user.id)
-
-      // Test database connection first
-      console.log('Testing database connection...')
-      const { data: testData, error: testError } = await supabase
+      // Check if personality assessment already completed
+      const { data: profile } = await supabase
         .from('profiles')
-        .select('count')
-        .limit(1)
-
-      if (testError) {
-        console.error('Database connection test failed:', testError)
-        throw new Error(`Database connection failed: ${testError.message}`)
-      }
-
-      console.log('Database connection successful')
-
-      // First, try to get the existing profile
-      console.log('Checking for existing profile...')
-      const { data: existingProfile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('id, full_name, onboarding_completed')
-        .eq('id', user.id)
+        .select('personality_completed_at, onboarding_completed')
+        .eq('id', session.user.id)
         .single()
 
-      console.log('Profile check result:', { existingProfile, fetchError })
+      if (profile?.personality_completed_at) {
+        // Already completed, redirect to dashboard
+        router.push('/dashboard')
+      }
+    } catch (error) {
+      console.error('Authentication check failed:', error)
+    }
+  }
 
-      let result
-      if (existingProfile && !fetchError) {
-        // Update existing profile
-        console.log('Updating existing profile...')
-        result = await supabase
-          .from('profiles')
-          .update({
-            personality_data: personalityData,
-            onboarding_completed: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id)
-          .select()
-      } else if (fetchError?.code === 'PGRST116') {
-        // Profile doesn't exist, create new one
-        console.log('Creating new profile...')
-        result = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-            personality_data: personalityData,
-            onboarding_completed: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .select()
-      } else {
-        // Other error occurred
-        throw fetchError
+  const handleResponseChange = (questionId: number, response: number) => {
+    setResponses(prev => ({
+      ...prev,
+      [questionId]: response
+    }))
+  }
+
+  const handleAssessmentComplete = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      console.log('🎯 Starting personality assessment completion...')
+
+      // First check session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError || !session) {
+        throw new Error('Authentication session expired. Please sign in again.')
       }
 
-      console.log('Database operation result:', result)
+      // Calculate personality scores
+      console.log('📊 Calculating personality scores...')
+      const scores = calculatePersonalityScores(responses)
+      console.log('Calculated scores:', scores)
 
-      if (result.error) {
-        console.error('Database operation error:', result.error)
-        throw result.error
+      // Generate insights
+      const insights = generateTraitInsights(scores)
+      
+      // Generate LLM context
+      const llmContext = generateLLMContext(scores)
+
+      // Create assessment results
+      const results: AssessmentResults = {
+        scores,
+        insights,
+        llmContext,
+        personalityType: generatePersonalityType(scores),
+        strengthsOverview: generateStrengthsOverview(scores),
+        bondhuPersonalization: generateBondhuPersonalization(scores)
       }
 
-      console.log('Success! Redirecting to dashboard...')
-      router.push('/dashboard')
+      setAssessmentResults(results)
 
-    } catch (error: any) {
-      console.error('Error saving personality data:', error)
-      console.error('Error details:', {
-        message: error?.message,
-        code: error?.code,
-        details: error?.details,
-        hint: error?.hint,
-        stack: error?.stack
+      // Save to Supabase using the custom function
+      console.log('💾 Saving personality data to Supabase...')
+      const { data, error: saveError } = await supabase.rpc('update_personality_assessment', {
+        user_id: session.user.id,
+        p_openness: scores.openness,
+        p_conscientiousness: scores.conscientiousness,
+        p_extraversion: scores.extraversion,
+        p_agreeableness: scores.agreeableness,
+        p_neuroticism: scores.neuroticism,
+        p_llm_context: llmContext,
+        p_raw_responses: responses
       })
 
-      // More detailed error handling
-      let errorMessage = 'There was an error saving your data. '
-
-      if (error?.message?.includes('JWT') || error?.message?.includes('auth')) {
-        errorMessage += 'Authentication issue. Please sign in again.'
-        setTimeout(() => router.push('/sign-in'), 2000)
-      } else if (error?.code === 'PGRST301' || error?.message?.includes('connection')) {
-        errorMessage += 'Database connection issue. Please check your internet connection and try again.'
-      } else if (error?.code?.startsWith('PGRST') || error?.message?.includes('profiles')) {
-        errorMessage += `Database error (${error?.code}): ${error?.message}. Please contact support.`
-      } else {
-        errorMessage += `${error?.message || 'Unknown error'}. Please try again or contact support.`
+      if (saveError) {
+        console.error('Supabase save error:', saveError)
+        throw new Error(`Failed to save personality data: ${saveError.message}`)
       }
 
-      alert(errorMessage)
+      console.log('✅ Personality assessment saved successfully!')
+      
+      // Move to results phase
+      setCurrentPhase('results')
+
+    } catch (error: any) {
+      console.error('❌ Assessment completion error:', error)
+      setError(error.message || 'Failed to complete assessment. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const canProceed = () => {
-    if (currentStep < questions.length) {
-      return answers[questions[currentStep].id] !== undefined
-    }
-    return selectedGoals.length > 0
+  const handleContinueToDashboard = () => {
+    setCurrentPhase('completion')
+    
+    // Add a small delay for the completion animation
+    setTimeout(() => {
+      router.push('/dashboard')
+    }, 2000)
   }
 
-  const scaleLabels = [
-    'Strongly Disagree',
-    'Disagree',
-    'Neutral',
-    'Agree',
-    'Strongly Agree'
-  ]
+  const generatePersonalityType = (scores: PersonalityScores): string => {
+    const traits = [
+      { name: 'Creative Explorer', condition: scores.openness > 70 },
+      { name: 'Social Butterfly', condition: scores.extraversion > 70 },
+      { name: 'Compassionate Helper', condition: scores.agreeableness > 70 },
+      { name: 'Goal Achiever', condition: scores.conscientiousness > 70 },
+      { name: 'Sensitive Soul', condition: scores.neuroticism > 70 }
+    ]
+
+    const dominantTraits = traits.filter(trait => trait.condition)
+    if (dominantTraits.length > 0) {
+      return dominantTraits[0].name
+    }
+
+    return "Balanced Individual"
+  }
+
+  const generateStrengthsOverview = (scores: PersonalityScores): string => {
+    const strengths = []
+    
+    if (scores.openness > 60) strengths.push("creative thinking")
+    if (scores.extraversion > 60) strengths.push("social connection")
+    if (scores.agreeableness > 60) strengths.push("empathy and compassion")
+    if (scores.conscientiousness > 60) strengths.push("organization and determination")
+    if (scores.neuroticism < 40) strengths.push("emotional stability")
+
+    if (strengths.length === 0) {
+      return "You have a well-balanced personality with adaptable strengths in different situations."
+    }
+
+    return `Your key strengths include ${strengths.join(', ')}. These qualities make you uniquely capable of ${
+      strengths.length > 2 ? 'handling diverse challenges and supporting others' : 
+      'approaching life with your distinctive perspective'
+    }.`
+  }
+
+  const generateBondhuPersonalization = (scores: PersonalityScores): string => {
+    const adaptations = []
+    
+    if (scores.openness > 70) adaptations.push("explore creative approaches to your mental health journey")
+    if (scores.extraversion > 70) adaptations.push("suggest social activities and group support options")
+    if (scores.agreeableness > 70) adaptations.push("help you balance caring for others with self-care")
+    if (scores.conscientiousness > 70) adaptations.push("create structured plans and track your wellness goals")
+    if (scores.neuroticism > 70) adaptations.push("provide extra emotional support and gentle coping strategies")
+
+    return `Based on your personality, Bondhu will ${adaptations.join(', ')}. This personalized approach ensures you get the most relevant and effective support for your unique needs.`
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 dark:from-green-950/20 dark:via-blue-950/20 dark:to-purple-950/20 p-4">
-      <div className="max-w-2xl mx-auto pt-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Personality Discovery</h1>
-          <p className="text-muted-foreground">
-            Help Bondhu understand you better with this quick assessment
-          </p>
-          <div className="mt-4">
-            <Progress value={progress} className="w-full" />
-            <p className="text-sm text-muted-foreground mt-2">
-              Step {currentStep + 1} of {totalSteps}
-            </p>
-          </div>
-        </div>
-
-        {/* Question Cards */}
-        {currentStep < questions.length ? (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 dark:from-green-950/20 dark:via-blue-950/20 dark:to-purple-950/20">
+      <AnimatePresence mode="wait">
+        {currentPhase === 'assessment' && (
           <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
+            key="assessment"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
           >
-            <Card className="p-6">
-              <CardHeader>
-                <CardTitle className="text-xl">
-                  {questions[currentStep].question}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {questions[currentStep].trait}
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-3">
-                  {scaleLabels.map((label, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleAnswerSelect(questions[currentStep].id, index + 1)}
-                      className={`p-4 text-left rounded-lg border transition-colors ${answers[questions[currentStep].id] === index + 1
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border hover:border-primary/50'
-                        }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{label}</span>
-                        <span className="text-sm text-muted-foreground">{index + 1}</span>
+            <PersonalityStackingCards
+              traits={personalityTraits}
+              onResponseChange={handleResponseChange}
+              onComplete={handleAssessmentComplete}
+              responses={responses}
+            />
+            
+            {/* Loading overlay */}
+            {isLoading && (
+              <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                <Card className="w-96 p-6">
+                  <CardContent className="space-y-4">
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto mb-4 relative">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                          className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full"
+                        />
                       </div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ) : (
-          // Goals Selection
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Card className="p-6">
-              <CardHeader>
-                <CardTitle className="text-xl">
-                  What are your mental health goals?
-                </CardTitle>
-                <p className="text-muted-foreground">
-                  Select all that apply. This helps Bondhu personalize your experience.
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {mentalHealthGoals.map((goal, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleGoalToggle(goal)}
-                      className={`p-4 text-left rounded-lg border transition-colors ${selectedGoals.includes(goal)
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border hover:border-primary/50'
-                        }`}
-                    >
-                      {goal}
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                      <h3 className="text-lg font-semibold mb-2">Analyzing Your Personality</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Processing your responses and creating your personalized Bondhu experience...
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Error overlay */}
+            {error && (
+              <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                <Card className="w-96 p-6 border-destructive">
+                  <CardContent className="space-y-4">
+                    <div className="text-center">
+                      <div className="text-4xl mb-4">😔</div>
+                      <h3 className="text-lg font-semibold mb-2 text-destructive">Assessment Error</h3>
+                      <p className="text-sm text-muted-foreground mb-4">{error}</p>
+                      <Button 
+                        onClick={() => setError(null)}
+                        className="w-full"
+                      >
+                        Try Again
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </motion.div>
         )}
 
-        {/* Navigation */}
-        <div className="flex justify-between mt-8">
-          <Button
-            variant="outline"
-            onClick={handleBack}
-            disabled={currentStep === 0}
+        {currentPhase === 'results' && assessmentResults && (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            transition={{ duration: 0.6 }}
+            className="min-h-screen p-4 md:p-8"
           >
-            Back
-          </Button>
+            <div className="max-w-6xl mx-auto space-y-8">
+              {/* Celebration Header */}
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-center space-y-4"
+              >
+                <div className="text-6xl">🎉</div>
+                <h1 className="text-4xl md:text-5xl font-bold text-foreground">
+                  Quest Complete!
+                </h1>
+                <p className="text-xl text-muted-foreground">
+                  You've successfully explored Neuron Valley and discovered your unique personality profile
+                </p>
+              </motion.div>
 
-          {currentStep < questions.length ? (
-            <Button
-              onClick={handleNext}
-              disabled={!canProceed()}
-            >
-              Next
-            </Button>
-          ) : (
-            <Button
-              onClick={handleComplete}
-              disabled={!canProceed() || isLoading}
-            >
-              {isLoading ? 'Completing...' : 'Complete & Continue'}
-            </Button>
-          )}
-        </div>
-      </div>
+              {/* Personality Results */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <PersonalityRadarChart scores={assessmentResults.scores} />
+              </motion.div>
+
+              {/* Personality Type & Insights */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="grid md:grid-cols-2 gap-6"
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <span>🎭</span>
+                      <span>Your Personality Type</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <h3 className="text-2xl font-bold text-primary">{assessmentResults.personalityType}</h3>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {assessmentResults.strengthsOverview}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <span>🤖</span>
+                      <span>Bondhu Personalization</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {assessmentResults.bondhuPersonalization}
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Continue Button */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="text-center pt-8"
+              >
+                <Button
+                  onClick={handleContinueToDashboard}
+                  size="lg"
+                  className="px-8 py-4 text-lg"
+                >
+                  Meet Your Personalized Bondhu 🚀
+                </Button>
+                <p className="text-sm text-muted-foreground mt-4">
+                  Ready to start your mental health journey with AI that understands you
+                </p>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+
+        {currentPhase === 'completion' && (
+          <motion.div
+            key="completion"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className="min-h-screen flex items-center justify-center"
+          >
+            <div className="text-center space-y-6">
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  rotate: [0, 360, 0]
+                }}
+                transition={{ 
+                  duration: 2,
+                  ease: "easeInOut"
+                }}
+                className="text-8xl"
+              >
+                ✨
+              </motion.div>
+              <h1 className="text-3xl font-bold">
+                Welcome to your personalized Bondhu experience!
+              </h1>
+              <p className="text-muted-foreground">
+                Taking you to your dashboard...
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
