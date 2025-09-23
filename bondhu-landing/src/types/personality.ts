@@ -75,3 +75,4 @@ export interface AssessmentResults {
   strengthsOverview: string
   bondhuPersonalization: string
 }
+

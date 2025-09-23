@@ -187,3 +187,4 @@ export const introCard = {
   ],
   imageUrl: '/images/personality/neuron-valley.jpg'
 }
+

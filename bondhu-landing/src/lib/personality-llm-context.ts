@@ -278,3 +278,4 @@ function getScoreDescription(score: number): string {
   if (score <= 70) return "(Moderate)"
   return "(High)"
 }
+

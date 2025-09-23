@@ -105,3 +105,4 @@ export function PersonalityQuestionCard({
     </motion.div>
   )
 }
+

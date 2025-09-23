@@ -214,3 +214,4 @@ function getNeuroticismGrowthSuggestions(score: number): string[] {
   if (score <= 70) return ["Develop stress management tools", "Practice mindfulness", "Build emotional awareness"]
   return ["Practice self-compassion", "Use calming techniques", "Build a strong support network"]
 }
+
