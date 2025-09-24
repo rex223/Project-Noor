@@ -11,8 +11,11 @@ export function HeroBackground({ intensity = "normal", className = "" }: HeroBac
   const [isVisible, setIsVisible] = useState(false)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const [isInViewport, setIsInViewport] = useState(true)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true)
+    
     // Check for reduced motion preference
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)")
     setPrefersReducedMotion(mediaQuery.matches)
@@ -48,7 +51,7 @@ export function HeroBackground({ intensity = "normal", className = "" }: HeroBac
     }
   }, [])
 
-  // Adjust circle sizes based on intensity and screen size
+  // Adjust circle sizes based on intensity - using CSS classes for responsive behavior
   const getCircleSize = (baseSize: number) => {
     let sizeMultiplier = 1
     
@@ -63,16 +66,12 @@ export function HeroBackground({ intensity = "normal", className = "" }: HeroBac
         sizeMultiplier = 1
     }
 
-    // Responsive size adjustments
-    if (typeof window !== "undefined") {
-      if (window.innerWidth < 768) {
-        sizeMultiplier *= 0.7 // Mobile: 30% smaller
-      } else if (window.innerWidth < 1024) {
-        sizeMultiplier *= 0.85 // Tablet: 15% smaller
-      }
-    }
-    
     return baseSize * sizeMultiplier
+  }
+
+  // Get responsive class names for different screen sizes
+  const getResponsiveClass = () => {
+    return "scale-[0.7] md:scale-[0.85] lg:scale-100"
   }
 
   // Get animation classes based on motion preference and viewport visibility
@@ -82,6 +81,16 @@ export function HeroBackground({ intensity = "normal", className = "" }: HeroBac
     }
     
     return animationType
+  }
+
+  // Don't render until mounted to avoid hydration mismatch
+  if (!isMounted) {
+    return (
+      <div 
+        className={`absolute inset-0 overflow-hidden pointer-events-none opacity-0 ${className}`}
+        aria-hidden="true"
+      />
+    )
   }
 
   // Don't render animations if not in viewport for performance
@@ -100,7 +109,7 @@ export function HeroBackground({ intensity = "normal", className = "" }: HeroBac
     <div 
       className={`absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-1000 ${
         isVisible ? "opacity-100" : "opacity-0"
-      } ${className}`}
+      } ${getResponsiveClass()} ${className}`}
       aria-hidden="true"
       style={{ contain: "layout style paint" }}
     >
