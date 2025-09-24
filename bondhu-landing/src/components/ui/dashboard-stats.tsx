@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, MessageCircle, Gamepad2, TrendingUp, BarChart3, Activity } from "lucide-react";
+import { Heart, MessageCircle, Gamepad2, TrendingUp, BarChart3, Activity, Trophy, Zap } from "lucide-react";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ interface DashboardStatsProps {
     achievements?: number;
     weeklyGrowth?: number;
     moodScore?: number;
+    activeSessions?: number;
   };
 }
 
@@ -23,11 +24,13 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
     achievements: 8,
     weeklyGrowth: 23,
     moodScore: 85,
+    activeSessions: 3,
     ...stats
   };
 
   return (
-    <div className="grid grid-cols-1 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      {/* Row 1 */}
       <StatsCard
         icon={<Heart className="h-5 w-5" />}
         title="Wellness Score"
@@ -45,11 +48,37 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
         trendPositive={true}
       />
       <StatsCard
+        icon={<Gamepad2 className="h-5 w-5" />}
+        title="Games Played"
+        value={defaultStats.totalGamesPlayed.toString()}
+        description="Interactive games completed"
+        trend="+2 this week"
+        trendPositive={true}
+      />
+      
+      {/* Row 2 */}
+      <StatsCard
         icon={<TrendingUp className="h-5 w-5" />}
         title="Growth Streak"
         value={`${defaultStats.weeklyGrowth} days`}
         description="Consecutive days of engagement"
         trend="Personal best!"
+        trendPositive={true}
+      />
+      <StatsCard
+        icon={<Trophy className="h-5 w-5" />}
+        title="Achievements"
+        value={defaultStats.achievements.toString()}
+        description="Milestones and accomplishments"
+        trend="+2 this month"
+        trendPositive={true}
+      />
+      <StatsCard
+        icon={<Activity className="h-5 w-5" />}
+        title="Active Sessions"
+        value={defaultStats.activeSessions.toString()}
+        description="Current ongoing activities"
+        trend="2 new today"
         trendPositive={true}
       />
     </div>
@@ -67,7 +96,7 @@ interface StatsCardProps {
 
 const StatsCard = ({ icon, title, value, description, trend, trendPositive }: StatsCardProps) => {
   return (
-    <div className="min-h-[7rem] list-none">
+    <div className="min-h-[9rem] list-none">
       <div className="relative h-full rounded-[1.25rem] border-[0.75px] border-border p-2">
         <GlowingEffect
           spread={30}
@@ -78,9 +107,9 @@ const StatsCard = ({ icon, title, value, description, trend, trendPositive }: St
           borderWidth={1}
           variant="default"
         />
-        <div className="relative flex h-full flex-col justify-between gap-4 overflow-hidden rounded-xl border-[0.75px] bg-card p-4 shadow-sm">
+        <div className="relative flex h-full flex-col justify-between gap-4 overflow-hidden rounded-xl border-[0.75px] bg-card p-5 shadow-sm">
           <div className="flex items-start justify-between">
-            <div className="w-fit rounded-lg border-[0.75px] border-border bg-muted p-2">
+            <div className="w-fit rounded-lg border-[0.75px] border-border bg-muted p-2.5">
               {icon}
             </div>
             <div className={cn(
@@ -93,11 +122,11 @@ const StatsCard = ({ icon, title, value, description, trend, trendPositive }: St
             </div>
           </div>
           
-          <div className="space-y-2">
-            <div className="text-xl font-bold text-foreground">
+          <div className="space-y-3">
+            <div className="text-2xl font-bold text-foreground">
               {value}
             </div>
-            <div>
+            <div className="space-y-1">
               <h3 className="text-sm font-semibold text-foreground">
                 {title}
               </h3>

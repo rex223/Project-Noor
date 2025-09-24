@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
 import { Progress } from "@/components/ui/progress"
-import { MessageCircle, User, Settings, Play, Send, Mic, Heart, Sword, Shield, Zap, Volume2, TrendingUp, BarChart3, Camera, Headphones, Gamepad2, Pause } from "lucide-react"
+import { User, Settings, Play, Send, Mic, Heart, Sword, Shield, Zap, Volume2, TrendingUp, BarChart3, Camera, Headphones, Gamepad2, Pause, ChevronRight, ArrowLeft } from "lucide-react"
 import type { Profile } from "@/types/auth"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -27,11 +27,12 @@ import { ColorSymphony } from "@/components/games/ColorSymphony"
 import { VideoPlayer } from "@/components/video/VideoPlayer"
 import { PersonalityRadarAdvanced } from "@/components/ui/personality-radar-advanced"
 import { aiLearningEngine } from "@/lib/ai-learning-engine"
+import { GlowingEffect } from "@/components/ui/glowing-effect"
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [activeSection, setActiveSection] = useState('chat')
+  const [activeSection, setActiveSection] = useState('entertainment')
   const router = useRouter()
   const supabase = createClient()
 
@@ -185,43 +186,35 @@ export default function DashboardPage() {
 
         {/* Additional Dashboard Tabs - Now Secondary */}
         <Tabs value={activeSection} onValueChange={setActiveSection} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8 h-12">
-            <TabsTrigger value="chat" className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2">
-              <MessageCircle className="h-4 w-4" />
-              <span className="text-xs sm:text-sm font-medium">Chat</span>
+          <TabsList className="grid w-full grid-cols-3 mb-8 h-12 bg-card/50 backdrop-blur-sm border border-border/20">
+            <TabsTrigger 
+              value="entertainment" 
+              className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 relative group transition-all duration-300 data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20 dark:data-[state=active]:shadow-blue-400/20 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/10 data-[state=active]:to-cyan-500/10 hover:shadow-md hover:shadow-blue-500/10 dark:hover:shadow-blue-400/10"
+            >
+              <GlowingEffect disabled={false} proximity={100} spread={30} blur={1} />
+              <Play className="h-4 w-4 transition-transform duration-300 group-hover:scale-110 group-data-[state=active]:text-blue-500 dark:group-data-[state=active]:text-blue-400 relative z-10" />
+              <span className="text-xs sm:text-sm font-medium group-data-[state=active]:text-blue-600 dark:group-data-[state=active]:text-blue-300 relative z-10">Entertainment</span>
+              <div className="absolute inset-0 rounded-md bg-gradient-to-r from-blue-500/0 to-cyan-500/0 group-data-[state=active]:from-blue-500/5 group-data-[state=active]:to-cyan-500/5 transition-all duration-300" />
             </TabsTrigger>
-            <TabsTrigger value="entertainment" className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2">
-              <Play className="h-4 w-4" />
-              <span className="text-xs sm:text-sm font-medium">Entertainment</span>
+            <TabsTrigger 
+              value="profile" 
+              className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 relative group transition-all duration-300 data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/20 dark:data-[state=active]:shadow-purple-400/20 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/10 data-[state=active]:to-pink-500/10 hover:shadow-md hover:shadow-purple-500/10 dark:hover:shadow-purple-400/10"
+            >
+              <GlowingEffect disabled={false} proximity={100} spread={30} blur={1} />
+              <User className="h-4 w-4 transition-transform duration-300 group-hover:scale-110 group-data-[state=active]:text-purple-500 dark:group-data-[state=active]:text-purple-400 relative z-10" />
+              <span className="text-xs sm:text-sm font-medium group-data-[state=active]:text-purple-600 dark:group-data-[state=active]:text-purple-300 relative z-10">Profile</span>
+              <div className="absolute inset-0 rounded-md bg-gradient-to-r from-purple-500/0 to-pink-500/0 group-data-[state=active]:from-purple-500/5 group-data-[state=active]:to-pink-500/5 transition-all duration-300" />
             </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2">
-              <User className="h-4 w-4" />
-              <span className="text-xs sm:text-sm font-medium">Profile</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2">
-              <Settings className="h-4 w-4" />
-              <span className="text-xs sm:text-sm font-medium">Settings</span>
+            <TabsTrigger 
+              value="settings" 
+              className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 relative group transition-all duration-300 data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/20 dark:data-[state=active]:shadow-green-400/20 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500/10 data-[state=active]:to-emerald-500/10 hover:shadow-md hover:shadow-green-500/10 dark:hover:shadow-green-400/10"
+            >
+              <GlowingEffect disabled={false} proximity={100} spread={30} blur={1} />
+              <Settings className="h-4 w-4 transition-transform duration-300 group-hover:scale-110 group-data-[state=active]:text-green-500 dark:group-data-[state=active]:text-green-400 relative z-10" />
+              <span className="text-xs sm:text-sm font-medium group-data-[state=active]:text-green-600 dark:group-data-[state=active]:text-green-300 relative z-10">Settings</span>
+              <div className="absolute inset-0 rounded-md bg-gradient-to-r from-green-500/0 to-emerald-500/0 group-data-[state=active]:from-green-500/5 group-data-[state=active]:to-emerald-500/5 transition-all duration-300" />
             </TabsTrigger>
           </TabsList>
-
-          {/* Chat Tab */}
-          <TabsContent value="chat" className="space-y-6">
-            <div className="text-center py-12 bg-muted/30 rounded-xl border border-dashed border-border">
-              <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Main Chat Above</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Your primary chat with Bondhu is featured above for easy access. 
-                Scroll up to continue your conversation with your AI companion.
-              </p>
-              <Button 
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="mt-4"
-                variant="outline"
-              >
-                Go to Chat
-              </Button>
-            </div>
-          </TabsContent>
 
           {/* Entertainment Tab */}
           <TabsContent value="entertainment" className="space-y-6">
@@ -230,11 +223,55 @@ export default function DashboardPage() {
 
           {/* Profile Tab */}
           <TabsContent value="profile" className="space-y-6">
+            {/* Breadcrumb Navigation */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <button 
+                  onClick={() => setActiveSection('entertainment')}
+                  className="hover:text-foreground transition-colors"
+                >
+                  Dashboard
+                </button>
+                <ChevronRight className="h-4 w-4" />
+                <span className="text-foreground font-medium">Personality Insights</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setActiveSection('entertainment')}
+                className="flex items-center space-x-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to Dashboard</span>
+              </Button>
+            </div>
             <ProfileDashboard profile={profile} />
           </TabsContent>
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
+            {/* Breadcrumb Navigation */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <button 
+                  onClick={() => setActiveSection('entertainment')}
+                  className="hover:text-foreground transition-colors"
+                >
+                  Dashboard
+                </button>
+                <ChevronRight className="h-4 w-4" />
+                <span className="text-foreground font-medium">Privacy & Settings</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setActiveSection('entertainment')}
+                className="flex items-center space-x-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to Dashboard</span>
+              </Button>
+            </div>
             <SettingsPanel profile={profile} />
           </TabsContent>
         </Tabs>
@@ -439,28 +476,123 @@ function EntertainmentHub({ profile }: { profile: Profile }) {
         <CardContent>
           <div className="grid grid-cols-3 gap-4 mb-6">
             <Button
-              variant={activeSection === 'games' ? 'default' : 'outline'}
+              variant="ghost"
               onClick={() => setActiveSection('games')}
-              className="h-16 flex flex-col space-y-1"
+              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${
+                activeSection === 'games' 
+                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15' 
+                  : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-green-500/10 hover:border-green-400/20 hover:shadow-md hover:shadow-green-500/10'
+              }`}
             >
-              <Gamepad2 className="h-6 w-6" />
-              <span className="text-sm">Games</span>
+              <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
+              
+              {/* Liquid glass morphing background */}
+              <div className={`absolute inset-0 transition-all duration-700 ease-out ${
+                activeSection === 'games' 
+                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30' 
+                  : 'bg-gradient-to-br from-white/5 via-green-500/5 to-white/10 group-hover:from-green-400/10 group-hover:via-emerald-500/10 group-hover:to-green-600/15'
+              }`} />
+              
+              {/* Animated liquid blob */}
+              <div className={`absolute w-32 h-32 -top-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${
+                activeSection === 'games' 
+                  ? 'bg-green-400/30 blur-xl animate-pulse' 
+                  : 'bg-green-500/10 blur-2xl group-hover:bg-green-400/20 group-hover:scale-110'
+              }`} />
+              
+              {/* Glass reflection effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
+              
+              <Gamepad2 className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${
+                activeSection === 'games' 
+                  ? 'text-green-100 drop-shadow-sm filter brightness-110' 
+                  : 'text-green-600 dark:text-green-400 group-hover:text-green-500 dark:group-hover:text-green-300'
+              }`} />
+              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${
+                activeSection === 'games' 
+                  ? 'text-green-50 drop-shadow-sm filter brightness-110' 
+                  : 'text-green-700 dark:text-green-300 group-hover:text-green-600 dark:group-hover:text-green-200'
+              }`}>Games</span>
             </Button>
+            
             <Button
-              variant={activeSection === 'videos' ? 'default' : 'outline'}
+              variant="ghost"
               onClick={() => setActiveSection('videos')}
-              className="h-16 flex flex-col space-y-1"
+              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${
+                activeSection === 'videos' 
+                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15' 
+                  : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-green-500/10 hover:border-green-400/20 hover:shadow-md hover:shadow-green-500/10'
+              }`}
             >
-              <Camera className="h-6 w-6" />
-              <span className="text-sm">Videos</span>
+              <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
+              
+              {/* Liquid glass morphing background */}
+              <div className={`absolute inset-0 transition-all duration-700 ease-out ${
+                activeSection === 'videos' 
+                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30' 
+                  : 'bg-gradient-to-br from-white/5 via-green-500/5 to-white/10 group-hover:from-green-400/10 group-hover:via-emerald-500/10 group-hover:to-green-600/15'
+              }`} />
+              
+              {/* Animated liquid blob */}
+              <div className={`absolute w-32 h-32 -top-8 -right-8 rounded-full transition-all duration-1000 ease-in-out ${
+                activeSection === 'videos' 
+                  ? 'bg-emerald-400/30 blur-xl animate-pulse' 
+                  : 'bg-green-500/10 blur-2xl group-hover:bg-emerald-400/20 group-hover:scale-110'
+              }`} />
+              
+              {/* Glass reflection effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
+              
+              <Camera className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${
+                activeSection === 'videos' 
+                  ? 'text-green-100 drop-shadow-sm filter brightness-110' 
+                  : 'text-green-600 dark:text-green-400 group-hover:text-green-500 dark:group-hover:text-green-300'
+              }`} />
+              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${
+                activeSection === 'videos' 
+                  ? 'text-green-50 drop-shadow-sm filter brightness-110' 
+                  : 'text-green-700 dark:text-green-300 group-hover:text-green-600 dark:group-hover:text-green-200'
+              }`}>Videos</span>
             </Button>
+            
             <Button
-              variant={activeSection === 'music' ? 'default' : 'outline'}
+              variant="ghost"
               onClick={() => setActiveSection('music')}
-              className="h-16 flex flex-col space-y-1"
+              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${
+                activeSection === 'music' 
+                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15' 
+                  : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-green-500/10 hover:border-green-400/20 hover:shadow-md hover:shadow-green-500/10'
+              }`}
             >
-              <Headphones className="h-6 w-6" />
-              <span className="text-sm">Music</span>
+              <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
+              
+              {/* Liquid glass morphing background */}
+              <div className={`absolute inset-0 transition-all duration-700 ease-out ${
+                activeSection === 'music' 
+                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30' 
+                  : 'bg-gradient-to-br from-white/5 via-green-500/5 to-white/10 group-hover:from-green-400/10 group-hover:via-emerald-500/10 group-hover:to-green-600/15'
+              }`} />
+              
+              {/* Animated liquid blob */}
+              <div className={`absolute w-32 h-32 -bottom-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${
+                activeSection === 'music' 
+                  ? 'bg-teal-400/30 blur-xl animate-pulse' 
+                  : 'bg-green-500/10 blur-2xl group-hover:bg-teal-400/20 group-hover:scale-110'
+              }`} />
+              
+              {/* Glass reflection effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
+              
+              <Headphones className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${
+                activeSection === 'music' 
+                  ? 'text-green-100 drop-shadow-sm filter brightness-110' 
+                  : 'text-green-600 dark:text-green-400 group-hover:text-green-500 dark:group-hover:text-green-300'
+              }`} />
+              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${
+                activeSection === 'music' 
+                  ? 'text-green-50 drop-shadow-sm filter brightness-110' 
+                  : 'text-green-700 dark:text-green-300 group-hover:text-green-600 dark:group-hover:text-green-200'
+              }`}>Music</span>
             </Button>
           </div>
 
@@ -550,8 +682,9 @@ function GamingSection({ profile }: { profile: Profile }) {
     <div className="space-y-4">
       <div className="grid gap-4">
         {games.map((game) => (
-          <Card key={game.id} className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-            <div className="flex items-center justify-between">
+          <Card key={game.id} className="p-4 hover:shadow-md transition-shadow cursor-pointer relative">
+            <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
+            <div className="flex items-center justify-between relative z-10">
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center text-2xl">
                   {game.icon}
@@ -737,8 +870,9 @@ function VideoSection({ profile }: { profile: Profile }) {
 
       <div className="grid gap-4">
         {videos.filter(v => v.category === selectedCategory).map((video) => (
-          <Card key={video.id} className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-            <div className="flex items-center space-x-4">
+          <Card key={video.id} className="p-4 hover:shadow-md transition-shadow cursor-pointer relative">
+            <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
+            <div className="flex items-center space-x-4 relative z-10">
               <div className="w-20 h-16 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg flex items-center justify-center text-3xl flex-shrink-0">
                 {video.thumbnail}
               </div>
@@ -1003,13 +1137,14 @@ function MusicSection({ profile }: { profile: Profile }) {
             key={mood.name}
             onClick={() => setSelectedMood(mood.name)}
             className={`
-              relative overflow-hidden rounded-xl p-6 cursor-pointer transition-all duration-300 ease-in-out transform hover:scale-105 group
+              relative overflow-hidden rounded-xl p-6 cursor-pointer transition-all duration-300 ease-in-out transform hover:scale-[1.02] group
               ${selectedMood === mood.name 
-                ? `bg-gradient-to-br ${mood.gradient} text-white shadow-lg shadow-${mood.gradient.split('-')[1]}-500/25` 
-                : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                ? `bg-gradient-to-br ${mood.gradient} text-white shadow-md dark:shadow-lg shadow-${mood.gradient.split('-')[1]}-500/20 dark:shadow-${mood.gradient.split('-')[1]}-500/10` 
+                : 'bg-white dark:bg-card hover:bg-gray-50/50 dark:hover:bg-card/80 border border-gray-200/60 dark:border-border/40 hover:border-gray-300/80 dark:hover:border-border/60'
               }
             `}
           >
+            <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
             {/* Background gradient overlay for selected state */}
             {selectedMood === mood.name && (
               <div className={`absolute inset-0 bg-gradient-to-br ${mood.hoverGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
@@ -1018,7 +1153,7 @@ function MusicSection({ profile }: { profile: Profile }) {
             {/* Content */}
             <div className="relative z-10 flex flex-col items-center text-center space-y-2">
               <div className={`
-                text-3xl mb-1 transition-transform duration-300 group-hover:scale-110
+                text-3xl mb-1 transition-transform duration-300 group-hover:scale-105
                 ${selectedMood === mood.name ? 'drop-shadow-sm' : ''}
               `}>
                 {mood.emoji}
@@ -1046,8 +1181,8 @@ function MusicSection({ profile }: { profile: Profile }) {
             {/* Shine effect for unselected buttons */}
             {selectedMood !== mood.name && (
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                <div className={`absolute inset-0 bg-gradient-to-r ${mood.gradient} opacity-5`} />
-                <div className="absolute -inset-x-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 animate-shine" />
+                <div className={`absolute inset-0 bg-gradient-to-r ${mood.gradient} opacity-5 dark:opacity-10`} />
+                <div className="absolute -inset-x-full h-full bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent transform -skew-x-12 animate-shine" />
               </div>
             )}
           </div>
@@ -1110,8 +1245,9 @@ function MusicSection({ profile }: { profile: Profile }) {
             {selectedMood} Playlists
           </h3>
           {playlists.filter(p => p.mood === selectedMood).map((playlist) => (
-            <Card key={playlist.id} className="overflow-hidden">
-              <CardHeader className="pb-3">
+            <Card key={playlist.id} className="overflow-hidden relative">
+              <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
+              <CardHeader className="pb-3 relative z-10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-3xl">
@@ -1137,12 +1273,12 @@ function MusicSection({ profile }: { profile: Profile }) {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
+              <CardContent className="pt-0 relative z-10">
                 <div className="space-y-2">
                   {playlist.tracks_list.slice(0, 3).map((track, index) => (
                     <div
                       key={track.id}
-                      className="flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer"
+                      className="flex items-center justify-between p-2 hover:bg-gray-50/50 dark:hover:bg-card/60 rounded cursor-pointer transition-colors duration-200"
                       onClick={() => playTrack(track, playlist)}
                     >
                       <div className="flex items-center space-x-3">
@@ -1197,7 +1333,7 @@ function MusicSection({ profile }: { profile: Profile }) {
                   .flatMap(p => p.tracks_list)
                   .find(t => t.id === history.trackId)
                 return (
-                  <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                  <div key={index} className="p-3 bg-gray-50/50 dark:bg-card/40 rounded-lg border border-gray-200/40 dark:border-border/20">
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-medium">{track?.title}</span>
                       <Badge variant="secondary">{history.mood} Mood</Badge>
@@ -1217,7 +1353,7 @@ function MusicSection({ profile }: { profile: Profile }) {
       )}
 
       {/* Learning Insights */}
-      <div className="text-xs text-muted-foreground space-y-1 p-3 bg-gray-50 rounded-lg">
+      <div className="text-xs text-muted-foreground space-y-1 p-3 bg-gray-50/50 dark:bg-card/40 rounded-lg border border-gray-200/40 dark:border-border/20">
         <p className="font-medium">Music Learning Insights:</p>
         <p>• Mood-based listening preferences and patterns</p>
         <p>• Genre exploration and musical taste development</p>
@@ -1284,8 +1420,9 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
 
       {/* AI-Generated Cross-Modal Insights */}
       {aiInsights?.crossModalInsights && aiInsights.crossModalInsights.length > 0 && (
-        <Card>
-          <CardHeader>
+        <Card className="relative">
+          <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
+          <CardHeader className="relative z-10">
             <CardTitle className="flex items-center space-x-2">
               <TrendingUp className="h-5 w-5" />
               <span>AI-Generated Insights</span>
@@ -1294,7 +1431,7 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
               Cross-modal analysis of your entertainment behavior patterns
             </p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative z-10">
             <div className="space-y-4">
               {aiInsights.crossModalInsights.map((insight: any, index: number) => (
                 <div key={index} className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
@@ -1322,11 +1459,12 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
       {aiInsights?.entertainmentProfile && (
         <div className="grid md:grid-cols-3 gap-6">
           {/* Gaming Analysis */}
-          <Card>
-            <CardHeader>
+          <Card className="relative">
+            <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
+            <CardHeader className="relative z-10">
               <CardTitle className="text-lg">Gaming Personality</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Problem Solving Style</span>
@@ -1365,11 +1503,12 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
           </Card>
 
           {/* Video Analysis */}
-          <Card>
-            <CardHeader>
+          <Card className="relative">
+            <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
+            <CardHeader className="relative z-10">
               <CardTitle className="text-lg">Viewing Behavior</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Attention Span</span>
@@ -1400,11 +1539,12 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
           </Card>
 
           {/* Music Analysis */}
-          <Card>
-            <CardHeader>
+          <Card className="relative">
+            <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
+            <CardHeader className="relative z-10">
               <CardTitle className="text-lg">Music Personality</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Regulation Style</span>
@@ -1446,8 +1586,9 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
 
       {/* AI Recommendations */}
       {aiInsights?.recommendations && (
-        <Card>
-          <CardHeader>
+        <Card className="relative">
+          <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
+          <CardHeader className="relative z-10">
             <CardTitle className="flex items-center space-x-2">
               <BarChart3 className="h-5 w-5" />
               <span>Personalized AI Recommendations</span>
@@ -1456,7 +1597,7 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
               Based on comprehensive analysis of your entertainment patterns
             </p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative z-10">
             <div className="grid md:grid-cols-2 gap-4">
               {/* Game Recommendations */}
               {aiInsights.recommendations.games.length > 0 && (
@@ -1504,8 +1645,9 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
 
       {/* Personality Trends */}
       {aiInsights?.trends && (
-        <Card>
-          <CardHeader>
+        <Card className="relative">
+          <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
+          <CardHeader className="relative z-10">
             <CardTitle className="flex items-center space-x-2">
               <TrendingUp className="h-5 w-5" />
               <span>Personality Evolution</span>
@@ -1514,7 +1656,7 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
               How your personality traits are evolving through entertainment choices
             </p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative z-10">
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <h4 className="font-medium mb-3">Trait Trends</h4>
@@ -1706,8 +1848,9 @@ function SettingsPanel({ profile }: { profile: Profile }) {
   return (
     <div className="space-y-6">
       {/* Privacy Controls */}
-      <Card>
-        <CardHeader>
+      <Card className="relative">
+        <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
+        <CardHeader className="relative z-10">
           <CardTitle className="flex items-center space-x-2">
             <Settings className="h-5 w-5" />
             <span>Privacy & Data Controls</span>
@@ -1716,7 +1859,7 @@ function SettingsPanel({ profile }: { profile: Profile }) {
             Manage how Bondhu collects and uses your data for personalization
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative z-10">
           <div className="space-y-6">
             {/* Entertainment Data Collection */}
             <div>
@@ -1858,14 +2001,15 @@ function SettingsPanel({ profile }: { profile: Profile }) {
       </Card>
 
       {/* Data Management */}
-      <Card>
-        <CardHeader>
+      <Card className="relative">
+        <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
+        <CardHeader className="relative z-10">
           <CardTitle>Data Management & Export</CardTitle>
           <p className="text-muted-foreground">
             Download, view, or delete your personal data
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative z-10">
           <div className="space-y-4">
             {/* Export Data */}
             <div className="p-4 border rounded-lg">
@@ -1973,11 +2117,12 @@ function SettingsPanel({ profile }: { profile: Profile }) {
       </Card>
 
       {/* Account Settings */}
-      <Card>
-        <CardHeader>
+      <Card className="relative">
+        <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
+        <CardHeader className="relative z-10">
           <CardTitle>Account Settings</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative z-10">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -2016,11 +2161,12 @@ function SettingsPanel({ profile }: { profile: Profile }) {
       </Card>
 
       {/* Privacy Information */}
-      <Card>
-        <CardHeader>
+      <Card className="relative">
+        <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
+        <CardHeader className="relative z-10">
           <CardTitle>Privacy Information</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative z-10">
           <div className="space-y-3 text-sm">
             <div>
               <h5 className="font-medium">Data Processing</h5>
