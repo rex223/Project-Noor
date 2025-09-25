@@ -1,4 +1,3 @@
-```markdown
 # Bondhu - AI Mental Health Companion
 
 <div align="center">
@@ -515,4 +514,3 @@ If you're in crisis, please reach out for immediate help:
 *Bondhu: Because everyone deserves a friend who truly understands them.*
 
 </div>
-```
