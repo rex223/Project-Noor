@@ -3,27 +3,13 @@
 import { MessageCircle, Play, User, Settings, Sparkles, Brain, Shield, Activity } from "lucide-react";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
 
 interface DashboardGridProps {
-  currentPage?: string;
+  onSectionChange: (section: string) => void;
+  activeSection?: string;
 }
 
-export function DashboardGrid({ currentPage = 'dashboard' }: DashboardGridProps) {
-  const router = useRouter()
-
-  const handlePersonalityInsightsClick = () => {
-    router.push('/personality-insights')
-  }
-
-  const handleEntertainmentClick = () => {
-    router.push('/entertainment')
-  }
-
-  const handleSettingsClick = () => {
-    router.push('/settings')
-  }
-
+export function DashboardGrid({ onSectionChange, activeSection }: DashboardGridProps) {
   return (
     <div className="grid grid-cols-2 gap-4">
       <GridItem
@@ -31,8 +17,8 @@ export function DashboardGrid({ currentPage = 'dashboard' }: DashboardGridProps)
         icon={<MessageCircle className="h-5 w-5" />}
         title="AI Chat Companion"
         description="Start a conversation with Bondhu, your personalized AI friend who understands your personality and adapts to your needs."
-        onClick={() => {}} // No navigation since we're already on dashboard
-        isActive={currentPage === 'dashboard'}
+        onClick={() => onSectionChange('chat')}
+        isActive={activeSection === 'chat'}
         gradient="from-blue-400/80 to-cyan-400/80"
         darkGradient="from-blue-500/60 to-cyan-500/60"
         showPreview={false}
@@ -42,8 +28,8 @@ export function DashboardGrid({ currentPage = 'dashboard' }: DashboardGridProps)
         icon={<Play className="h-5 w-5" />}
         title="Entertainment Hub"
         description="Explore games, videos, and music while Bondhu learns about your personality and preferences."
-        onClick={handleEntertainmentClick}
-        isActive={currentPage === 'entertainment'}
+        onClick={() => onSectionChange('entertainment')}
+        isActive={activeSection === 'entertainment'}
         gradient="from-violet-400/80 to-purple-400/80"
         darkGradient="from-violet-500/60 to-purple-500/60"
         showPreview={false}
@@ -53,8 +39,8 @@ export function DashboardGrid({ currentPage = 'dashboard' }: DashboardGridProps)
         icon={<Brain className="h-5 w-5" />}
         title="Personality Insights"
         description="Discover deep insights about yourself through AI-powered personality analysis and growth tracking."
-        onClick={handlePersonalityInsightsClick}
-        isActive={currentPage === 'personality-insights'}
+        onClick={() => onSectionChange('profile')}
+        isActive={activeSection === 'profile'}
         gradient="from-emerald-400/80 to-teal-400/80"
         darkGradient="from-emerald-500/60 to-teal-500/60"
         showPreview={true}
@@ -65,8 +51,8 @@ export function DashboardGrid({ currentPage = 'dashboard' }: DashboardGridProps)
         icon={<Settings className="h-5 w-5" />}
         title="Privacy & Settings"
         description="Manage your data, privacy preferences, and customize your Bondhu experience."
-        onClick={() => router.push('/settings')}
-        isActive={currentPage === 'settings'}
+        onClick={() => onSectionChange('settings')}
+        isActive={activeSection === 'settings'}
         gradient="from-slate-400/80 to-gray-400/80"
         darkGradient="from-slate-500/60 to-gray-500/60"
         showPreview={true}
