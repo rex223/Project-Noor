@@ -8,6 +8,7 @@ export interface Profile {
   personality_data: Record<string, unknown> | null
   created_at: string
   updated_at: string
+  last_name_change?: string | null
 }
 
 export interface AuthState {
