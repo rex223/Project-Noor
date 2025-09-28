@@ -1,0 +1,16 @@
+{
+  "name": "Bondhu - AI Mental Health Companion",
+  "short_name": "Bondhu",
+  "description": "Meet your digital বন্ধু - an AI companion that adapts to your personality, grows with your journey, and becomes the friend you've always needed.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8CBB3C",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}
