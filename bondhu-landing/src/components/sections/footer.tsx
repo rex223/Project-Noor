@@ -33,7 +33,7 @@ export function Footer() {
   const socialLinks = [
     { name: "Twitter", href: "https://twitter.com" },
     { name: "Instagram", href: "https://instagram.com" },
-    { name: "LinkedIn", href: "https://linkedin.com" },
+    { name: "LinkedIn", href: "https://www.linkedin.com/company/bondhu-ai/?viewAsMember=true" },
     { name: "Discord", href: "https://discord.com" },
   ]
 
