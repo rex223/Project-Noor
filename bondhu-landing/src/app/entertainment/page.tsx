@@ -73,8 +73,8 @@ const VideoPlayer = ({ video, onWatchComplete, onClose }: { video: any, onWatchC
         <div className="text-6xl mb-4">{video.thumbnail}</div>
         <p className="text-lg">{video.title}</p>
         <p className="text-sm opacity-75">Video player would be implemented here</p>
-        <Button 
-          className="mt-4" 
+        <Button
+          className="mt-4"
           onClick={() => onWatchComplete({
             contentId: video.id,
             watchTime: video.duration * 0.8,
@@ -94,7 +94,7 @@ const VideoPlayer = ({ video, onWatchComplete, onClose }: { video: any, onWatchC
 class EnhancedAILearningEngine {
   private supabase = createClient()
   private profileId: string | null = null
-  
+
   constructor(profileId: string) {
     this.profileId = profileId
   }
@@ -112,10 +112,10 @@ class EnhancedAILearningEngine {
         emotional_state: data.emotionalState,
         performance_metrics: data.performance
       }
-      
+
       // Store in Supabase (would need to create this table)
       console.log('Enhanced game analysis:', analysisData)
-      
+
       // Return personalized recommendations
       return this.getPersonalizedGameRecommendations(data)
     } catch (error) {
@@ -135,7 +135,7 @@ class EnhancedAILearningEngine {
         skip_patterns: data.skipPatterns,
         timestamp: new Date().toISOString()
       }
-      
+
       console.log('Enhanced video analysis:', analysisData)
       return this.getPersonalizedVideoRecommendations(data)
     } catch (error) {
@@ -154,7 +154,7 @@ class EnhancedAILearningEngine {
         skip_rate: data.skipRate,
         timestamp: new Date().toISOString()
       }
-      
+
       console.log('Enhanced music analysis:', analysisData)
       return this.getPersonalizedMusicRecommendations(data)
     } catch (error) {
@@ -216,7 +216,7 @@ class EnhancedAILearningEngine {
   private getPersonalizedGameRecommendations(data: any) {
     // Dynamic game recommendations based on performance and preferences
     const recommendations = []
-    
+
     if (data.performance.creativity > 80) {
       recommendations.push({
         type: 'creative_games',
@@ -224,7 +224,7 @@ class EnhancedAILearningEngine {
         games: ['color_symphony', 'artistic_expression', 'story_builder']
       })
     }
-    
+
     if (data.performance.accuracy > 85) {
       recommendations.push({
         type: 'strategy_games',
@@ -232,13 +232,13 @@ class EnhancedAILearningEngine {
         games: ['chess_master', 'logic_puzzles', 'pattern_recognition']
       })
     }
-    
+
     return recommendations
   }
 
   private getPersonalizedVideoRecommendations(data: any) {
     const recommendations = []
-    
+
     if (data.completionRate > 80) {
       recommendations.push({
         type: 'deep_content',
@@ -246,7 +246,7 @@ class EnhancedAILearningEngine {
         categories: ['advanced_psychology', 'neuroscience', 'philosophy']
       })
     }
-    
+
     if (data.skipPatterns.length > 3) {
       recommendations.push({
         type: 'bite_sized_content',
@@ -254,23 +254,23 @@ class EnhancedAILearningEngine {
         categories: ['quick_tips', 'micro_learning', 'summary_videos']
       })
     }
-    
+
     return recommendations
   }
 
   private getPersonalizedMusicRecommendations(data: any) {
     const recommendations = []
-    
+
     // Analyze listening patterns for mood correlation
     const moodPreferences = this.analyzeMoodPatterns(data)
-    
+
     recommendations.push({
       type: 'mood_based',
       currentMood: data.mood,
       suggestedMoods: this.getComplementaryMoods(data.mood),
       playlists: this.generateDynamicPlaylists(moodPreferences)
     })
-    
+
     return recommendations
   }
 
@@ -297,7 +297,7 @@ class EnhancedAILearningEngine {
     // Generate playlists based on user preferences and time context
     const timeOfDay = new Date().getHours()
     const isWeekend = [0, 6].includes(new Date().getDay())
-    
+
     return {
       contextual: `${isWeekend ? 'Weekend' : 'Weekday'} ${timeOfDay > 18 ? 'Evening' : 'Morning'} Vibes`,
       personal: `Your ${moodPreferences.mostFrequent} Mix`,
@@ -324,12 +324,12 @@ export default function EntertainmentHubPage() {
   // Memoized user stats calculation
   const userStats = useMemo(() => {
     if (!activityHistory.length) return null
-    
+
     const gamesPlayed = activityHistory.filter(a => a.type === 'game').length
     const videosWatched = activityHistory.filter(a => a.type === 'video').length
     const musicListened = activityHistory.filter(a => a.type === 'music').length
     const totalTime = activityHistory.reduce((acc, a) => acc + (a.duration || 0), 0)
-    
+
     return {
       gamesPlayed,
       videosWatched,
@@ -345,19 +345,19 @@ export default function EntertainmentHubPage() {
     try {
       // Initialize AI engine
       aiEngine.current = new EnhancedAILearningEngine(userId)
-      
+
       // Load user preferences (would come from database)
       const preferences = await loadUserPreferences(userId)
       setUserPreferences(preferences)
-      
+
       // Load activity history
       const history = await loadActivityHistory(userId)
       setActivityHistory(history)
-      
+
       // Generate personalized recommendations
       const recommendations = await generatePersonalizedContent(userId, preferences, history)
       setPersonalizedRecommendations(recommendations)
-      
+
     } catch (error) {
       console.error('Error loading user data:', error)
     }
@@ -385,10 +385,10 @@ export default function EntertainmentHubPage() {
         }
 
         setProfile(profileData)
-        
+
         // Load additional user data for personalization
         await loadUserData(user.id)
-        
+
       } catch (error) {
         console.error('Error:', error)
       } finally {
@@ -453,7 +453,7 @@ export default function EntertainmentHubPage() {
         {/* Breadcrumb Navigation */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <button 
+            <button
               onClick={() => router.push('/dashboard')}
               className="hover:text-foreground transition-colors"
             >
@@ -587,8 +587,8 @@ export default function EntertainmentHubPage() {
         )}
 
         {/* Entertainment Content */}
-        <EntertainmentHub 
-          profile={profile} 
+        <EntertainmentHub
+          profile={profile}
           userPreferences={userPreferences}
           aiEngine={aiEngine.current}
           personalizedRecommendations={personalizedRecommendations}
@@ -649,7 +649,7 @@ async function generatePersonalizedContent(userId: string, preferences: any, his
       }
     ]
   }
-  
+
   return recommendations
 }
 
@@ -657,23 +657,23 @@ function calculateStreak(history: any[]) {
   // Calculate consecutive days of engagement
   const today = new Date()
   let streak = 0
-  
+
   for (let i = 0; i < 30; i++) {
     const checkDate = new Date(today)
     checkDate.setDate(today.getDate() - i)
-    
+
     const hasActivity = history.some(activity => {
       const activityDate = new Date(activity.timestamp)
       return activityDate.toDateString() === checkDate.toDateString()
     })
-    
+
     if (hasActivity) {
       streak++
     } else if (i > 0) {
       break
     }
   }
-  
+
   return streak
 }
 
@@ -682,18 +682,18 @@ function getFavoriteCategory(history: any[]) {
     acc[activity.type] = (acc[activity.type] || 0) + 1
     return acc
   }, {})
-  
+
   return Object.keys(categories).reduce((a, b) => categories[a] > categories[b] ? a : b)
 }
 
 // Enhanced Entertainment Hub Component with dynamic features
-function EntertainmentHub({ 
-  profile, 
-  userPreferences, 
-  aiEngine, 
+function EntertainmentHub({
+  profile,
+  userPreferences,
+  aiEngine,
   personalizedRecommendations,
   addActivityToHistory
-}: { 
+}: {
   profile: Profile
   userPreferences: any
   aiEngine: EnhancedAILearningEngine | null
@@ -711,7 +711,7 @@ function EntertainmentHub({
   const inferCurrentMood = useCallback(() => {
     const hour = new Date().getHours()
     const day = new Date().getDay()
-    
+
     // Time-based mood inference
     if (hour >= 9 && hour <= 17 && day >= 1 && day <= 5) return 'Focus'
     if (hour >= 18 || day === 0 || day === 6) return 'Relax'
@@ -723,7 +723,7 @@ function EntertainmentHub({
     // Infer current mood from time and recent activity inline
     const hour = new Date().getHours()
     const day = new Date().getDay()
-    
+
     // Time-based mood inference
     if (hour >= 9 && hour <= 17 && day >= 1 && day <= 5) return 'Focus'
     if (hour >= 18 || day === 0 || day === 6) return 'Relax'
@@ -762,128 +762,113 @@ function EntertainmentHub({
             <Button
               variant="ghost"
               onClick={() => setActiveSection('games')}
-              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${
-                activeSection === 'games' 
-                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15' 
+              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${activeSection === 'games'
+                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15'
                   : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-green-500/10 hover:border-green-400/20 hover:shadow-md hover:shadow-green-500/10'
-              }`}
+                }`}
             >
               <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
-              
+
               {/* Liquid glass morphing background */}
-              <div className={`absolute inset-0 transition-all duration-700 ease-out ${
-                activeSection === 'games' 
-                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30' 
+              <div className={`absolute inset-0 transition-all duration-700 ease-out ${activeSection === 'games'
+                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30'
                   : 'bg-gradient-to-br from-white/5 via-green-500/5 to-white/10 group-hover:from-green-400/10 group-hover:via-emerald-500/10 group-hover:to-green-600/15'
-              }`} />
-              
+                }`} />
+
               {/* Animated liquid blob */}
-              <div className={`absolute w-32 h-32 -top-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${
-                activeSection === 'games' 
-                  ? 'bg-green-400/30 blur-xl animate-pulse' 
+              <div className={`absolute w-32 h-32 -top-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${activeSection === 'games'
+                  ? 'bg-green-400/30 blur-xl animate-pulse'
                   : 'bg-green-500/10 blur-2xl group-hover:bg-green-400/20 group-hover:scale-110'
-              }`} />
-              
+                }`} />
+
               {/* Glass reflection effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
-              
-              <Gamepad2 className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${
-                activeSection === 'games' 
-                  ? 'text-green-100 drop-shadow-sm filter brightness-110' 
+
+              <Gamepad2 className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${activeSection === 'games'
+                  ? 'text-green-100 drop-shadow-sm filter brightness-110'
                   : 'text-green-600 dark:text-green-400 group-hover:text-green-500 dark:group-hover:text-green-300'
-              }`} />
-              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${
-                activeSection === 'games' 
-                  ? 'text-green-50 drop-shadow-sm filter brightness-110' 
+                }`} />
+              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${activeSection === 'games'
+                  ? 'text-green-50 drop-shadow-sm filter brightness-110'
                   : 'text-green-700 dark:text-green-300 group-hover:text-green-600 dark:group-hover:text-green-200'
-              }`}>Games</span>
+                }`}>Games</span>
             </Button>
-            
+
             <Button
               variant="ghost"
               onClick={() => setActiveSection('videos')}
-              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${
-                activeSection === 'videos' 
-                  ? 'bg-blue-500/20 backdrop-blur-xl border border-blue-400/30 shadow-lg shadow-blue-500/20 dark:shadow-blue-400/15' 
+              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${activeSection === 'videos'
+                  ? 'bg-blue-500/20 backdrop-blur-xl border border-blue-400/30 shadow-lg shadow-blue-500/20 dark:shadow-blue-400/15'
                   : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-blue-500/10 hover:border-blue-400/20 hover:shadow-md hover:shadow-blue-500/10'
-              }`}
+                }`}
             >
               <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
-              
+
               {/* Liquid glass morphing background */}
-              <div className={`absolute inset-0 transition-all duration-700 ease-out ${
-                activeSection === 'videos' 
-                  ? 'bg-gradient-to-br from-blue-400/30 via-cyan-500/20 to-blue-600/30' 
+              <div className={`absolute inset-0 transition-all duration-700 ease-out ${activeSection === 'videos'
+                  ? 'bg-gradient-to-br from-blue-400/30 via-cyan-500/20 to-blue-600/30'
                   : 'bg-gradient-to-br from-white/5 via-blue-500/5 to-white/10 group-hover:from-blue-400/10 group-hover:via-cyan-500/10 group-hover:to-blue-600/15'
-              }`} />
-              
+                }`} />
+
               {/* Animated liquid blob */}
-              <div className={`absolute w-32 h-32 -top-8 -right-8 rounded-full transition-all duration-1000 ease-in-out ${
-                activeSection === 'videos' 
-                  ? 'bg-blue-400/30 blur-xl animate-pulse' 
+              <div className={`absolute w-32 h-32 -top-8 -right-8 rounded-full transition-all duration-1000 ease-in-out ${activeSection === 'videos'
+                  ? 'bg-blue-400/30 blur-xl animate-pulse'
                   : 'bg-blue-500/10 blur-2xl group-hover:bg-blue-400/20 group-hover:scale-110'
-              }`} />
-              
+                }`} />
+
               {/* Glass reflection effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
-              
-              <Camera className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${
-                activeSection === 'videos' 
-                  ? 'text-blue-100 drop-shadow-sm filter brightness-110' 
+
+              <Camera className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${activeSection === 'videos'
+                  ? 'text-blue-100 drop-shadow-sm filter brightness-110'
                   : 'text-blue-600 dark:text-blue-400 group-hover:text-blue-500 dark:group-hover:text-blue-300'
-              }`} />
-              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${
-                activeSection === 'videos' 
-                  ? 'text-blue-50 drop-shadow-sm filter brightness-110' 
+                }`} />
+              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${activeSection === 'videos'
+                  ? 'text-blue-50 drop-shadow-sm filter brightness-110'
                   : 'text-blue-700 dark:text-blue-300 group-hover:text-blue-600 dark:group-hover:text-blue-200'
-              }`}>Videos</span>
+                }`}>Videos</span>
             </Button>
-            
+
             <Button
               variant="ghost"
               onClick={() => setActiveSection('music')}
-              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${
-                activeSection === 'music' 
-                  ? 'bg-purple-500/20 backdrop-blur-xl border border-purple-400/30 shadow-lg shadow-purple-500/20 dark:shadow-purple-400/15' 
+              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${activeSection === 'music'
+                  ? 'bg-purple-500/20 backdrop-blur-xl border border-purple-400/30 shadow-lg shadow-purple-500/20 dark:shadow-purple-400/15'
                   : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-purple-500/10 hover:border-purple-400/20 hover:shadow-md hover:shadow-purple-500/10'
-              }`}
+                }`}
             >
               <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
-              
+
               {/* Liquid glass morphing background */}
-              <div className={`absolute inset-0 transition-all duration-700 ease-out ${
-                activeSection === 'music' 
-                  ? 'bg-gradient-to-br from-purple-400/30 via-pink-500/20 to-purple-600/30' 
+              <div className={`absolute inset-0 transition-all duration-700 ease-out ${activeSection === 'music'
+                  ? 'bg-gradient-to-br from-purple-400/30 via-pink-500/20 to-purple-600/30'
                   : 'bg-gradient-to-br from-white/5 via-purple-500/5 to-white/10 group-hover:from-purple-400/10 group-hover:via-pink-500/10 group-hover:to-purple-600/15'
-              }`} />
-              
+                }`} />
+
               {/* Animated liquid blob */}
-              <div className={`absolute w-32 h-32 -bottom-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${
-                activeSection === 'music' 
-                  ? 'bg-purple-400/30 blur-xl animate-pulse' 
+              <div className={`absolute w-32 h-32 -bottom-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${activeSection === 'music'
+                  ? 'bg-purple-400/30 blur-xl animate-pulse'
                   : 'bg-purple-500/10 blur-2xl group-hover:bg-purple-400/20 group-hover:scale-110'
-              }`} />
-              
+                }`} />
+
               {/* Glass reflection effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
-              
-              <Headphones className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${
-                activeSection === 'music' 
-                  ? 'text-purple-100 drop-shadow-sm filter brightness-110' 
+
+              <Headphones className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${activeSection === 'music'
+                  ? 'text-purple-100 drop-shadow-sm filter brightness-110'
                   : 'text-purple-600 dark:text-purple-400 group-hover:text-purple-500 dark:group-hover:text-purple-300'
-              }`} />
-              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${
-                activeSection === 'music' 
-                  ? 'text-purple-50 drop-shadow-sm filter brightness-110' 
+                }`} />
+              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${activeSection === 'music'
+                  ? 'text-purple-50 drop-shadow-sm filter brightness-110'
                   : 'text-purple-700 dark:text-purple-300 group-hover:text-purple-600 dark:group-hover:text-purple-200'
-              }`}>Music</span>
+                }`}>Music</span>
             </Button>
           </div>
 
           {/* Dynamic Content Area */}
           {activeSection === 'games' && (
-            <GamingSection 
-              profile={profile} 
+            <GamingSection
+              profile={profile}
               userPreferences={userPreferences}
               aiEngine={aiEngine}
               recommendations={personalizedRecommendations?.games}
@@ -891,8 +876,8 @@ function EntertainmentHub({
             />
           )}
           {activeSection === 'videos' && (
-            <VideoSection 
-              profile={profile} 
+            <VideoSection
+              profile={profile}
               userPreferences={userPreferences}
               aiEngine={aiEngine}
               recommendations={personalizedRecommendations?.videos}
@@ -900,8 +885,8 @@ function EntertainmentHub({
             />
           )}
           {activeSection === 'music' && (
-            <MusicSection 
-              profile={profile} 
+            <MusicSection
+              profile={profile}
               currentMood={currentMood}
               userPreferences={userPreferences}
               aiEngine={aiEngine}
@@ -918,13 +903,13 @@ function EntertainmentHub({
 // Copy the rest of the components from dashboard (GamingSection, VideoSection, MusicSection)
 // I'll include simplified versions here due to space constraints
 
-function GamingSection({ 
-  profile, 
-  userPreferences, 
+function GamingSection({
+  profile,
+  userPreferences,
   aiEngine,
   recommendations,
   addActivityToHistory
-}: { 
+}: {
   profile: Profile
   userPreferences: any
   aiEngine: EnhancedAILearningEngine | null
@@ -933,14 +918,16 @@ function GamingSection({
 }) {
   const [selectedGame, setSelectedGame] = useState<string | null>(null)
   const [gameResults, setGameResults] = useState<any[]>([])
-  const [gameStats, setGameStats] = useState<{ [key: string]: {
-    completions?: number
-    averageScore?: number
-    bestScore?: number
-    startTime?: number
-    endTime?: number
-    attempts?: number
-  } }>({})
+  const [gameStats, setGameStats] = useState<{
+    [key: string]: {
+      completions?: number
+      averageScore?: number
+      bestScore?: number
+      startTime?: number
+      endTime?: number
+      attempts?: number
+    }
+  }>({})
 
   // Dynamic game library based on user preferences and skill level
   const availableGames = useMemo(() => {
@@ -1011,7 +998,7 @@ function GamingSection({
 
     setGameResults(prev => [...prev, enhancedData])
     setSelectedGame(null)
-    
+
     // Add to main activity history for stats dashboard
     const activityData = {
       type: 'game',
@@ -1022,7 +1009,7 @@ function GamingSection({
       completionRate: gameData.completionRate
     }
     addActivityToHistory(activityData)
-    
+
     // Update game stats
     setGameStats(prev => ({
       ...prev,
@@ -1034,7 +1021,7 @@ function GamingSection({
         endTime: Date.now()
       }
     }))
-    
+
     // Send to AI engine for analysis
     if (aiEngine) {
       await aiEngine.addGameplayData(enhancedData)
@@ -1111,13 +1098,12 @@ function GamingSection({
         {availableGames.map((game) => {
           const stats = gameStats[game.id]
           const isRecommended = recommendations?.some(r => r.games?.includes(game.id))
-          
+
           return (
-            <Card key={game.id} className={`p-4 hover:shadow-md transition-shadow cursor-pointer relative ${
-              isRecommended ? 'ring-2 ring-green-400 bg-green-50 dark:bg-green-950/10' : ''
-            }`}>
+            <Card key={game.id} className={`p-4 hover:shadow-md transition-shadow cursor-pointer relative ${isRecommended ? 'ring-2 ring-green-400 bg-green-50 dark:bg-green-950/10' : ''
+              }`}>
               <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
-              
+
               {/* Recommendation Badge */}
               {isRecommended && (
                 <div className="absolute -top-2 -right-2 z-20">
@@ -1127,7 +1113,7 @@ function GamingSection({
                   </Badge>
                 </div>
               )}
-              
+
               <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center text-2xl">
@@ -1179,13 +1165,13 @@ function GamingSection({
   )
 }
 
-function VideoSection({ 
-  profile, 
-  userPreferences, 
+function VideoSection({
+  profile,
+  userPreferences,
   aiEngine,
   recommendations,
   addActivityToHistory
-}: { 
+}: {
   profile: Profile
   userPreferences: any
   aiEngine: EnhancedAILearningEngine | null
@@ -1266,7 +1252,7 @@ function VideoSection({
         const bRecommended = recommendations?.some(r => r.contentId === b.id)
         if (aRecommended && !bRecommended) return -1
         if (!aRecommended && bRecommended) return 1
-        
+
         // Then by rating and views
         return (b.rating * Math.log(b.views)) - (a.rating * Math.log(a.views))
       })
@@ -1282,7 +1268,7 @@ function VideoSection({
 
     setSelectedVideo(null)
     setWatchHistory(prev => [...prev, enhancedData])
-    
+
     // Add to main activity history for stats dashboard
     const activityData = {
       type: 'video',
@@ -1293,13 +1279,13 @@ function VideoSection({
       completionRate: watchData.completionRate
     }
     addActivityToHistory(activityData)
-    
+
     // Update progress
     setVideoProgress(prev => ({
       ...prev,
       [watchData.contentId]: 100
     }))
-    
+
     if (aiEngine) {
       await aiEngine.addVideoData(enhancedData)
     }
@@ -1371,7 +1357,7 @@ function VideoSection({
         {categories.map((category) => {
           const categoryVideos = availableVideos.filter(v => v.category === category.id)
           const watchedCount = watchHistory.filter(w => w.category === category.id).length
-          
+
           return (
             <Button
               key={category.id}
@@ -1397,13 +1383,12 @@ function VideoSection({
           const progress = videoProgress[video.id] || 0
           const isRecommended = recommendations?.some(r => r.contentId === video.id)
           const hasWatched = watchHistory.some(w => w.contentId === video.id)
-          
+
           return (
-            <Card key={video.id} className={`p-4 hover:shadow-md transition-shadow cursor-pointer relative ${
-              isRecommended ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-950/10' : ''
-            }`}>
+            <Card key={video.id} className={`p-4 hover:shadow-md transition-shadow cursor-pointer relative ${isRecommended ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-950/10' : ''
+              }`}>
               <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
-              
+
               {/* Recommendation Badge */}
               {isRecommended && (
                 <div className="absolute -top-2 -right-2 z-20">
@@ -1417,13 +1402,13 @@ function VideoSection({
               {/* Progress Bar */}
               {progress > 0 && (
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 rounded-t-lg overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-blue-500 transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
               )}
-              
+
               <div className="flex items-center space-x-4 relative z-10">
                 <div className="w-20 h-16 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg flex items-center justify-center text-3xl flex-shrink-0 relative">
                   {video.thumbnail}
@@ -1476,14 +1461,14 @@ function VideoSection({
   )
 }
 
-function MusicSection({ 
-  profile, 
-  currentMood, 
-  userPreferences, 
+function MusicSection({
+  profile,
+  currentMood,
+  userPreferences,
   aiEngine,
   recommendations,
   addActivityToHistory
-}: { 
+}: {
   profile: Profile
   currentMood: string
   userPreferences: any
@@ -1522,7 +1507,7 @@ function MusicSection({
     const hour = new Date().getHours()
     const day = new Date().getDay()
     const isWeekend = [0, 6].includes(day)
-    
+
     const basePlaylists = [
       {
         id: 1,
@@ -1584,7 +1569,7 @@ function MusicSection({
         const bContextMatch = b.context === (isWeekend ? 'weekend' : 'workday')
         if (aContextMatch && !bContextMatch) return -1
         if (!aContextMatch && bContextMatch) return 1
-        
+
         // Then by popularity and user history
         return b.popularity - a.popularity
       })
@@ -1600,7 +1585,7 @@ function MusicSection({
     }
 
     setListeningHistory(prev => [...prev, enhancedData])
-    
+
     // Add to main activity history for stats dashboard
     const activityData = {
       type: 'music',
@@ -1611,7 +1596,7 @@ function MusicSection({
       context: enhancedData.context
     }
     addActivityToHistory(activityData)
-    
+
     if (aiEngine) {
       await aiEngine.addMusicData(enhancedData)
     }
@@ -1698,15 +1683,15 @@ function MusicSection({
             {moods.map((mood) => {
               const isRecommended = mood.name === currentMood
               const hasHistory = listeningHistory.some(h => h.mood === mood.name)
-              
+
               return (
                 <div
                   key={mood.name}
                   onClick={() => handleMoodChange(mood.name)}
                   className={`
                     relative overflow-hidden rounded-xl p-6 cursor-pointer transition-all duration-300 group
-                    ${selectedMood === mood.name 
-                      ? `bg-gradient-to-br ${mood.color} text-white shadow-lg scale-105` 
+                    ${selectedMood === mood.name
+                      ? `bg-gradient-to-br ${mood.color} text-white shadow-lg scale-105`
                       : 'bg-white dark:bg-card hover:bg-gray-50 dark:hover:bg-gray-800 border hover:shadow-md'
                     }
                   `}
@@ -1719,7 +1704,7 @@ function MusicSection({
                       </Badge>
                     </div>
                   )}
-                  
+
                   <div className="text-center space-y-2">
                     <div className="text-3xl">{mood.emoji}</div>
                     <h3 className="font-semibold">{mood.name}</h3>
@@ -1748,17 +1733,16 @@ function MusicSection({
               {availablePlaylists.length} available
             </Badge>
           </div>
-          
+
           {availablePlaylists.map((playlist) => {
             const progress = playlistProgress[playlist.id] || 0
             const isRecommended = recommendations?.some(r => r.playlistId === playlist.id)
-            
+
             return (
-              <Card key={playlist.id} className={`p-4 relative ${
-                isRecommended ? 'ring-2 ring-purple-400 bg-purple-50 dark:bg-purple-950/10' : ''
-              }`}>
+              <Card key={playlist.id} className={`p-4 relative ${isRecommended ? 'ring-2 ring-purple-400 bg-purple-50 dark:bg-purple-950/10' : ''
+                }`}>
                 <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
-                
+
                 {isRecommended && (
                   <div className="absolute -top-2 -right-2 z-20">
                     <Badge className="bg-purple-500 text-white">
@@ -1770,18 +1754,18 @@ function MusicSection({
 
                 {progress > 0 && (
                   <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 rounded-t-lg overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-purple-500 transition-all duration-300"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
                 )}
-                
+
                 <div className="flex items-center space-x-4 relative z-10">
-                  <div className={`w-16 h-16 bg-gradient-to-r ${playlist.mood === 'Focus' ? 'from-blue-500 to-indigo-500' : 
+                  <div className={`w-16 h-16 bg-gradient-to-r ${playlist.mood === 'Focus' ? 'from-blue-500 to-indigo-500' :
                     playlist.mood === 'Relax' ? 'from-green-500 to-teal-500' :
-                    playlist.mood === 'Energy' ? 'from-red-500 to-pink-500' :
-                    'from-purple-500 to-pink-500'} rounded-lg flex items-center justify-center text-2xl`}>
+                      playlist.mood === 'Energy' ? 'from-red-500 to-pink-500' :
+                        'from-purple-500 to-pink-500'} rounded-lg flex items-center justify-center text-2xl`}>
                     {playlist.cover}
                   </div>
                   <div className="flex-1">
@@ -1799,7 +1783,7 @@ function MusicSection({
                     </div>
                   </div>
                   <div className="flex flex-col space-y-2">
-                    <Button 
+                    <Button
                       onClick={() => {
                         setCurrentTrack(playlist)
                         // Simulate listening session with playlist duration

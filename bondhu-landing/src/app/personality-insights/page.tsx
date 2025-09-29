@@ -156,7 +156,7 @@ export default function PersonalityInsightsPage() {
         {/* Breadcrumb Navigation */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <button 
+            <button
               onClick={() => router.push('/dashboard')}
               className="hover:text-foreground transition-colors"
             >
@@ -165,8 +165,8 @@ export default function PersonalityInsightsPage() {
             <ChevronRight className="h-4 w-4" />
             <span className="text-foreground font-medium">Personality Insights</span>
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             className="flex items-center space-x-2"
           >
@@ -208,7 +208,7 @@ export default function PersonalityInsightsPage() {
                   {profileCompletion < 100 && (
                     <div className="mt-2">
                       <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2 ml-auto">
-                        <div 
+                        <div
                           className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
                           style={{ width: `${profileCompletion}%` }}
                         ></div>
@@ -351,25 +351,23 @@ export default function PersonalityInsightsPage() {
                   {personalityData.traits.map((trait) => {
                     const isTopStrength = personalityData.topStrengths.some(s => s.name === trait.name)
                     const isGrowthArea = personalityData.growthOpportunities.some(g => g.name === trait.name)
-                    
+
                     return (
-                      <div key={trait.name} className={`p-4 rounded-lg border-l-4 ${
-                        isTopStrength 
-                          ? 'bg-green-50 dark:bg-green-950/20 border-l-green-500' 
-                          : isGrowthArea 
-                          ? 'bg-blue-50 dark:bg-blue-950/20 border-l-blue-500'
-                          : 'bg-gray-50 dark:bg-gray-950/20 border-l-gray-400'
-                      }`}>
+                      <div key={trait.name} className={`p-4 rounded-lg border-l-4 ${isTopStrength
+                          ? 'bg-green-50 dark:bg-green-950/20 border-l-green-500'
+                          : isGrowthArea
+                            ? 'bg-blue-50 dark:bg-blue-950/20 border-l-blue-500'
+                            : 'bg-gray-50 dark:bg-gray-950/20 border-l-gray-400'
+                        }`}>
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-3">
                             <div>
-                              <h3 className={`text-lg font-semibold ${
-                                isTopStrength 
-                                  ? 'text-green-800 dark:text-green-200' 
-                                  : isGrowthArea 
-                                  ? 'text-blue-800 dark:text-blue-200'
-                                  : 'text-gray-800 dark:text-gray-200'
-                              }`}>
+                              <h3 className={`text-lg font-semibold ${isTopStrength
+                                  ? 'text-green-800 dark:text-green-200'
+                                  : isGrowthArea
+                                    ? 'text-blue-800 dark:text-blue-200'
+                                    : 'text-gray-800 dark:text-gray-200'
+                                }`}>
                                 {trait.name}
                                 {isTopStrength && (
                                   <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
@@ -385,29 +383,27 @@ export default function PersonalityInsightsPage() {
                               <p className="text-sm text-muted-foreground mt-1">{trait.description}</p>
                             </div>
                           </div>
-                          <div className={`text-3xl font-bold ${
-                            isTopStrength 
-                              ? 'text-green-600 dark:text-green-400' 
-                              : isGrowthArea 
-                              ? 'text-blue-600 dark:text-blue-400'
-                              : 'text-gray-600 dark:text-gray-400'
-                          }`}>
+                          <div className={`text-3xl font-bold ${isTopStrength
+                              ? 'text-green-600 dark:text-green-400'
+                              : isGrowthArea
+                                ? 'text-blue-600 dark:text-blue-400'
+                                : 'text-gray-600 dark:text-gray-400'
+                            }`}>
                             {trait.score}%
                           </div>
                         </div>
                         <div className="w-full bg-muted rounded-full h-3">
                           <div
-                            className={`h-3 rounded-full transition-all duration-700 ${
-                              isTopStrength
+                            className={`h-3 rounded-full transition-all duration-700 ${isTopStrength
                                 ? 'bg-gradient-to-r from-green-400 to-green-600'
                                 : isGrowthArea
-                                ? 'bg-gradient-to-r from-blue-400 to-blue-600'
-                                : trait.color === 'blue' ? 'bg-blue-500' :
-                                  trait.color === 'green' ? 'bg-green-500' :
-                                  trait.color === 'orange' ? 'bg-orange-500' :
-                                  trait.color === 'purple' ? 'bg-purple-500' :
-                                  'bg-red-500'
-                            }`}
+                                  ? 'bg-gradient-to-r from-blue-400 to-blue-600'
+                                  : trait.color === 'blue' ? 'bg-blue-500' :
+                                    trait.color === 'green' ? 'bg-green-500' :
+                                      trait.color === 'orange' ? 'bg-orange-500' :
+                                        trait.color === 'purple' ? 'bg-purple-500' :
+                                          'bg-red-500'
+                              }`}
                             style={{ width: `${trait.score}%` }}
                           ></div>
                         </div>
@@ -422,7 +418,7 @@ export default function PersonalityInsightsPage() {
           {/* Right Column - Radar Chart & Summary */}
           <div className="lg:col-span-2">
             <div className="sticky top-24 space-y-6">
-              <PersonalityRadarAdvanced 
+              <PersonalityRadarAdvanced
                 personalityData={{
                   openness: 75,
                   conscientiousness: 68,
@@ -437,7 +433,7 @@ export default function PersonalityInsightsPage() {
                   overall_engagement: personalityData.entertainmentInsights.overallEngagement
                 }}
               />
-              
+
               {/* Quick Summary */}
               <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20">
                 <CardHeader className="pb-3">
