@@ -9,9 +9,9 @@ from spotipy.oauth2 import SpotifyOAuth
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 
-from ..base_agent import BaseAgent
-from ...core.config import get_config
-from ...api.models.schemas import DataSource, PersonalityTrait, MusicPreferences
+from agents.base_agent import BaseAgent
+from core.config import get_config
+from api.models.schemas import DataSource, PersonalityTrait, MusicPreferences
 
 class MusicIntelligenceAgent(BaseAgent):
     """

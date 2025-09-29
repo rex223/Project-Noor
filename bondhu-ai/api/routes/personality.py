@@ -11,8 +11,8 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, status
 from fastapi.responses import JSONResponse
 
-from ...core import PersonalityOrchestrator, get_config
-from ...api.models.schemas import (
+from core import PersonalityOrchestrator, get_config
+from api.models.schemas import (
     AnalysisRequest,
     AnalysisResponse,
     PersonalityProfile,

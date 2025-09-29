@@ -9,9 +9,9 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, parse_qs
 
-from ..base_agent import BaseAgent
-from ...core.config import get_config
-from ...api.models.schemas import DataSource, PersonalityTrait, VideoPreferences
+from agents.base_agent import BaseAgent
+from core.config import get_config
+from api.models.schemas import DataSource, PersonalityTrait, VideoPreferences
 
 # For YouTube API integration (would need google-api-python-client)
 # from googleapiclient.discovery import build

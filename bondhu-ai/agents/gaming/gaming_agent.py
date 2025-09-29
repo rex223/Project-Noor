@@ -8,9 +8,9 @@ import json
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 
-from ..base_agent import BaseAgent
-from ...core.config import get_config
-from ...api.models.schemas import DataSource, PersonalityTrait, GamingPreferences
+from agents.base_agent import BaseAgent
+from core.config import get_config
+from api.models.schemas import DataSource, PersonalityTrait, GamingPreferences
 
 # For Steam API integration (would need python-steam-api)
 # from steam import Steam

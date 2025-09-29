@@ -9,9 +9,9 @@ from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
 from collections import defaultdict
 
-from ..base_agent import BaseAgent
-from ...core.config import get_config
-from ...api.models.schemas import (
+from agents.base_agent import BaseAgent
+from core.config import get_config
+from api.models.schemas import (
     DataSource, 
     PersonalityTrait, 
     PersonalityScore,

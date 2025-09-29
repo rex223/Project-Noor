@@ -16,10 +16,10 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import BaseTool
 
-from ..core.config import get_config
-from ..core.database.personality_service import get_personality_service
-from ..core.database.models import PersonalityProfile, PersonalityContextResponse
-from ..api.models.schemas import (
+from core.config import get_config
+from core.database.personality_service import get_personality_service
+from core.database.models import PersonalityProfile, PersonalityContextResponse
+from api.models.schemas import (
     DataSource, 
     AgentAnalysisResult, 
     AnalysisStatus, 

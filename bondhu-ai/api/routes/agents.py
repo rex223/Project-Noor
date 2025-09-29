@@ -9,9 +9,9 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.responses import JSONResponse, RedirectResponse
 
-from ...core import get_config
-from ...agents import MusicIntelligenceAgent, VideoIntelligenceAgent, GamingIntelligenceAgent
-from ...api.models.schemas import APIIntegrationStatus, HealthCheckResponse
+from core import get_config
+from agents import MusicIntelligenceAgent, VideoIntelligenceAgent, GamingIntelligenceAgent
+from api.models.schemas import APIIntegrationStatus, HealthCheckResponse
 
 # Create router
 agents_router = APIRouter(prefix="/api/v1/agents", tags=["agents"])

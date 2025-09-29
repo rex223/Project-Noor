@@ -6,9 +6,9 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
 
-from ..models.schemas import APIResponse
-from ...core.database.personality_service import get_personality_service
-from ...core.database.models import (
+from api.models.schemas import APIResponse
+from core.database.personality_service import get_personality_service
+from core.database.models import (
     PersonalityContextResponse,
     UserPersonalityRequest,
     OnboardingStatus
