@@ -20,6 +20,7 @@ static/rest_framework/
 
 # Virtual Environment
 venv/
+.venv/
 env/
 ENV/
 crewai/

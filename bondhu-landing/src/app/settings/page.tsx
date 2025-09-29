@@ -69,7 +69,7 @@ export default function SettingsPage() {
       // Update user profile to mark as deactivated
       const { error } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           is_active: false,
           deactivated_at: new Date().toISOString()
         })
@@ -80,7 +80,7 @@ export default function SettingsPage() {
       }
 
       setDeactivateStatus('success')
-      
+
       // Sign out user after deactivation
       setTimeout(async () => {
         await supabase.auth.signOut()
@@ -101,7 +101,7 @@ export default function SettingsPage() {
 
     // Proper text input dialog
     const confirmationText = prompt('Last chance! This action is IRREVERSIBLE.\n\nType "ESCAPE" (in capital letters) to confirm you want to delete everything forever:')
-    
+
     if (confirmationText !== 'ESCAPE') {
       if (confirmationText !== null) { // User didn't cancel
         alert('❌ Confirmation failed. You must type "ESCAPE" exactly to proceed.')
@@ -118,7 +118,7 @@ export default function SettingsPage() {
         try {
           // First sign out the user to invalidate session
           await supabase.auth.signOut()
-          
+
           // Delete all user data from profiles table
           const { error: profileError } = await supabase
             .from('profiles')
@@ -145,25 +145,25 @@ export default function SettingsPage() {
           } catch (apiError) {
             console.error('API call failed:', apiError)
           }
-          
+
           // Clear all local storage and cached data
           localStorage.clear()
           sessionStorage.clear()
-          
+
           // Clear all cookies
           document.cookie.split(";").forEach((c) => {
             document.cookie = c
               .replace(/^ +/, "")
               .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
           })
-          
+
           setEscapeStatus('success')
-          
+
           // Redirect after animation completes
           setTimeout(() => {
             window.location.href = '/sign-in?message=Successfully escaped the matrix! 🎭✨'
           }, 2000)
-          
+
         } catch (deletionError) {
           console.error('Matrix escape deletion failed:', deletionError)
           setEscapeStatus('error')
@@ -171,7 +171,7 @@ export default function SettingsPage() {
           setTimeout(() => setEscapeStatus('idle'), 3000)
         }
       }, 3000) // Wait for disappearing animation
-      
+
     } catch (error) {
       console.error('Matrix escape failed:', error)
       setEscapeStatus('error')
@@ -196,7 +196,7 @@ export default function SettingsPage() {
     if (lastNameChange) {
       const lastChangeDate = new Date(lastNameChange)
       const daysSinceLastChange = Math.floor((Date.now() - lastChangeDate.getTime()) / (1000 * 60 * 60 * 24))
-      
+
       if (daysSinceLastChange < 30) {
         const remainingDays = 30 - daysSinceLastChange
         alert(`You can change your name again in ${remainingDays} days. Last change was ${daysSinceLastChange} days ago.`)
@@ -212,7 +212,7 @@ export default function SettingsPage() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           full_name: newName.trim(),
           last_name_change: new Date().toISOString()
         })
@@ -386,7 +386,7 @@ export default function SettingsPage() {
         {/* Breadcrumb Navigation */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <button 
+            <button
               onClick={() => router.push('/dashboard')}
               className="hover:text-foreground transition-colors"
             >
@@ -431,8 +431,8 @@ export default function SettingsPage() {
         </div>
 
         {/* Settings Content */}
-        <SettingsPanel 
-          profile={profile} 
+        <SettingsPanel
+          profile={profile}
           deactivateStatus={deactivateStatus}
           escapeStatus={escapeStatus}
           isDisappearing={isDisappearing}
@@ -451,20 +451,20 @@ export default function SettingsPage() {
 }
 
 // Settings Panel Component (moved from dashboard)
-function SettingsPanel({ 
-  profile, 
-  deactivateStatus, 
-  escapeStatus, 
+function SettingsPanel({
+  profile,
+  deactivateStatus,
+  escapeStatus,
   isDisappearing,
   nameChangeStatus,
   avatarUploadStatus,
   newName,
   setNewName,
-  handleDeactivateAccount, 
+  handleDeactivateAccount,
   handleEscapeMatrix,
   handleNameChange,
   handleAvatarUpload
-}: { 
+}: {
   profile: Profile;
   deactivateStatus: 'idle' | 'loading' | 'success' | 'error';
   escapeStatus: 'idle' | 'loading' | 'success' | 'error';
@@ -504,7 +504,7 @@ function SettingsPanel({
     try {
       // Get all data from AI learning engine
       const exportData = aiLearningEngine.exportForExternalAnalysis()
-      
+
       // Add user profile data
       const fullExport = {
         profile: {
@@ -547,7 +547,7 @@ function SettingsPanel({
     try {
       // In real app, this would call backend API
       console.log('Deleting data type:', dataType)
-      
+
       // For demo, we'll clear the AI learning engine data
       if (dataType === 'all') {
         // Would reset the entire learning engine
@@ -586,9 +586,9 @@ function SettingsPanel({
                 <div className="relative">
                   <Avatar className="h-20 w-20">
                     {profile.avatar_url ? (
-                      <img 
-                        src={profile.avatar_url} 
-                        alt="Profile" 
+                      <img
+                        src={profile.avatar_url}
+                        alt="Profile"
                         className="w-full h-full object-cover rounded-full"
                       />
                     ) : (
@@ -614,15 +614,14 @@ function SettingsPanel({
                   />
                   <label
                     htmlFor="avatar-upload"
-                    className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors ${
-                      avatarUploadStatus === 'loading'
+                    className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors ${avatarUploadStatus === 'loading'
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                    }`}
+                      }`}
                   >
-                    {avatarUploadStatus === 'loading' ? 'Uploading...' : 
-                     avatarUploadStatus === 'success' ? 'Uploaded!' : 
-                     'Change Avatar'}
+                    {avatarUploadStatus === 'loading' ? 'Uploading...' :
+                      avatarUploadStatus === 'success' ? 'Uploaded!' :
+                        'Change Avatar'}
                   </label>
                   <p className="text-xs text-muted-foreground mt-2">
                     Upload a new profile picture (Max 5MB, JPG/PNG/GIF)
@@ -644,12 +643,12 @@ function SettingsPanel({
 
                 {(() => {
                   const lastNameChange = profile.last_name_change
-                  const canChangeName = !lastNameChange || 
+                  const canChangeName = !lastNameChange ||
                     Math.floor((Date.now() - new Date(lastNameChange).getTime()) / (1000 * 60 * 60 * 24)) >= 30
-                  
-                  const daysSinceLastChange = lastNameChange ? 
+
+                  const daysSinceLastChange = lastNameChange ?
                     Math.floor((Date.now() - new Date(lastNameChange).getTime()) / (1000 * 60 * 60 * 24)) : null
-                  
+
                   const remainingDays = daysSinceLastChange !== null ? Math.max(0, 30 - daysSinceLastChange) : 0
 
                   return (
@@ -669,18 +668,18 @@ function SettingsPanel({
                           disabled={!canChangeName || !newName.trim() || nameChangeStatus === 'loading'}
                           size="sm"
                         >
-                          {nameChangeStatus === 'loading' ? 'Updating...' : 
-                           nameChangeStatus === 'success' ? 'Updated!' : 
-                           'Change Name'}
+                          {nameChangeStatus === 'loading' ? 'Updating...' :
+                            nameChangeStatus === 'success' ? 'Updated!' :
+                              'Change Name'}
                         </Button>
                       </div>
-                      
+
                       {!canChangeName && remainingDays > 0 && (
                         <p className="text-xs text-amber-600 mt-2">
                           ⏳ You can change your name again in {remainingDays} days
                         </p>
                       )}
-                      
+
                       {canChangeName && (
                         <p className="text-xs text-muted-foreground mt-2">
                           You can change your name once every 30 days
@@ -874,16 +873,16 @@ function SettingsPanel({
                     Download all your data in JSON format
                   </p>
                 </div>
-                <Button 
+                <Button
                   onClick={handleExportData}
                   disabled={exportStatus === 'loading'}
                   className="flex items-center space-x-2"
                 >
                   {exportStatus === 'loading' && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
                   <span>
-                    {exportStatus === 'loading' ? 'Exporting...' : 
-                     exportStatus === 'success' ? 'Exported!' : 
-                     exportStatus === 'error' ? 'Error' : 'Export Data'}
+                    {exportStatus === 'loading' ? 'Exporting...' :
+                      exportStatus === 'success' ? 'Exported!' :
+                        exportStatus === 'error' ? 'Error' : 'Export Data'}
                   </span>
                 </Button>
               </div>
@@ -929,32 +928,32 @@ function SettingsPanel({
             <div className="p-4 border border-red-200 rounded-lg">
               <h4 className="font-medium text-red-900 mb-3">Delete Specific Data</h4>
               <div className="grid gap-3">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full justify-start text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
                   onClick={() => handleDeleteData('gaming')}
                   disabled={deleteStatus === 'loading'}
                 >
                   Delete Gaming Data
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full justify-start text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
                   onClick={() => handleDeleteData('video')}
                   disabled={deleteStatus === 'loading'}
                 >
                   Delete Video Data
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full justify-start text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
                   onClick={() => handleDeleteData('music')}
                   disabled={deleteStatus === 'loading'}
                 >
                   Delete Music Data
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full justify-start text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
                   onClick={() => handleDeleteData('all')}
                   disabled={deleteStatus === 'loading'}
@@ -985,7 +984,7 @@ function SettingsPanel({
               </div>
               <Badge variant="secondary">Active</Badge>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="font-medium">Email Notifications</h4>
@@ -1004,15 +1003,15 @@ function SettingsPanel({
 
             <div className="pt-4 border-t space-y-4">
               <div>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full text-red-600 hover:text-red-700"
                   onClick={handleDeactivateAccount}
                   disabled={deactivateStatus === 'loading'}
                 >
-                  {deactivateStatus === 'loading' ? 'Deactivating...' : 
-                   deactivateStatus === 'success' ? 'Deactivated!' : 
-                   'Deactivate Account'}
+                  {deactivateStatus === 'loading' ? 'Deactivating...' :
+                    deactivateStatus === 'success' ? 'Deactivated!' :
+                      'Deactivate Account'}
                 </Button>
                 <p className="text-xs text-muted-foreground mt-2 text-center">
                   This will disable your account but preserve your data for 30 days
@@ -1027,8 +1026,8 @@ function SettingsPanel({
                     Complete digital erasure - no coming back from this
                   </p>
                 </div>
-                <Button 
-                  variant="destructive" 
+                <Button
+                  variant="destructive"
                   className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 relative overflow-hidden group"
                   onClick={handleEscapeMatrix}
                   disabled={escapeStatus === 'loading' || isDisappearing}
@@ -1067,21 +1066,21 @@ function SettingsPanel({
             <div>
               <h5 className="font-medium">Data Processing</h5>
               <p className="text-muted-foreground">
-                Your entertainment data is processed locally and encrypted before storage. 
+                Your entertainment data is processed locally and encrypted before storage.
                 AI analysis happens on secure servers with strict access controls.
               </p>
             </div>
             <div>
               <h5 className="font-medium">Data Sharing</h5>
               <p className="text-muted-foreground">
-                We never sell personal data. Anonymized research contributions are optional 
+                We never sell personal data. Anonymized research contributions are optional
                 and help improve mental health AI for everyone.
               </p>
             </div>
             <div>
               <h5 className="font-medium">Your Rights</h5>
               <p className="text-muted-foreground">
-                You have the right to access, correct, delete, or port your data at any time. 
+                You have the right to access, correct, delete, or port your data at any time.
                 Contact support for assistance with data requests.
               </p>
             </div>
@@ -1102,12 +1101,12 @@ function SettingsPanel({
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-green-500 rounded-full"></div>
             <span className="text-green-800 font-medium">
-              {exportStatus === 'success' ? 'Data exported successfully!' : 
-               deleteStatus === 'success' ? 'Data deleted successfully!' :
-               deactivateStatus === 'success' ? 'Account deactivated successfully!' :
-               escapeStatus === 'success' ? '✨ Successfully escaped the matrix! ✨' :
-               nameChangeStatus === 'success' ? 'Name changed successfully!' :
-               avatarUploadStatus === 'success' ? 'Avatar updated successfully!' : ''}
+              {exportStatus === 'success' ? 'Data exported successfully!' :
+                deleteStatus === 'success' ? 'Data deleted successfully!' :
+                  deactivateStatus === 'success' ? 'Account deactivated successfully!' :
+                    escapeStatus === 'success' ? '✨ Successfully escaped the matrix! ✨' :
+                      nameChangeStatus === 'success' ? 'Name changed successfully!' :
+                        avatarUploadStatus === 'success' ? 'Avatar updated successfully!' : ''}
             </span>
           </div>
         </div>
@@ -1118,10 +1117,10 @@ function SettingsPanel({
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-red-500 rounded-full"></div>
             <span className="text-red-800 font-medium">
-              {escapeStatus === 'error' ? 'Matrix escape failed! The system resisted.' : 
-               nameChangeStatus === 'error' ? 'Name change failed. Please try again.' :
-               avatarUploadStatus === 'error' ? 'Avatar upload failed. Please try again.' :
-               'Operation failed. Please try again.'}
+              {escapeStatus === 'error' ? 'Matrix escape failed! The system resisted.' :
+                nameChangeStatus === 'error' ? 'Name change failed. Please try again.' :
+                  avatarUploadStatus === 'error' ? 'Avatar upload failed. Please try again.' :
+                    'Operation failed. Please try again.'}
             </span>
           </div>
         </div>
