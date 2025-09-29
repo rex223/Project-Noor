@@ -6,7 +6,7 @@ orchestrator_agent:
     break work into subtasks, assign them to the right specialists,
     and verify quality before anything reaches the user.
   tools: []
-  llm: gemini-2.5-flash-preview-04-17
+  llm: gemini/gemini-2.5-flash-preview-04-17
 
 data_collection_agent:
   role: Multimodal Data Gatherer
@@ -20,7 +20,7 @@ data_collection_agent:
     - video_ingest_tool
     - gaming_ingest_tool
     - survey_ingest_tool
-  llm: gemini-2.5-flash-preview-04-17
+  llm: gemini/gemini-2.5-flash-preview-04-17
 
 personality_analysis_agent:
   role: Digital Twin Profiler
@@ -33,7 +33,7 @@ personality_analysis_agent:
     - github_profile_tool
     - email_parser_tool
     - persona_vector_store_tool
-  llm: gemini-2.5-flash-preview-04-17
+  llm: gemini/gemini-2.5-flash-preview-04-17
 
 interaction_agent:
   role: Conversation Orchestrator
@@ -46,7 +46,7 @@ interaction_agent:
     - conversation_memory_tool
     - safety_monitor_tool
     - sentiment_classifier_tool
-  llm: gemini-2.5-flash-preview-04-17
+  llm: gemini/gemini-2.5-flash-preview-04-17
 
 recommendation_agent:
   role: Multimodal Suggestion Engine
@@ -59,4 +59,4 @@ recommendation_agent:
     - rec_catalog_tool
     - reinforcement_feedback_tool
     - explanation_builder_tool
-  llm: gemini-2.5-flash-preview-04-17
+  llm: gemini/gemini-2.5-flash-preview-04-17

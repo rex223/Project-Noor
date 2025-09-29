@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List
 
-from crewai_tools import tool
+from crewai.tools import tool
 
 
 # ---------- Data Collection Tools ----------
