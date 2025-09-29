@@ -31,7 +31,7 @@ export function DashboardGrid({ currentPage = 'dashboard' }: DashboardGridProps)
         icon={<MessageCircle className="h-5 w-5" />}
         title="AI Chat Companion"
         description="Start a conversation with Bondhu, your personalized AI friend who understands your personality and adapts to your needs."
-        onClick={() => {}} // No navigation since we're already on dashboard
+        onClick={() => { }} // No navigation since we're already on dashboard
         isActive={currentPage === 'dashboard'}
         gradient="from-blue-400/80 to-cyan-400/80"
         darkGradient="from-blue-500/60 to-cyan-500/60"
@@ -103,16 +103,16 @@ const GridItem = ({ icon, title, description, onClick, isActive, gradient, darkG
         />
         <div className={cn(
           "relative flex h-full flex-col justify-between gap-5 overflow-hidden rounded-xl border-[0.75px] p-5 shadow-sm transition-all duration-300",
-          isActive 
-            ? `bg-gradient-to-br ${gradient} dark:bg-gradient-to-br dark:${darkGradient} text-white backdrop-blur-sm shadow-lg` 
+          isActive
+            ? `bg-gradient-to-br ${gradient} dark:bg-gradient-to-br dark:${darkGradient} text-white backdrop-blur-sm shadow-lg`
             : "bg-card hover:bg-muted/30 dark:hover:bg-muted/20 backdrop-blur-sm"
         )}>
           <div className="relative flex flex-1 flex-col justify-between gap-4">
             <div className="flex items-start justify-between">
               <div className={cn(
                 "w-fit rounded-lg border-[0.75px] p-2.5 transition-all duration-300",
-                isActive 
-                  ? "border-white/30 bg-white/15 backdrop-blur-sm shadow-lg" 
+                isActive
+                  ? "border-white/30 bg-white/15 backdrop-blur-sm shadow-lg"
                   : "border-border bg-muted/70 dark:bg-muted/40 dark:border-border/50"
               )}>
                 {icon}
@@ -124,7 +124,7 @@ const GridItem = ({ icon, title, description, onClick, isActive, gradient, darkG
                 </div>
               )}
             </div>
-            
+
             <div className="space-y-3">
               <h3 className={cn(
                 "text-lg leading-[1.25rem] font-semibold tracking-[-0.04em] text-balance",
@@ -138,13 +138,13 @@ const GridItem = ({ icon, title, description, onClick, isActive, gradient, darkG
               )}>
                 {description}
               </p>
-              
+
               {/* Preview Components */}
               {showPreview && previewType === 'personality' && (
                 <div className={cn(
                   "mt-3 pt-3 border-t transition-colors duration-300",
-                  isActive 
-                    ? "border-white/30" 
+                  isActive
+                    ? "border-white/30"
                     : "border-border/60 dark:border-border/40"
                 )}>
                   <div className="flex items-center justify-between text-xs">
@@ -183,12 +183,12 @@ const GridItem = ({ icon, title, description, onClick, isActive, gradient, darkG
                   </div>
                 </div>
               )}
-              
+
               {showPreview && previewType === 'settings' && (
                 <div className={cn(
                   "mt-3 pt-3 border-t transition-colors duration-300",
-                  isActive 
-                    ? "border-white/30" 
+                  isActive
+                    ? "border-white/30"
                     : "border-border/60 dark:border-border/40"
                 )}>
                   <div className="flex items-center justify-between text-xs">

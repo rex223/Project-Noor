@@ -97,95 +97,95 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 relative overflow-hidden">
       {/* Background Animation */}
       <HeroBackground intensity="subtle" className="opacity-30" />
-      
+
       <div className="relative z-10">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            {/* Logo Section */}
-          <div className="flex items-center space-x-4">
-              <Link href="/" className="flex items-center">
-                <Logo width={140} height={50} />
-              </Link>
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-semibold text-muted-foreground">Dashboard</h1>
-            </div>
-          </div>
-
-            {/* Right Section */}
-            <div className="flex items-center space-x-3">
-              <ThemeToggle />
-            <Avatar>
-              {profile.avatar_url && (
-                <AvatarImage 
-                  src={profile.avatar_url} 
-                  alt={profile.full_name || 'User avatar'} 
-                />
-              )}
-              <AvatarFallback>
-                {profile.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="hidden md:block">
-              <p className="text-sm font-medium">{profile.full_name}</p>
-              <p className="text-xs text-muted-foreground">Level 1 Explorer</p>
-            </div>
-              <Button variant="outline" onClick={handleSignOut} size="sm">
-              Sign Out
-            </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
-        {/* Compact Welcome Section */}
-        <DashboardWelcome userName={profile.full_name?.split(' ')[0] || 'Friend'} compact={true} />
-
-        {/* Main Dashboard Layout - 50% Chat + 50% Explore More */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6">
-          {/* Chat Section - 50% width */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-2xl font-bold">Chat with Bondhu</h3>
-                <p className="text-muted-foreground">Your AI companion is ready to listen and support you</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span>Online</span>
+        {/* Header */}
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex h-16 items-center justify-between">
+              {/* Logo Section */}
+              <div className="flex items-center space-x-4">
+                <Link href="/" className="flex items-center">
+                  <Logo width={140} height={50} />
+                </Link>
+                <div className="hidden sm:block">
+                  <h1 className="text-lg font-semibold text-muted-foreground">Dashboard</h1>
                 </div>
               </div>
+
+              {/* Right Section */}
+              <div className="flex items-center space-x-3">
+                <ThemeToggle />
+                <Avatar>
+                  {profile.avatar_url && (
+                    <AvatarImage
+                      src={profile.avatar_url}
+                      alt={profile.full_name || 'User avatar'}
+                    />
+                  )}
+                  <AvatarFallback>
+                    {profile.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="hidden md:block">
+                  <p className="text-sm font-medium">{profile.full_name}</p>
+                  <p className="text-xs text-muted-foreground">Level 1 Explorer</p>
+                </div>
+                <Button variant="outline" onClick={handleSignOut} size="sm">
+                  Sign Out
+                </Button>
+              </div>
             </div>
-            <EnhancedChat profile={profile} />
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="container mx-auto px-4 py-6">
+          {/* Compact Welcome Section */}
+          <DashboardWelcome userName={profile.full_name?.split(' ')[0] || 'Friend'} compact={true} />
+
+          {/* Main Dashboard Layout - 50% Chat + 50% Explore More */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6">
+            {/* Chat Section - 50% width */}
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold">Chat with Bondhu</h3>
+                  <p className="text-muted-foreground">Your AI companion is ready to listen and support you</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    <span>Online</span>
+                  </div>
+                </div>
+              </div>
+              <EnhancedChat profile={profile} />
+            </div>
+
+            {/* Right Column - Explore More + Your Progress */}
+            <div className="space-y-8">
+              {/* Explore More Section */}
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-xl font-bold">Explore More</h3>
+                  <p className="text-sm text-muted-foreground">Discover features and tools for your mental wellness journey</p>
+                </div>
+                <DashboardGrid currentPage="dashboard" />
+              </div>
+
+              {/* Your Progress Section */}
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-xl font-bold">Your Progress</h3>
+                  <p className="text-sm text-muted-foreground">Track your mental wellness journey</p>
+                </div>
+                <DashboardStats />
+              </div>
+            </div>
           </div>
 
-          {/* Right Column - Explore More + Your Progress */}
-          <div className="space-y-8">
-            {/* Explore More Section */}
-            <div>
-              <div className="mb-4">
-                <h3 className="text-xl font-bold">Explore More</h3>
-                <p className="text-sm text-muted-foreground">Discover features and tools for your mental wellness journey</p>
-              </div>
-              <DashboardGrid currentPage="dashboard" />
-            </div>
-
-            {/* Your Progress Section */}
-            <div>
-              <div className="mb-4">
-                <h3 className="text-xl font-bold">Your Progress</h3>
-                <p className="text-sm text-muted-foreground">Track your mental wellness journey</p>
-              </div>
-              <DashboardStats />
-            </div>
-          </div>
-        </div>
-
-      </main>
+        </main>
       </div>
     </div>
   )
@@ -215,121 +215,106 @@ function EntertainmentHub({ profile }: { profile: Profile }) {
             <Button
               variant="ghost"
               onClick={() => setActiveSection('games')}
-              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${
-                activeSection === 'games' 
-                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15' 
+              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${activeSection === 'games'
+                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15'
                   : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-green-500/10 hover:border-green-400/20 hover:shadow-md hover:shadow-green-500/10'
-              }`}
+                }`}
             >
               <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
-              
+
               {/* Liquid glass morphing background */}
-              <div className={`absolute inset-0 transition-all duration-700 ease-out ${
-                activeSection === 'games' 
-                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30' 
+              <div className={`absolute inset-0 transition-all duration-700 ease-out ${activeSection === 'games'
+                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30'
                   : 'bg-gradient-to-br from-white/5 via-green-500/5 to-white/10 group-hover:from-green-400/10 group-hover:via-emerald-500/10 group-hover:to-green-600/15'
-              }`} />
-              
+                }`} />
+
               {/* Animated liquid blob */}
-              <div className={`absolute w-32 h-32 -top-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${
-                activeSection === 'games' 
-                  ? 'bg-green-400/30 blur-xl animate-pulse' 
+              <div className={`absolute w-32 h-32 -top-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${activeSection === 'games'
+                  ? 'bg-green-400/30 blur-xl animate-pulse'
                   : 'bg-green-500/10 blur-2xl group-hover:bg-green-400/20 group-hover:scale-110'
-              }`} />
-              
+                }`} />
+
               {/* Glass reflection effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
-              
-              <Gamepad2 className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${
-                activeSection === 'games' 
-                  ? 'text-green-100 drop-shadow-sm filter brightness-110' 
+
+              <Gamepad2 className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${activeSection === 'games'
+                  ? 'text-green-100 drop-shadow-sm filter brightness-110'
                   : 'text-green-600 dark:text-green-400 group-hover:text-green-500 dark:group-hover:text-green-300'
-              }`} />
-              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${
-                activeSection === 'games' 
-                  ? 'text-green-50 drop-shadow-sm filter brightness-110' 
+                }`} />
+              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${activeSection === 'games'
+                  ? 'text-green-50 drop-shadow-sm filter brightness-110'
                   : 'text-green-700 dark:text-green-300 group-hover:text-green-600 dark:group-hover:text-green-200'
-              }`}>Games</span>
+                }`}>Games</span>
             </Button>
-            
+
             <Button
               variant="ghost"
               onClick={() => setActiveSection('videos')}
-              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${
-                activeSection === 'videos' 
-                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15' 
+              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${activeSection === 'videos'
+                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15'
                   : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-green-500/10 hover:border-green-400/20 hover:shadow-md hover:shadow-green-500/10'
-              }`}
+                }`}
             >
               <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
-              
+
               {/* Liquid glass morphing background */}
-              <div className={`absolute inset-0 transition-all duration-700 ease-out ${
-                activeSection === 'videos' 
-                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30' 
+              <div className={`absolute inset-0 transition-all duration-700 ease-out ${activeSection === 'videos'
+                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30'
                   : 'bg-gradient-to-br from-white/5 via-green-500/5 to-white/10 group-hover:from-green-400/10 group-hover:via-emerald-500/10 group-hover:to-green-600/15'
-              }`} />
-              
+                }`} />
+
               {/* Animated liquid blob */}
-              <div className={`absolute w-32 h-32 -top-8 -right-8 rounded-full transition-all duration-1000 ease-in-out ${
-                activeSection === 'videos' 
-                  ? 'bg-emerald-400/30 blur-xl animate-pulse' 
+              <div className={`absolute w-32 h-32 -top-8 -right-8 rounded-full transition-all duration-1000 ease-in-out ${activeSection === 'videos'
+                  ? 'bg-emerald-400/30 blur-xl animate-pulse'
                   : 'bg-green-500/10 blur-2xl group-hover:bg-emerald-400/20 group-hover:scale-110'
-              }`} />
-              
+                }`} />
+
               {/* Glass reflection effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
-              
-              <Camera className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${
-                activeSection === 'videos' 
-                  ? 'text-green-100 drop-shadow-sm filter brightness-110' 
+
+              <Camera className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${activeSection === 'videos'
+                  ? 'text-green-100 drop-shadow-sm filter brightness-110'
                   : 'text-green-600 dark:text-green-400 group-hover:text-green-500 dark:group-hover:text-green-300'
-              }`} />
-              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${
-                activeSection === 'videos' 
-                  ? 'text-green-50 drop-shadow-sm filter brightness-110' 
+                }`} />
+              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${activeSection === 'videos'
+                  ? 'text-green-50 drop-shadow-sm filter brightness-110'
                   : 'text-green-700 dark:text-green-300 group-hover:text-green-600 dark:group-hover:text-green-200'
-              }`}>Videos</span>
+                }`}>Videos</span>
             </Button>
-            
+
             <Button
               variant="ghost"
               onClick={() => setActiveSection('music')}
-              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${
-                activeSection === 'music' 
-                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15' 
+              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${activeSection === 'music'
+                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15'
                   : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-green-500/10 hover:border-green-400/20 hover:shadow-md hover:shadow-green-500/10'
-              }`}
+                }`}
             >
               <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
-              
+
               {/* Liquid glass morphing background */}
-              <div className={`absolute inset-0 transition-all duration-700 ease-out ${
-                activeSection === 'music' 
-                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30' 
+              <div className={`absolute inset-0 transition-all duration-700 ease-out ${activeSection === 'music'
+                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30'
                   : 'bg-gradient-to-br from-white/5 via-green-500/5 to-white/10 group-hover:from-green-400/10 group-hover:via-emerald-500/10 group-hover:to-green-600/15'
-              }`} />
-              
+                }`} />
+
               {/* Animated liquid blob */}
-              <div className={`absolute w-32 h-32 -bottom-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${
-                activeSection === 'music' 
-                  ? 'bg-teal-400/30 blur-xl animate-pulse' 
+              <div className={`absolute w-32 h-32 -bottom-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${activeSection === 'music'
+                  ? 'bg-teal-400/30 blur-xl animate-pulse'
                   : 'bg-green-500/10 blur-2xl group-hover:bg-teal-400/20 group-hover:scale-110'
-              }`} />
-              
+                }`} />
+
               {/* Glass reflection effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
-              
-              <Headphones className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${
-                activeSection === 'music' 
-                  ? 'text-green-100 drop-shadow-sm filter brightness-110' 
+
+              <Headphones className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${activeSection === 'music'
+                  ? 'text-green-100 drop-shadow-sm filter brightness-110'
                   : 'text-green-600 dark:text-green-400 group-hover:text-green-500 dark:group-hover:text-green-300'
-              }`} />
-              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${
-                activeSection === 'music' 
-                  ? 'text-green-50 drop-shadow-sm filter brightness-110' 
+                }`} />
+              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${activeSection === 'music'
+                  ? 'text-green-50 drop-shadow-sm filter brightness-110'
                   : 'text-green-700 dark:text-green-300 group-hover:text-green-600 dark:group-hover:text-green-200'
-              }`}>Music</span>
+                }`}>Music</span>
             </Button>
           </div>
 
@@ -387,13 +372,13 @@ function GamingSection({ profile }: { profile: Profile }) {
   const handleGameComplete = (gameData: any) => {
     setGameResults(prev => [...prev, gameData])
     setSelectedGame(null)
-    
+
     // Send data to AI learning engine
     aiLearningEngine.addGameplayData(gameData)
-    
+
     // Here you would typically send the data to your analytics service
     console.log('Game completed:', gameData)
-    
+
     // Show completion message or insights
     // You could integrate with Bondhu AI here to provide immediate feedback
   }
@@ -565,10 +550,10 @@ function VideoSection({ profile }: { profile: Profile }) {
   const handleVideoComplete = (watchData: any) => {
     setWatchHistory(prev => [...prev, watchData])
     setSelectedVideo(null)
-    
+
     // Send data to AI learning engine
     aiLearningEngine.addVideoData(watchData)
-    
+
     // Here you would send analytics to your backend
     console.log('Video watch completed:', watchData)
   }
@@ -693,50 +678,50 @@ function MusicSection({ profile }: { profile: Profile }) {
   const [volume, setVolume] = useState(0.7)
 
   const moods = [
-    { 
-      name: 'Focus', 
-      emoji: '🎯', 
-      color: 'bg-blue-100', 
+    {
+      name: 'Focus',
+      emoji: '🎯',
+      color: 'bg-blue-100',
       description: 'Deep work and concentration',
       gradient: 'from-blue-500 to-cyan-500',
       hoverGradient: 'from-blue-600 to-cyan-600'
     },
-    { 
-      name: 'Relax', 
-      emoji: '🌊', 
-      color: 'bg-green-100', 
+    {
+      name: 'Relax',
+      emoji: '🌊',
+      color: 'bg-green-100',
       description: 'Calm and peaceful',
       gradient: 'from-green-500 to-emerald-500',
       hoverGradient: 'from-green-600 to-emerald-600'
     },
-    { 
-      name: 'Energy', 
-      emoji: '⚡', 
-      color: 'bg-orange-100', 
+    {
+      name: 'Energy',
+      emoji: '⚡',
+      color: 'bg-orange-100',
       description: 'Upbeat and motivating',
       gradient: 'from-orange-500 to-red-500',
       hoverGradient: 'from-orange-600 to-red-600'
     },
-    { 
-      name: 'Creative', 
-      emoji: '🎨', 
-      color: 'bg-purple-100', 
+    {
+      name: 'Creative',
+      emoji: '🎨',
+      color: 'bg-purple-100',
       description: 'Inspiration and flow',
       gradient: 'from-purple-500 to-pink-500',
       hoverGradient: 'from-purple-600 to-pink-600'
     },
-    { 
-      name: 'Social', 
-      emoji: '🎉', 
-      color: 'bg-pink-100', 
+    {
+      name: 'Social',
+      emoji: '🎉',
+      color: 'bg-pink-100',
       description: 'Social and uplifting',
       gradient: 'from-pink-500 to-rose-500',
       hoverGradient: 'from-pink-600 to-rose-600'
     },
-    { 
-      name: 'Sleep', 
-      emoji: '😴', 
-      color: 'bg-indigo-100', 
+    {
+      name: 'Sleep',
+      emoji: '😴',
+      color: 'bg-indigo-100',
       description: 'Wind down and rest',
       gradient: 'from-indigo-500 to-purple-500',
       hoverGradient: 'from-indigo-600 to-purple-600'
@@ -816,7 +801,7 @@ function MusicSection({ profile }: { profile: Profile }) {
     setCurrentTrack({ ...track, playlist: playlist.name, mood: playlist.mood })
     setIsPlaying(true)
     setCurrentTime(0)
-    
+
     // Track listening analytics
     const listeningData = {
       trackId: track.id,
@@ -831,10 +816,10 @@ function MusicSection({ profile }: { profile: Profile }) {
       activity_context: 'entertainment',
       social_context: 'alone' as const
     }
-    
+
     // Send to AI learning engine
     aiLearningEngine.addMusicData(listeningData)
-    
+
     setListeningHistory(prev => [...prev, {
       trackId: track.id,
       sessionId: listeningData.sessionId,
@@ -875,8 +860,8 @@ function MusicSection({ profile }: { profile: Profile }) {
             onClick={() => setSelectedMood(mood.name)}
             className={`
               relative overflow-hidden rounded-xl p-6 cursor-pointer transition-all duration-300 ease-in-out transform hover:scale-[1.02] group
-              ${selectedMood === mood.name 
-                ? `bg-gradient-to-br ${mood.gradient} text-white shadow-md dark:shadow-lg shadow-${mood.gradient.split('-')[1]}-500/20 dark:shadow-${mood.gradient.split('-')[1]}-500/10` 
+              ${selectedMood === mood.name
+                ? `bg-gradient-to-br ${mood.gradient} text-white shadow-md dark:shadow-lg shadow-${mood.gradient.split('-')[1]}-500/20 dark:shadow-${mood.gradient.split('-')[1]}-500/10`
                 : 'bg-white dark:bg-card hover:bg-gray-50/50 dark:hover:bg-card/80 border border-gray-200/60 dark:border-border/40 hover:border-gray-300/80 dark:hover:border-border/60'
               }
             `}
@@ -886,7 +871,7 @@ function MusicSection({ profile }: { profile: Profile }) {
             {selectedMood === mood.name && (
               <div className={`absolute inset-0 bg-gradient-to-br ${mood.hoverGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
             )}
-            
+
             {/* Content */}
             <div className="relative z-10 flex flex-col items-center text-center space-y-2">
               <div className={`
@@ -897,8 +882,8 @@ function MusicSection({ profile }: { profile: Profile }) {
               </div>
               <h3 className={`
                 font-semibold text-sm 
-                ${selectedMood === mood.name 
-                  ? 'text-white' 
+                ${selectedMood === mood.name
+                  ? 'text-white'
                   : 'text-gray-900 dark:text-gray-100'
                 }
               `}>
@@ -906,8 +891,8 @@ function MusicSection({ profile }: { profile: Profile }) {
               </h3>
               <p className={`
                 text-xs leading-tight
-                ${selectedMood === mood.name 
-                  ? 'text-white/80' 
+                ${selectedMood === mood.name
+                  ? 'text-white/80'
                   : 'text-gray-500 dark:text-gray-400'
                 }
               `}>
@@ -1118,7 +1103,7 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
     const interval = setInterval(() => {
       setRefreshKey(prev => prev + 1)
     }, 30000) // Refresh every 30 seconds
-    
+
     return () => clearInterval(interval)
   }, [])
 
@@ -1150,7 +1135,7 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
   return (
     <div className="space-y-6">
       {/* Advanced Personality Overview */}
-      <PersonalityRadarAdvanced 
+      <PersonalityRadarAdvanced
         personalityData={personalityData}
         entertainmentInsights={entertainmentInsights}
       />
@@ -1211,7 +1196,7 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
                   <span className="text-sm">Creativity</span>
                   <div className="flex items-center space-x-2">
                     <div className="w-16 h-2 bg-gray-200 rounded-full">
-                      <div 
+                      <div
                         className="h-2 bg-purple-500 rounded-full"
                         style={{ width: `${aiInsights.entertainmentProfile.gaming.creativityScore}%` }}
                       ></div>
@@ -1223,7 +1208,7 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
                   <span className="text-sm">Persistence</span>
                   <div className="flex items-center space-x-2">
                     <div className="w-16 h-2 bg-gray-200 rounded-full">
-                      <div 
+                      <div
                         className="h-2 bg-blue-500 rounded-full"
                         style={{ width: `${aiInsights.entertainmentProfile.gaming.persistenceLevel}%` }}
                       ></div>
@@ -1255,7 +1240,7 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
                   <span className="text-sm">Completion Rate</span>
                   <div className="flex items-center space-x-2">
                     <div className="w-16 h-2 bg-gray-200 rounded-full">
-                      <div 
+                      <div
                         className="h-2 bg-green-500 rounded-full"
                         style={{ width: `${aiInsights.entertainmentProfile.video.engagementPatterns.completionRate}%` }}
                       ></div>
@@ -1291,7 +1276,7 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
                   <span className="text-sm">Focus Preference</span>
                   <div className="flex items-center space-x-2">
                     <div className="w-16 h-2 bg-gray-200 rounded-full">
-                      <div 
+                      <div
                         className="h-2 bg-orange-500 rounded-full"
                         style={{ width: `${aiInsights.entertainmentProfile.music.listeningBehavior.focus_music_preference}%` }}
                       ></div>
@@ -1303,7 +1288,7 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
                   <span className="text-sm">Musical Sophistication</span>
                   <div className="flex items-center space-x-2">
                     <div className="w-16 h-2 bg-gray-200 rounded-full">
-                      <div 
+                      <div
                         className="h-2 bg-indigo-500 rounded-full"
                         style={{ width: `${aiInsights.entertainmentProfile.music.musicalSophistication}%` }}
                       ></div>
@@ -1402,11 +1387,10 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
                     <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                       <span className="text-sm font-medium capitalize">{trend.trait}</span>
                       <div className="flex items-center space-x-2">
-                        <span className={`text-sm ${
-                          trend.trend === 'increasing' ? 'text-green-600' : 
-                          trend.trend === 'decreasing' ? 'text-red-600' : 'text-gray-600'
-                        }`}>
-                          {trend.trend === 'increasing' ? '↗️' : trend.trend === 'decreasing' ? '↘️' : '➡️'} 
+                        <span className={`text-sm ${trend.trend === 'increasing' ? 'text-green-600' :
+                            trend.trend === 'decreasing' ? 'text-red-600' : 'text-gray-600'
+                          }`}>
+                          {trend.trend === 'increasing' ? '↗️' : trend.trend === 'decreasing' ? '↘️' : '➡️'}
                           {trend.trend}
                         </span>
                         <Badge variant="outline">{trend.confidence}%</Badge>
@@ -1440,7 +1424,7 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
 
       {/* Manual Refresh */}
       <div className="flex justify-center">
-        <Button 
+        <Button
           onClick={() => setRefreshKey(prev => prev + 1)}
           variant="outline"
           className="flex items-center space-x-2"
