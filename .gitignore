@@ -22,6 +22,7 @@ static/rest_framework/
 venv/
 env/
 ENV/
+crewai/
 
 # IDE
 .vscode/
