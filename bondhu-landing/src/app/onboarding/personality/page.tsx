@@ -8,7 +8,10 @@ import { PersonalityStackingCards } from "@/components/ui/personality-stacking-c
 import { PersonalityRadarChart } from "@/components/ui/personality-radar-chart"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { personalityTraits } from "@/data/personality-questions"
+import { useBondhuAPI } from "@/hooks/use-bondhu-api"
+import { useAnalysisProgress } from "@/hooks/use-analysis-progress"
+import ProgressTracking from "@/components/ui/progress-tracking"
+import { personalityTraits, personalityQuestions } from "@/data/personality-questions"
 import { calculatePersonalityScores, generateTraitInsights } from "@/lib/personality-scoring"
 import { generateLLMContext } from "@/lib/personality-llm-context"
 import { PersonalityScores, AssessmentResults } from "@/types/personality"
@@ -24,6 +27,24 @@ export default function PersonalityQuestionnairePage() {
 
   const router = useRouter()
   const supabase = createClient()
+  const { analyzePersonality, getAnalysisStatus, isLoading: apiLoading, error: apiError } = useBondhuAPI()
+
+  // Enhanced progress tracking
+  const progressTracker = useAnalysisProgress({
+    pollInterval: 1500, // Poll every 1.5 seconds for responsive UI
+    maxRetries: 5,
+    onComplete: (result) => {
+      console.log('✅ Analysis completed with result:', result)
+      // Results are already handled by the existing flow
+    },
+    onError: (error) => {
+      console.error('❌ Analysis tracking error:', error)
+      setError(`Analysis tracking failed: ${error.message}`)
+    },
+    onStepUpdate: (step) => {
+      console.log('📊 Step update:', step.name, `${step.progress}%`)
+    }
+  })
 
   // Check if user is authenticated on mount
   useEffect(() => {
@@ -74,14 +95,14 @@ export default function PersonalityQuestionnairePage() {
         throw new Error('Authentication session expired. Please sign in again.')
       }
 
-      // Calculate personality scores
+      // Calculate personality scores from survey responses
       console.log('📊 Calculating personality scores...')
       const scores = calculatePersonalityScores(responses)
       console.log('Calculated scores:', scores)
 
       // Generate insights
       const insights = generateTraitInsights(scores)
-      
+
       // Generate LLM context
       const llmContext = generateLLMContext(scores)
 
@@ -116,21 +137,52 @@ export default function PersonalityQuestionnairePage() {
       }
 
       console.log('✅ Personality assessment saved successfully!')
-      
+
+      // Now trigger comprehensive backend analysis with LangGraph orchestration
+      console.log('🚀 Triggering comprehensive backend personality analysis...')
+
+      // Prepare survey responses for backend analysis
+      const surveyResponses = Object.entries(responses).reduce((acc, [questionId, response]) => {
+        const question = personalityQuestions.find(q => q.id === parseInt(questionId))
+        if (question) {
+          acc[question.questionText] = response
+        }
+        return acc
+      }, {} as Record<string, number>)
+
+      const analysisResponse = await analyzePersonality({
+        user_id: session.user.id,
+        requested_agents: ['music', 'video', 'gaming'], // Request all available agents
+        force_refresh: true, // Force fresh analysis
+        include_cross_modal: true, // Enable cross-modal validation
+        survey_responses: surveyResponses, // Include survey data
+        conversation_history: [] // No conversation history yet
+      })
+
+      if (analysisResponse.analysis_id) {
+        console.log('📈 Backend analysis started:', analysisResponse.analysis_id)
+
+        // Start enhanced progress tracking
+        progressTracker.startTracking(analysisResponse.analysis_id)
+      }
+
       // Move to results phase
       setCurrentPhase('results')
 
     } catch (error: any) {
       console.error('❌ Assessment completion error:', error)
       setError(error.message || 'Failed to complete assessment. Please try again.')
+      progressTracker.resetProgress()
     } finally {
       setIsLoading(false)
     }
   }
 
+
+
   const handleContinueToDashboard = () => {
     setCurrentPhase('completion')
-    
+
     // Add a small delay for the completion animation
     setTimeout(() => {
       router.push('/dashboard')
@@ -156,7 +208,7 @@ export default function PersonalityQuestionnairePage() {
 
   const generateStrengthsOverview = (scores: PersonalityScores): string => {
     const strengths = []
-    
+
     if (scores.openness > 60) strengths.push("creative thinking")
     if (scores.extraversion > 60) strengths.push("social connection")
     if (scores.agreeableness > 60) strengths.push("empathy and compassion")
@@ -167,15 +219,14 @@ export default function PersonalityQuestionnairePage() {
       return "You have a well-balanced personality with adaptable strengths in different situations."
     }
 
-    return `Your key strengths include ${strengths.join(', ')}. These qualities make you uniquely capable of ${
-      strengths.length > 2 ? 'handling diverse challenges and supporting others' : 
-      'approaching life with your distinctive perspective'
-    }.`
+    return `Your key strengths include ${strengths.join(', ')}. These qualities make you uniquely capable of ${strengths.length > 2 ? 'handling diverse challenges and supporting others' :
+        'approaching life with your distinctive perspective'
+      }.`
   }
 
   const generateBondhuPersonalization = (scores: PersonalityScores): string => {
     const adaptations = []
-    
+
     if (scores.openness > 70) adaptations.push("explore creative approaches to your mental health journey")
     if (scores.extraversion > 70) adaptations.push("suggest social activities and group support options")
     if (scores.agreeableness > 70) adaptations.push("help you balance caring for others with self-care")
@@ -202,27 +253,52 @@ export default function PersonalityQuestionnairePage() {
               onComplete={handleAssessmentComplete}
               responses={responses}
             />
-            
-            {/* Loading overlay */}
-            {isLoading && (
-              <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-                <Card className="w-96 p-6">
-                  <CardContent className="space-y-4">
-                    <div className="text-center">
-                      <div className="w-16 h-16 mx-auto mb-4 relative">
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                          className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full"
-                        />
+
+            {/* Enhanced loading overlay with progress tracking */}
+            {(isLoading || progressTracker.isTracking) && (
+              <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                {isLoading && !progressTracker.isTracking ? (
+                  // Simple loading for initial survey processing
+                  <Card className="w-96 p-6">
+                    <CardContent className="space-y-4">
+                      <div className="text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 relative">
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full"
+                          />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">Processing Assessment</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Calculating personality scores and preparing analysis...
+                        </p>
                       </div>
-                      <h3 className="text-lg font-semibold mb-2">Analyzing Your Personality</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Processing your responses and creating your personalized Bondhu experience...
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  // Advanced progress tracking for backend analysis
+                  <ProgressTracking
+                    analysisId={progressTracker.analysisId}
+                    overallProgress={progressTracker.overallProgress}
+                    currentStep={progressTracker.currentStep}
+                    steps={progressTracker.steps}
+                    status={progressTracker.status}
+                    startTime={progressTracker.startTime}
+                    estimatedDuration={300} // 5 minutes
+                    onCancel={() => {
+                      progressTracker.stopTracking()
+                      setError('Analysis cancelled by user')
+                    }}
+                    onRetry={() => {
+                      progressTracker.resetProgress()
+                      setError(null)
+                      // Could trigger re-analysis here if needed
+                    }}
+                    showDetails={true}
+                    compact={false}
+                  />
+                )}
               </div>
             )}
 
@@ -235,7 +311,7 @@ export default function PersonalityQuestionnairePage() {
                       <div className="text-4xl mb-4">😔</div>
                       <h3 className="text-lg font-semibold mb-2 text-destructive">Assessment Error</h3>
                       <p className="text-sm text-muted-foreground mb-4">{error}</p>
-                      <Button 
+                      <Button
                         onClick={() => setError(null)}
                         className="w-full"
                       >
@@ -356,11 +432,11 @@ export default function PersonalityQuestionnairePage() {
           >
             <div className="text-center space-y-6">
               <motion.div
-                animate={{ 
+                animate={{
                   scale: [1, 1.2, 1],
                   rotate: [0, 360, 0]
                 }}
-                transition={{ 
+                transition={{
                   duration: 2,
                   ease: "easeInOut"
                 }}

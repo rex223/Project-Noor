@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
 import { createClient } from "@/lib/supabase/client"
+import { useBondhuAPI } from "@/hooks/use-bondhu-api"
+import { useAnalysisProgress } from "@/hooks/use-analysis-progress"
+import ProgressTracking from "@/components/ui/progress-tracking"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -11,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
 import { Progress } from "@/components/ui/progress"
 import { User, Play, Heart, Sword, Shield, Zap, Volume2, TrendingUp, BarChart3, Camera, Headphones, Gamepad2, Pause, ChevronRight, ArrowLeft } from "lucide-react"
+import Link from "next/link"
 import type { Profile } from "@/types/auth"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -19,10 +24,10 @@ import { DashboardStats } from "@/components/ui/dashboard-stats"
 import { DashboardGrid } from "@/components/ui/dashboard-grid"
 import { DashboardWelcome } from "@/components/ui/dashboard-welcome"
 import { EnhancedChat } from "@/components/ui/enhanced-chat"
-import Link from "next/link"
 import { PuzzleMaster } from "@/components/games/PuzzleMaster"
 import { MemoryPalace } from "@/components/games/MemoryPalace"
 import { ColorSymphony } from "@/components/games/ColorSymphony"
+import { useEntertainmentRecommendations } from "@/hooks/use-entertainment-recommendations"
 import { VideoPlayer } from "@/components/video/VideoPlayer"
 import { PersonalityRadarAdvanced } from "@/components/ui/personality-radar-advanced"
 import { aiLearningEngine } from "@/lib/ai-learning-engine"
@@ -194,138 +199,207 @@ export default function DashboardPage() {
 
 // Entertainment Hub Component
 function EntertainmentHub({ profile }: { profile: Profile }) {
-  const [activeSection, setActiveSection] = useState('games')
-  const [currentMood, setCurrentMood] = useState('')
+  const { getEntertainmentRecommendations } = useBondhuAPI()
+  const [quickRecommendations, setQuickRecommendations] = useState<any>(null)
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false)
+
+  // Load quick recommendations
+  useEffect(() => {
+    const loadQuickRecs = async () => {
+      if (!profile?.id) return
+
+      setLoadingRecommendations(true)
+      try {
+        const recs = await getEntertainmentRecommendations(profile.id, {
+          limit_per_category: 3,
+          include_context: true
+        })
+
+        if (recs) {
+          setQuickRecommendations(recs)
+        }
+      } catch (error) {
+        console.error('Failed to load quick recommendations:', error)
+      } finally {
+        setLoadingRecommendations(false)
+      }
+    }
+
+    loadQuickRecs()
+  }, [profile?.id, getEntertainmentRecommendations])
 
   return (
     <div className="space-y-6">
       {/* Entertainment Navigation */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Play className="h-5 w-5" />
-            <span>Entertainment Hub</span>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Play className="h-5 w-5" />
+              <span>Entertainment Hub</span>
+            </div>
+            <Link href="/entertainment">
+              <Button variant="outline" size="sm">
+                <ChevronRight className="h-4 w-4 mr-1" />
+                View All
+              </Button>
+            </Link>
           </CardTitle>
           <p className="text-muted-foreground">
-            Explore games, videos, and music while Bondhu learns about your personality
+            AI-powered recommendations based on your personality profile
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <Button
-              variant="ghost"
-              onClick={() => setActiveSection('games')}
-              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${activeSection === 'games'
-                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15'
-                  : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-green-500/10 hover:border-green-400/20 hover:shadow-md hover:shadow-green-500/10'
-                }`}
-            >
-              <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
+          {loadingRecommendations ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="h-20 bg-muted rounded-lg"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : quickRecommendations ? (
+            <div className="space-y-6">
+              {/* Quick Recommendations Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {quickRecommendations.recommendations.music?.[0] && (
+                  <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Headphones className="h-4 w-4 text-purple-600" />
+                      <Badge className="text-purple-600 bg-purple-100 dark:bg-purple-900/20">Music</Badge>
+                    </div>
+                    <h4 className="font-semibold mb-1 line-clamp-1">
+                      {quickRecommendations.recommendations.music[0].title}
+                    </h4>
+                    {quickRecommendations.recommendations.music[0].artist && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        by {quickRecommendations.recommendations.music[0].artist}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {quickRecommendations.recommendations.music[0].reasoning}
+                    </p>
+                  </div>
+                )}
 
-              {/* Liquid glass morphing background */}
-              <div className={`absolute inset-0 transition-all duration-700 ease-out ${activeSection === 'games'
-                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30'
-                  : 'bg-gradient-to-br from-white/5 via-green-500/5 to-white/10 group-hover:from-green-400/10 group-hover:via-emerald-500/10 group-hover:to-green-600/15'
-                }`} />
+                {quickRecommendations.recommendations.videos?.[0] && (
+                  <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 rounded-lg">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Camera className="h-4 w-4 text-blue-600" />
+                      <Badge className="text-blue-600 bg-blue-100 dark:bg-blue-900/20">Video</Badge>
+                    </div>
+                    <h4 className="font-semibold mb-1 line-clamp-1">
+                      {quickRecommendations.recommendations.videos[0].title}
+                    </h4>
+                    {quickRecommendations.recommendations.videos[0].creator && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        by {quickRecommendations.recommendations.videos[0].creator}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {quickRecommendations.recommendations.videos[0].reasoning}
+                    </p>
+                  </div>
+                )}
 
-              {/* Animated liquid blob */}
-              <div className={`absolute w-32 h-32 -top-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${activeSection === 'games'
-                  ? 'bg-green-400/30 blur-xl animate-pulse'
-                  : 'bg-green-500/10 blur-2xl group-hover:bg-green-400/20 group-hover:scale-110'
-                }`} />
+                {quickRecommendations.recommendations.games?.[0] && (
+                  <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Gamepad2 className="h-4 w-4 text-green-600" />
+                      <Badge className="text-green-600 bg-green-100 dark:bg-green-900/20">Game</Badge>
+                    </div>
+                    <h4 className="font-semibold mb-1 line-clamp-1">
+                      {quickRecommendations.recommendations.games[0].title}
+                    </h4>
+                    {quickRecommendations.recommendations.games[0].developer && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        by {quickRecommendations.recommendations.games[0].developer}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {quickRecommendations.recommendations.games[0].reasoning}
+                    </p>
+                  </div>
+                )}
+              </div>
 
-              {/* Glass reflection effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
-
-              <Gamepad2 className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${activeSection === 'games'
-                  ? 'text-green-100 drop-shadow-sm filter brightness-110'
-                  : 'text-green-600 dark:text-green-400 group-hover:text-green-500 dark:group-hover:text-green-300'
-                }`} />
-              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${activeSection === 'games'
-                  ? 'text-green-50 drop-shadow-sm filter brightness-110'
-                  : 'text-green-700 dark:text-green-300 group-hover:text-green-600 dark:group-hover:text-green-200'
-                }`}>Games</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              onClick={() => setActiveSection('videos')}
-              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${activeSection === 'videos'
-                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15'
-                  : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-green-500/10 hover:border-green-400/20 hover:shadow-md hover:shadow-green-500/10'
-                }`}
-            >
-              <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
-
-              {/* Liquid glass morphing background */}
-              <div className={`absolute inset-0 transition-all duration-700 ease-out ${activeSection === 'videos'
-                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30'
-                  : 'bg-gradient-to-br from-white/5 via-green-500/5 to-white/10 group-hover:from-green-400/10 group-hover:via-emerald-500/10 group-hover:to-green-600/15'
-                }`} />
-
-              {/* Animated liquid blob */}
-              <div className={`absolute w-32 h-32 -top-8 -right-8 rounded-full transition-all duration-1000 ease-in-out ${activeSection === 'videos'
-                  ? 'bg-emerald-400/30 blur-xl animate-pulse'
-                  : 'bg-green-500/10 blur-2xl group-hover:bg-emerald-400/20 group-hover:scale-110'
-                }`} />
-
-              {/* Glass reflection effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
-
-              <Camera className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${activeSection === 'videos'
-                  ? 'text-green-100 drop-shadow-sm filter brightness-110'
-                  : 'text-green-600 dark:text-green-400 group-hover:text-green-500 dark:group-hover:text-green-300'
-                }`} />
-              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${activeSection === 'videos'
-                  ? 'text-green-50 drop-shadow-sm filter brightness-110'
-                  : 'text-green-700 dark:text-green-300 group-hover:text-green-600 dark:group-hover:text-green-200'
-                }`}>Videos</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              onClick={() => setActiveSection('music')}
-              className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${activeSection === 'music'
-                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15'
-                  : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-green-500/10 hover:border-green-400/20 hover:shadow-md hover:shadow-green-500/10'
-                }`}
-            >
-              <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
-
-              {/* Liquid glass morphing background */}
-              <div className={`absolute inset-0 transition-all duration-700 ease-out ${activeSection === 'music'
-                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30'
-                  : 'bg-gradient-to-br from-white/5 via-green-500/5 to-white/10 group-hover:from-green-400/10 group-hover:via-emerald-500/10 group-hover:to-green-600/15'
-                }`} />
-
-              {/* Animated liquid blob */}
-              <div className={`absolute w-32 h-32 -bottom-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${activeSection === 'music'
-                  ? 'bg-teal-400/30 blur-xl animate-pulse'
-                  : 'bg-green-500/10 blur-2xl group-hover:bg-teal-400/20 group-hover:scale-110'
-                }`} />
-
-              {/* Glass reflection effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
-
-              <Headphones className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${activeSection === 'music'
-                  ? 'text-green-100 drop-shadow-sm filter brightness-110'
-                  : 'text-green-600 dark:text-green-400 group-hover:text-green-500 dark:group-hover:text-green-300'
-                }`} />
-              <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${activeSection === 'music'
-                  ? 'text-green-50 drop-shadow-sm filter brightness-110'
-                  : 'text-green-700 dark:text-green-300 group-hover:text-green-600 dark:group-hover:text-green-200'
-                }`}>Music</span>
-            </Button>
-          </div>
-
-          {/* Dynamic Content Area */}
-          {activeSection === 'games' && <GamingSection profile={profile} />}
-          {activeSection === 'videos' && <VideoSection profile={profile} />}
-          {activeSection === 'music' && <MusicSection profile={profile} />}
+              {/* Context Information */}
+              <div className="flex items-center justify-between text-sm text-muted-foreground border-t pt-4">
+                <div className="flex items-center space-x-4">
+                  <span>{Math.round(quickRecommendations.overall_confidence)}% match confidence</span>
+                  <span>Generated {quickRecommendations.context.time_of_day}</span>
+                </div>
+                <Link href="/entertainment">
+                  <Button variant="ghost" size="sm">
+                    Explore More <ChevronRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Play className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground mb-4">No recommendations available yet.</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Complete your personality analysis to get personalized entertainment suggestions.
+              </p>
+              <Link href="/entertainment">
+                <Button variant="outline">
+                  <Play className="h-4 w-4 mr-2" />
+                  Explore Entertainment
+                </Button>
+              </Link>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   )
+
+  // Entertainment Statistics Component
+  function EntertainmentStats({ entertainmentInsights }: {
+    entertainmentInsights: any;
+  }) {
+    if (!entertainmentInsights?.stats) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-sm text-muted-foreground">No entertainment statistics available yet</p>
+        </div>
+      );
+    }
+
+    const { stats } = entertainmentInsights;
+
+    return (
+      <div className="grid grid-cols-3 gap-4">
+        {/* Music Stats */}
+        <div className="text-center">
+          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+            {stats.musicInteractions || 0}
+          </div>
+          <p className="text-xs text-muted-foreground">Songs Played</p>
+        </div>
+
+        {/* Video Stats */}
+        <div className="text-center">
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            {stats.videoInteractions || 0}
+          </div>
+          <p className="text-xs text-muted-foreground">Videos Watched</p>
+        </div>
+
+        {/* Game Stats */}
+        <div className="text-center">
+          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+            {stats.gameInteractions || 0}
+          </div>
+          <p className="text-xs text-muted-foreground">Games Played</p>
+        </div>
+      </div>
+    );
+  }
 }
 
 // Gaming Section Component
@@ -1091,6 +1165,26 @@ function MusicSection({ profile }: { profile: Profile }) {
 function ProfileDashboard({ profile }: { profile: Profile }) {
   const [aiInsights, setAiInsights] = useState<any>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [realPersonalityData, setRealPersonalityData] = useState<any>(null)
+
+  const { analyzePersonality, getAnalysisStatus, getPersonalityProfile, isLoading: apiLoading } = useBondhuAPI()
+
+  // Enhanced progress tracking for analysis
+  const progressTracker = useAnalysisProgress({
+    pollInterval: 2000, // Poll every 2 seconds
+    maxRetries: 5,
+    onComplete: (result) => {
+      console.log('✅ Dashboard analysis completed:', result)
+      // Refresh insights with new data
+      setRefreshKey(prev => prev + 1)
+    },
+    onError: (error) => {
+      console.error('❌ Dashboard analysis error:', error)
+    },
+    onStepUpdate: (step) => {
+      console.log('📊 Dashboard step update:', step.name, `${step.progress}%`)
+    }
+  })
 
   // Get AI insights
   useEffect(() => {
@@ -1107,8 +1201,68 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
     return () => clearInterval(interval)
   }, [])
 
-  // Mock personality data - in real app this would come from profile
-  const personalityData = aiInsights?.bigFive || {
+  const triggerPersonalityAnalysis = async () => {
+    if (!profile?.id || progressTracker.isTracking) return
+
+    try {
+      console.log('🚀 Triggering comprehensive personality analysis...')
+
+      const response = await analyzePersonality({
+        user_id: profile.id,
+        requested_agents: ['music', 'video', 'gaming'],
+        force_refresh: true,
+        include_cross_modal: true,
+        survey_responses: {}, // Could include any additional survey data
+        conversation_history: [] // Could include chat history
+      })
+
+      if (response.analysis_id) {
+        console.log('📈 Analysis started:', response.analysis_id)
+
+        // Start enhanced progress tracking
+        progressTracker.startTracking(response.analysis_id)
+      }
+
+    } catch (error) {
+      console.error('❌ Analysis trigger error:', error)
+      progressTracker.resetProgress()
+    }
+  }
+
+
+
+  // Load real personality data
+  useEffect(() => {
+    const loadPersonalityData = async () => {
+      if (!profile?.id || realPersonalityData) return
+
+      try {
+        console.log('📊 Loading dashboard personality data...')
+        const response = await getPersonalityProfile(profile.id)
+
+        if (response && response.scores) {
+          const transformedData = {
+            openness: Math.round(response.scores.openness.score),
+            conscientiousness: Math.round(response.scores.conscientiousness.score),
+            extraversion: Math.round(response.scores.extraversion.score),
+            agreeableness: Math.round(response.scores.agreeableness.score),
+            neuroticism: Math.round(response.scores.neuroticism.score),
+            overall_confidence: response.overall_confidence,
+            data_sources: response.data_sources
+          }
+          setRealPersonalityData(transformedData)
+          console.log('✅ Dashboard personality data loaded')
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not load personality data, using mock data:', error)
+      }
+    }
+
+    loadPersonalityData()
+  }, [profile?.id])
+
+  // Use real personality data if available, otherwise fall back to mock
+  const personalityData = realPersonalityData || aiInsights?.bigFive || {
     openness: 75,
     conscientiousness: 68,
     extraversion: 55,
@@ -1388,7 +1542,7 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
                       <span className="text-sm font-medium capitalize">{trend.trait}</span>
                       <div className="flex items-center space-x-2">
                         <span className={`text-sm ${trend.trend === 'increasing' ? 'text-green-600' :
-                            trend.trend === 'decreasing' ? 'text-red-600' : 'text-gray-600'
+                          trend.trend === 'decreasing' ? 'text-red-600' : 'text-gray-600'
                           }`}>
                           {trend.trend === 'increasing' ? '↗️' : trend.trend === 'decreasing' ? '↘️' : '➡️'}
                           {trend.trend}
@@ -1422,16 +1576,38 @@ function ProfileDashboard({ profile }: { profile: Profile }) {
         </Card>
       )}
 
-      {/* Manual Refresh */}
-      <div className="flex justify-center">
-        <Button
-          onClick={() => setRefreshKey(prev => prev + 1)}
-          variant="outline"
-          className="flex items-center space-x-2"
-        >
-          <TrendingUp className="h-4 w-4" />
-          <span>Refresh AI Analysis</span>
-        </Button>
+      {/* Analysis Controls */}
+      <div className="flex flex-col items-center space-y-4">
+        {progressTracker.isTracking ? (
+          <ProgressTracking
+            analysisId={progressTracker.analysisId}
+            overallProgress={progressTracker.overallProgress}
+            currentStep={progressTracker.currentStep}
+            steps={progressTracker.steps}
+            status={progressTracker.status}
+            startTime={progressTracker.startTime}
+            estimatedDuration={300} // 5 minutes
+            onCancel={() => {
+              progressTracker.stopTracking()
+            }}
+            onRetry={() => {
+              progressTracker.resetProgress()
+              triggerPersonalityAnalysis()
+            }}
+            showDetails={false} // Compact view for dashboard
+            compact={true}
+          />
+        ) : (
+          <Button
+            onClick={triggerPersonalityAnalysis}
+            variant="outline"
+            className="flex items-center space-x-2"
+            disabled={!profile?.id || apiLoading}
+          >
+            <TrendingUp className="h-4 w-4" />
+            <span>Run Full AI Analysis</span>
+          </Button>
+        )}
       </div>
     </div>
   )

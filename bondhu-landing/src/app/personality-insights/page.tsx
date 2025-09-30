@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { useBondhuAPI } from "@/hooks/use-bondhu-api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -17,8 +18,12 @@ import { PersonalityRadarAdvanced } from "@/components/ui/personality-radar-adva
 export default function PersonalityInsightsPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [personalityData, setPersonalityData] = useState<any>(null)
+  const [isLoadingPersonality, setIsLoadingPersonality] = useState(false)
+  const [personalityError, setPersonalityError] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
+  const { getPersonalityProfile } = useBondhuAPI()
 
   useEffect(() => {
     const getProfile = async () => {
@@ -51,6 +56,126 @@ export default function PersonalityInsightsPage() {
 
     getProfile()
   }, [supabase, router])
+
+  // Function to fetch real personality data from backend
+  const fetchPersonalityData = async (userId: string) => {
+    setIsLoadingPersonality(true)
+    setPersonalityError(null)
+
+    try {
+      console.log('🧠 Fetching personality data for user:', userId)
+      const response = await getPersonalityProfile(userId)
+
+      if (response && response.scores) {
+        // Transform backend response to frontend format
+        const transformedData = {
+          traits: [
+            {
+              name: "Openness",
+              score: Math.round(response.scores.openness.score),
+              description: "Imagination, curiosity, artistic interests",
+              color: "blue",
+              confidence: response.scores.openness.confidence
+            },
+            {
+              name: "Conscientiousness",
+              score: Math.round(response.scores.conscientiousness.score),
+              description: "Organization, discipline, goal-orientation",
+              color: "green",
+              confidence: response.scores.conscientiousness.confidence
+            },
+            {
+              name: "Extraversion",
+              score: Math.round(response.scores.extraversion.score),
+              description: "Sociability, assertiveness, energy",
+              color: "orange",
+              confidence: response.scores.extraversion.confidence
+            },
+            {
+              name: "Agreeableness",
+              score: Math.round(response.scores.agreeableness.score),
+              description: "Cooperation, trust, empathy",
+              color: "purple",
+              confidence: response.scores.agreeableness.confidence
+            },
+            {
+              name: "Neuroticism",
+              score: Math.round(response.scores.neuroticism.score),
+              description: "Emotional instability, anxiety, moodiness",
+              color: "red",
+              confidence: response.scores.neuroticism.confidence
+            }
+          ],
+          overall_confidence: response.overall_confidence,
+          data_sources: response.data_sources,
+          created_at: response.created_at
+        }
+
+        // Calculate top strengths and growth opportunities
+        const sortedTraits = [...transformedData.traits].sort((a, b) => b.score - a.score)
+        const personalityDataWithExtras = {
+          ...transformedData,
+          topStrengths: sortedTraits.slice(0, 2),
+          growthOpportunities: sortedTraits.slice(-2).reverse(),
+          entertainmentInsights: {
+            gamingCreativity: Math.round((response.scores.openness.score + response.scores.conscientiousness.score) / 2),
+            videoFocus: Math.round((response.scores.conscientiousness.score + response.scores.neuroticism.score) / 2),
+            musicRegulation: Math.round((response.scores.agreeableness.score + response.scores.openness.score) / 2),
+            overallEngagement: Math.round(response.overall_confidence * 100)
+          }
+        }
+
+        setPersonalityData(personalityDataWithExtras)
+        console.log('✅ Personality data loaded successfully')
+      } else {
+        // Fallback to mock data if no backend data available
+        setPersonalityData(getMockPersonalityData())
+        console.log('⚠️ Using mock personality data (no backend data available)')
+      }
+    } catch (error) {
+      console.error('❌ Error fetching personality data:', error)
+      setPersonalityError('Failed to load personality insights. Using sample data.')
+      // Fallback to mock data on error
+      setPersonalityData(getMockPersonalityData())
+    } finally {
+      setIsLoadingPersonality(false)
+    }
+  }
+
+  // Mock data fallback function
+  const getMockPersonalityData = () => ({
+    traits: [
+      { name: "Openness", score: 75, description: "Imagination, curiosity, artistic interests", color: "blue", confidence: 0.8 },
+      { name: "Conscientiousness", score: 68, description: "Organization, discipline, goal-orientation", color: "green", confidence: 0.7 },
+      { name: "Extraversion", score: 55, description: "Sociability, assertiveness, energy", color: "orange", confidence: 0.6 },
+      { name: "Agreeableness", score: 82, description: "Cooperation, trust, empathy", color: "purple", confidence: 0.9 },
+      { name: "Neuroticism", score: 45, description: "Emotional instability, anxiety, moodiness", color: "red", confidence: 0.5 }
+    ],
+    topStrengths: [
+      { name: "Agreeableness", score: 82, confidence: 0.9 },
+      { name: "Openness", score: 75, confidence: 0.8 }
+    ],
+    growthOpportunities: [
+      { name: "Extraversion", score: 55, confidence: 0.6 },
+      { name: "Neuroticism", score: 45, confidence: 0.5 }
+    ],
+    entertainmentInsights: {
+      gamingCreativity: 70,
+      videoFocus: 85,
+      musicRegulation: 78,
+      overallEngagement: 82
+    },
+    overall_confidence: 0.72,
+    data_sources: ['survey'],
+    created_at: new Date().toISOString()
+  })
+
+  // Load personality data when profile is available
+  useEffect(() => {
+    if (profile?.id && !personalityData) {
+      fetchPersonalityData(profile.id)
+    }
+  }, [profile])
 
   if (isLoading) {
     return (
@@ -98,29 +223,46 @@ export default function PersonalityInsightsPage() {
 
   const profileCompletion = calculateProfileCompletion()
 
-  // Mock personality data - in a real app, this would come from your AI analysis
-  const personalityData = {
-    traits: [
-      { name: "Openness", score: 75, description: "Imagination, curiosity, artistic interests", color: "blue" },
-      { name: "Conscientiousness", score: 68, description: "Organization, discipline, goal-orientation", color: "green" },
-      { name: "Extraversion", score: 55, description: "Sociability, assertiveness, energy", color: "orange" },
-      { name: "Agreeableness", score: 82, description: "Cooperation, trust, empathy", color: "purple" },
-      { name: "Neuroticism", score: 45, description: "Emotional instability, anxiety, moodiness", color: "red" }
-    ],
-    topStrengths: [
-      { name: "Agreeableness", score: 82 },
-      { name: "Openness", score: 75 }
-    ],
-    growthOpportunities: [
-      { name: "Extraversion", score: 55 },
-      { name: "Conscientiousness", score: 68 }
-    ],
-    entertainmentInsights: {
-      gamingCreativity: 70,
-      videoFocus: 85,
-      musicRegulation: 78,
-      overallEngagement: 82
-    }
+  // Handle personality data loading states
+  if (isLoadingPersonality) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 flex items-center justify-center">
+        <Card className="w-96 p-6">
+          <CardContent className="space-y-4">
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-4 relative">
+                <RefreshCw className="h-12 w-12 animate-spin text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Loading Personality Insights</h3>
+              <p className="text-sm text-muted-foreground">
+                Fetching your comprehensive personality analysis...
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!personalityData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 flex items-center justify-center">
+        <Card className="w-96 p-6">
+          <CardContent className="space-y-4">
+            <div className="text-center">
+              <div className="text-4xl mb-4">🧠</div>
+              <h3 className="text-lg font-semibold mb-2">No Personality Data Available</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Complete your personality assessment to see detailed insights.
+              </p>
+              <Button onClick={() => router.push('/onboarding/personality')}>
+                Take Assessment
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -145,6 +287,18 @@ export default function PersonalityInsightsPage() {
 
             {/* Right Section */}
             <div className="flex items-center space-x-3">
+              {personalityData && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => profile?.id && fetchPersonalityData(profile.id)}
+                  disabled={isLoadingPersonality}
+                  className="flex items-center space-x-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoadingPersonality ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Refresh</span>
+                </Button>
+              )}
               <ThemeToggle />
             </div>
           </div>
@@ -165,14 +319,43 @@ export default function PersonalityInsightsPage() {
             <ChevronRight className="h-4 w-4" />
             <span className="text-foreground font-medium">Personality Insights</span>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center space-x-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span>Refresh Analysis</span>
-          </Button>
+          {personalityData && (
+            <div className="flex items-center space-x-4 text-sm">
+              {personalityError && (
+                <Badge variant="outline" className="text-yellow-600 border-yellow-300">
+                  ⚠️ Using Sample Data
+                </Badge>
+              )}
+              {personalityData.data_sources && (
+                <div className="flex items-center space-x-2 text-muted-foreground">
+                  <span>Sources:</span>
+                  <div className="flex space-x-1">
+                    {personalityData.data_sources.map((source: string, index: number) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {source}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {personalityData.overall_confidence && (
+                <div className="flex items-center space-x-2 text-muted-foreground">
+                  <span>Confidence:</span>
+                  <Badge
+                    variant="outline"
+                    className={`text-xs ${personalityData.overall_confidence > 0.7
+                      ? 'text-green-600 border-green-300'
+                      : personalityData.overall_confidence > 0.5
+                        ? 'text-yellow-600 border-yellow-300'
+                        : 'text-red-600 border-red-300'
+                      }`}
+                  >
+                    {Math.round(personalityData.overall_confidence * 100)}%
+                  </Badge>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Hero Section */}
@@ -259,7 +442,7 @@ export default function PersonalityInsightsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {personalityData.topStrengths.map((strength) => (
+                {personalityData.topStrengths.map((strength: any) => (
                   <div key={strength.name} className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
                     <span className="font-medium text-green-800 dark:text-green-200">{strength.name}</span>
                     <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
@@ -280,7 +463,7 @@ export default function PersonalityInsightsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {personalityData.growthOpportunities.map((opportunity) => (
+                {personalityData.growthOpportunities.map((opportunity: any) => (
                   <div key={opportunity.name} className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
                     <span className="font-medium text-blue-800 dark:text-blue-200">{opportunity.name}</span>
                     <span className="text-sm text-blue-600 dark:text-blue-400">{opportunity.score}%</span>
@@ -348,25 +531,25 @@ export default function PersonalityInsightsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {personalityData.traits.map((trait) => {
-                    const isTopStrength = personalityData.topStrengths.some(s => s.name === trait.name)
-                    const isGrowthArea = personalityData.growthOpportunities.some(g => g.name === trait.name)
+                  {personalityData.traits.map((trait: any) => {
+                    const isTopStrength = personalityData.topStrengths.some((s: any) => s.name === trait.name)
+                    const isGrowthArea = personalityData.growthOpportunities.some((g: any) => g.name === trait.name)
 
                     return (
                       <div key={trait.name} className={`p-4 rounded-lg border-l-4 ${isTopStrength
-                          ? 'bg-green-50 dark:bg-green-950/20 border-l-green-500'
-                          : isGrowthArea
-                            ? 'bg-blue-50 dark:bg-blue-950/20 border-l-blue-500'
-                            : 'bg-gray-50 dark:bg-gray-950/20 border-l-gray-400'
+                        ? 'bg-green-50 dark:bg-green-950/20 border-l-green-500'
+                        : isGrowthArea
+                          ? 'bg-blue-50 dark:bg-blue-950/20 border-l-blue-500'
+                          : 'bg-gray-50 dark:bg-gray-950/20 border-l-gray-400'
                         }`}>
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-3">
                             <div>
                               <h3 className={`text-lg font-semibold ${isTopStrength
-                                  ? 'text-green-800 dark:text-green-200'
-                                  : isGrowthArea
-                                    ? 'text-blue-800 dark:text-blue-200'
-                                    : 'text-gray-800 dark:text-gray-200'
+                                ? 'text-green-800 dark:text-green-200'
+                                : isGrowthArea
+                                  ? 'text-blue-800 dark:text-blue-200'
+                                  : 'text-gray-800 dark:text-gray-200'
                                 }`}>
                                 {trait.name}
                                 {isTopStrength && (
@@ -383,26 +566,33 @@ export default function PersonalityInsightsPage() {
                               <p className="text-sm text-muted-foreground mt-1">{trait.description}</p>
                             </div>
                           </div>
-                          <div className={`text-3xl font-bold ${isTopStrength
+                          <div className="text-right">
+                            <div className={`text-3xl font-bold ${isTopStrength
                               ? 'text-green-600 dark:text-green-400'
                               : isGrowthArea
                                 ? 'text-blue-600 dark:text-blue-400'
                                 : 'text-gray-600 dark:text-gray-400'
-                            }`}>
-                            {trait.score}%
+                              }`}>
+                              {trait.score}%
+                            </div>
+                            {trait.confidence && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {Math.round(trait.confidence * 100)}% confidence
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="w-full bg-muted rounded-full h-3">
                           <div
                             className={`h-3 rounded-full transition-all duration-700 ${isTopStrength
-                                ? 'bg-gradient-to-r from-green-400 to-green-600'
-                                : isGrowthArea
-                                  ? 'bg-gradient-to-r from-blue-400 to-blue-600'
-                                  : trait.color === 'blue' ? 'bg-blue-500' :
-                                    trait.color === 'green' ? 'bg-green-500' :
-                                      trait.color === 'orange' ? 'bg-orange-500' :
-                                        trait.color === 'purple' ? 'bg-purple-500' :
-                                          'bg-red-500'
+                              ? 'bg-gradient-to-r from-green-400 to-green-600'
+                              : isGrowthArea
+                                ? 'bg-gradient-to-r from-blue-400 to-blue-600'
+                                : trait.color === 'blue' ? 'bg-blue-500' :
+                                  trait.color === 'green' ? 'bg-green-500' :
+                                    trait.color === 'orange' ? 'bg-orange-500' :
+                                      trait.color === 'purple' ? 'bg-purple-500' :
+                                        'bg-red-500'
                               }`}
                             style={{ width: `${trait.score}%` }}
                           ></div>
@@ -420,11 +610,11 @@ export default function PersonalityInsightsPage() {
             <div className="sticky top-24 space-y-6">
               <PersonalityRadarAdvanced
                 personalityData={{
-                  openness: 75,
-                  conscientiousness: 68,
-                  extraversion: 55,
-                  agreeableness: 82,
-                  neuroticism: 45
+                  openness: personalityData.traits.find((t: any) => t.name === 'Openness')?.score || 0,
+                  conscientiousness: personalityData.traits.find((t: any) => t.name === 'Conscientiousness')?.score || 0,
+                  extraversion: personalityData.traits.find((t: any) => t.name === 'Extraversion')?.score || 0,
+                  agreeableness: personalityData.traits.find((t: any) => t.name === 'Agreeableness')?.score || 0,
+                  neuroticism: personalityData.traits.find((t: any) => t.name === 'Neuroticism')?.score || 0
                 }}
                 entertainmentInsights={{
                   gaming_creativity: personalityData.entertainmentInsights.gamingCreativity,
@@ -454,15 +644,68 @@ export default function PersonalityInsightsPage() {
           </div>
         </div>
 
+        {/* Data Source Information */}
+        {personalityData.created_at && (
+          <div className="mt-8 pt-8 border-t">
+            <Card className="bg-muted/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <div className="flex items-center space-x-4">
+                    <div>
+                      <span className="font-medium">Analysis Date:</span>
+                      <span className="ml-2">
+                        {new Date(personalityData.created_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                    {personalityData.data_sources && personalityData.data_sources.length > 0 && (
+                      <div>
+                        <span className="font-medium">Data Sources:</span>
+                        <span className="ml-2 capitalize">
+                          {personalityData.data_sources.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium">Overall Confidence:</span>
+                    <Badge
+                      variant="outline"
+                      className={`${personalityData.overall_confidence > 0.7
+                        ? 'text-green-600 border-green-300'
+                        : personalityData.overall_confidence > 0.5
+                          ? 'text-yellow-600 border-yellow-300'
+                          : 'text-red-600 border-red-300'
+                        }`}
+                    >
+                      {Math.round(personalityData.overall_confidence * 100)}%
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Action Buttons */}
-        <div className="flex justify-center space-x-4 mt-8 pt-8 border-t">
+        <div className="flex justify-center space-x-4 mt-8">
           <Button onClick={() => router.push('/dashboard')} variant="outline" size="lg">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
-          <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh AI Analysis
+          <Button
+            onClick={() => profile?.id && fetchPersonalityData(profile.id)}
+            disabled={isLoadingPersonality}
+            size="lg"
+            className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingPersonality ? 'animate-spin' : ''}`} />
+            {isLoadingPersonality ? 'Refreshing...' : 'Refresh Analysis'}
           </Button>
         </div>
       </main>

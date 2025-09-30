@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from core import get_config, PersonalityOrchestrator
-from api.routes import personality_router, agents_router
+from api.routes import personality_router, agents_router, chat_router
 from api.routes.personality_context import router as personality_context_router
 from core.database.supabase_client import cleanup_database
 
@@ -94,6 +94,7 @@ app.add_middleware(
 # Include routers
 app.include_router(personality_router)
 app.include_router(agents_router)
+app.include_router(chat_router)
 app.include_router(personality_context_router)
 
 @app.get("/")
