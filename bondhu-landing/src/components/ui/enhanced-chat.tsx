@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Mic, MoreVertical, Heart, Sparkles, Volume2, VolumeX, Copy, ThumbsUp } from "lucide-react";
+import { Send, Mic, MoreVertical, Heart, Sparkles, Volume2, VolumeX, Copy, ThumbsUp, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -11,6 +11,8 @@ import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { BondhuAvatar } from "@/components/ui/bondhu-avatar";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/auth";
+import { chatApi } from "@/lib/api/chat";
+import { createClient } from "@/lib/supabase/client";
 
 interface Message {
   id: number;
@@ -20,6 +22,7 @@ interface Message {
   isTyping?: boolean;
   reactions?: string[];
   mood?: 'happy' | 'caring' | 'thinking' | 'excited';
+  hasPersonalityContext?: boolean;
 }
 
 interface EnhancedChatProps {
@@ -41,6 +44,9 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
   const [conversationContext, setConversationContext] = useState<string[]>([
     "mental wellness", "daily goals", "stress management"
   ]);
+  const [error, setError] = useState<string | null>(null);
+  const [hasPersonalityContext, setHasPersonalityContext] = useState<boolean>(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -52,8 +58,24 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
     scrollToBottom();
   }, [messages]);
 
+  // Get user ID from Supabase auth
+  useEffect(() => {
+    const getUserId = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    getUserId();
+  }, []);
+
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
+    if (!userId) {
+      setError("User not authenticated");
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now(),
@@ -65,27 +87,45 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
     setMessages(prev => [...prev, userMessage]);
     setNewMessage('');
     setIsTyping(true);
+    setError(null);
 
-    // Simulate AI response with personalized content
-    setTimeout(() => {
-      const personalizedResponses = [
-        `I can sense the thoughtfulness in your message, ${profile.full_name?.split(' ')[0]}. That's really meaningful to share with me. What's on your mind right now?`,
-        "Thank you for opening up to me. I'm here to listen and support you through whatever you're experiencing. Tell me more about how you're feeling.",
-        "I appreciate you trusting me with your thoughts. Your emotional wellbeing matters deeply to me. What would be most helpful for you right now?",
-        "That's a beautiful way to express yourself. I can hear the emotions behind your words. Would you like to explore these feelings together?",
-        "I'm grateful you're sharing this with me. Your journey and experiences are important. How can I best support you today?"
-      ];
-
+    try {
+      // Call real API
+      const response = await chatApi.sendMessage(userId, newMessage);
+      
       const aiMessage: Message = {
         id: Date.now() + 1,
         sender: 'bondhu',
-        message: personalizedResponses[Math.floor(Math.random() * personalizedResponses.length)],
-        timestamp: new Date().toLocaleTimeString(),
+        message: response.response,
+        timestamp: new Date(response.timestamp).toLocaleTimeString(),
+        hasPersonalityContext: response.has_personality_context,
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      setHasPersonalityContext(response.has_personality_context);
+      
+      // Show warning if no personality context
+      if (!response.has_personality_context) {
+        setError("💡 Complete your personality assessment for more personalized responses!");
+      }
+      
       setIsTyping(false);
-    }, 1500 + Math.random() * 2000);
+    } catch (err) {
+      console.error('Chat error:', err);
+      setError(err instanceof Error ? err.message : "Failed to send message. Please try again.");
+      
+      // Remove typing indicator
+      setIsTyping(false);
+      
+      // Show error message from Bondhu
+      const errorMessage: Message = {
+        id: Date.now() + 1,
+        sender: 'bondhu',
+        message: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment. 🙏",
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    }
   };
 
   // Personality-adaptive quick responses
@@ -191,6 +231,26 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Personality Context Indicator */}
+          {hasPersonalityContext && (
+            <div className="px-6 py-2 border-b bg-emerald-500/5 text-center">
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2">
+                <Sparkles className="h-3 w-3" />
+                <span>Personality-aware mode active</span>
+              </p>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="px-6 py-3 border-b bg-amber-500/10 text-center">
+              <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center justify-center gap-2">
+                <AlertCircle className="h-3 w-3" />
+                <span>{error}</span>
+              </p>
             </div>
           )}
 

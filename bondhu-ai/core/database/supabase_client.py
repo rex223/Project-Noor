@@ -3,7 +3,6 @@ Supabase database connection and client setup for Bondhu AI.
 """
 
 from typing import Optional, Dict, Any, List
-import asyncpg
 from supabase import create_client, Client
 from datetime import datetime
 import json
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class SupabaseClient:
-    """Supabase client for database operations."""
+    """Supabase client for database operations using REST API."""
     
     def __init__(self):
         config = get_config()
@@ -23,29 +22,10 @@ class SupabaseClient:
             config.database.url,
             config.database.key
         )
-        self._pool: Optional[asyncpg.Pool] = None
-    
-    async def get_connection_pool(self) -> asyncpg.Pool:
-        """Get or create asyncpg connection pool for direct database access."""
-        if self._pool is None:
-            config = get_config()
-            # Parse Supabase URL to get connection details
-            db_url = config.database.url.replace('https://', 'postgresql://')
-            if not db_url.endswith('/postgres'):
-                db_url += '/postgres'
-            
-            self._pool = await asyncpg.create_pool(
-                db_url,
-                min_size=2,
-                max_size=10,
-                command_timeout=30
-            )
-        return self._pool
     
     async def close(self):
-        """Close database connections."""
-        if self._pool:
-            await self._pool.close()
+        """Close database connections (no-op for REST API)."""
+        pass
     
     async def get_user_personality(self, user_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -58,53 +38,38 @@ class SupabaseClient:
             Dictionary containing personality scores and LLM context, or None if not found
         """
         try:
-            pool = await self.get_connection_pool()
-            async with pool.acquire() as conn:
-                query = """
-                SELECT 
-                    id,
-                    full_name,
-                    avatar_url,
-                    personality_openness,
-                    personality_conscientiousness,
-                    personality_extraversion,
-                    personality_agreeableness,
-                    personality_neuroticism,
-                    personality_llm_context,
-                    personality_completed_at,
-                    onboarding_completed,
-                    has_completed_personality_assessment,
-                    profile_completion_percentage,
-                    created_at,
-                    updated_at
-                FROM personality_profiles 
-                WHERE id = $1 AND has_completed_personality_assessment = true
-                """
+            # Use Supabase REST API instead of direct PostgreSQL connection
+            response = self.supabase.table('personality_profiles').select(
+                'id, full_name, avatar_url, personality_openness, personality_conscientiousness, '
+                'personality_extraversion, personality_agreeableness, personality_neuroticism, '
+                'personality_llm_context, personality_completed_at, onboarding_completed, '
+                'has_completed_personality_assessment, profile_completion_percentage, '
+                'created_at, updated_at'
+            ).eq('id', user_id).eq('has_completed_personality_assessment', True).execute()
+            
+            if response.data and len(response.data) > 0:
+                row = response.data[0]
+                return {
+                    'user_id': str(row['id']),
+                    'full_name': row.get('full_name'),
+                    'avatar_url': row.get('avatar_url'),
+                    'scores': {
+                        'openness': row.get('personality_openness'),
+                        'conscientiousness': row.get('personality_conscientiousness'),
+                        'extraversion': row.get('personality_extraversion'),
+                        'agreeableness': row.get('personality_agreeableness'),
+                        'neuroticism': row.get('personality_neuroticism')
+                    },
+                    'llm_context': row.get('personality_llm_context'),
+                    'completed_at': row.get('personality_completed_at'),
+                    'onboarding_completed': row.get('onboarding_completed'),
+                    'has_assessment': row.get('has_completed_personality_assessment'),
+                    'profile_completion_percentage': row.get('profile_completion_percentage'),
+                    'created_at': row.get('created_at'),
+                    'updated_at': row.get('updated_at')
+                }
                 
-                row = await conn.fetchrow(query, user_id)
-                
-                if row:
-                    return {
-                        'user_id': str(row['id']),
-                        'full_name': row['full_name'],
-                        'avatar_url': row['avatar_url'],
-                        'scores': {
-                            'openness': row['personality_openness'],
-                            'conscientiousness': row['personality_conscientiousness'],
-                            'extraversion': row['personality_extraversion'],
-                            'agreeableness': row['personality_agreeableness'],
-                            'neuroticism': row['personality_neuroticism']
-                        },
-                        'llm_context': row['personality_llm_context'],
-                        'completed_at': row['personality_completed_at'],
-                        'onboarding_completed': row['onboarding_completed'],
-                        'has_assessment': row['has_completed_personality_assessment'],
-                        'profile_completion_percentage': row['profile_completion_percentage'],
-                        'created_at': row['created_at'],
-                        'updated_at': row['updated_at']
-                    }
-                
-                return None
+            return None
                 
         except Exception as e:
             logger.error(f"Error fetching personality data for user {user_id}: {e}")
@@ -121,20 +86,14 @@ class SupabaseClient:
             LLM context dictionary or None
         """
         try:
-            pool = await self.get_connection_pool()
-            async with pool.acquire() as conn:
-                query = """
-                SELECT personality_llm_context
-                FROM personality_profiles 
-                WHERE id = $1 AND has_completed_personality_assessment = true
-                """
+            response = self.supabase.table('personality_profiles').select(
+                'personality_llm_context'
+            ).eq('id', user_id).eq('has_completed_personality_assessment', True).execute()
+            
+            if response.data and len(response.data) > 0:
+                return response.data[0].get('personality_llm_context')
                 
-                row = await conn.fetchrow(query, user_id)
-                
-                if row and row['personality_llm_context']:
-                    return row['personality_llm_context']
-                
-                return None
+            return None
                 
         except Exception as e:
             logger.error(f"Error fetching LLM context for user {user_id}: {e}")
@@ -151,45 +110,33 @@ class SupabaseClient:
             Dictionary with onboarding status information
         """
         try:
-            pool = await self.get_connection_pool()
-            async with pool.acquire() as conn:
-                query = """
-                SELECT 
-                    id,
-                    full_name,
-                    avatar_url,
-                    onboarding_completed,
-                    personality_completed_at,
-                    has_completed_personality_assessment,
-                    profile_completion_percentage,
-                    created_at,
-                    updated_at
-                FROM personality_profiles 
-                WHERE id = $1
-                """
-                
-                row = await conn.fetchrow(query, user_id)
-                
-                if row:
-                    return {
-                        'user_id': str(row['id']),
-                        'full_name': row['full_name'],
-                        'avatar_url': row['avatar_url'],
-                        'onboarding_completed': row['onboarding_completed'],
-                        'has_personality_assessment': row['has_completed_personality_assessment'],
-                        'personality_completed_at': row['personality_completed_at'],
-                        'profile_completion_percentage': row['profile_completion_percentage'],
-                        'user_exists': True,
-                        'created_at': row['created_at'],
-                        'updated_at': row['updated_at']
-                    }
-                
+            response = self.supabase.table('personality_profiles').select(
+                'id, full_name, avatar_url, onboarding_completed, personality_completed_at, '
+                'has_completed_personality_assessment, profile_completion_percentage, '
+                'created_at, updated_at'
+            ).eq('id', user_id).execute()
+            
+            if response.data and len(response.data) > 0:
+                row = response.data[0]
                 return {
-                    'user_id': user_id,
-                    'user_exists': False,
-                    'onboarding_completed': False,
-                    'has_personality_assessment': False
+                    'user_id': str(row['id']),
+                    'full_name': row.get('full_name'),
+                    'avatar_url': row.get('avatar_url'),
+                    'onboarding_completed': row.get('onboarding_completed', False),
+                    'has_personality_assessment': row.get('has_completed_personality_assessment', False),
+                    'personality_completed_at': row.get('personality_completed_at'),
+                    'profile_completion_percentage': row.get('profile_completion_percentage', 0),
+                    'user_exists': True,
+                    'created_at': row.get('created_at'),
+                    'updated_at': row.get('updated_at')
                 }
+            
+            return {
+                'user_id': user_id,
+                'user_exists': False,
+                'onboarding_completed': False,
+                'has_personality_assessment': False
+            }
                 
         except Exception as e:
             logger.error(f"Error checking onboarding status for user {user_id}: {e}")

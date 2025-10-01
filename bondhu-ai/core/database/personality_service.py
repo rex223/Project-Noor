@@ -4,7 +4,7 @@ Personality context service for fetching and managing user personality data.
 
 from typing import Optional, Dict, Any
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .models import (
     PersonalityProfile, 
@@ -19,26 +19,53 @@ logger = logging.getLogger(__name__)
 
 
 class PersonalityContextService:
-    """Service for managing personality context and LLM prompts."""
+    """Service for managing personality context and LLM prompts with caching."""
     
-    def __init__(self):
+    def __init__(self, cache_ttl_minutes: int = 30):
         self.db_client = get_supabase_client()
+        self._cache: Dict[str, tuple[PersonalityContextResponse, datetime]] = {}
+        self._cache_ttl = timedelta(minutes=cache_ttl_minutes)
+    
+    def _get_cached_context(self, user_id: str) -> Optional[PersonalityContextResponse]:
+        """Get cached personality context if available and not expired."""
+        if user_id in self._cache:
+            context, cached_at = self._cache[user_id]
+            if datetime.now() - cached_at < self._cache_ttl:
+                logger.info(f"Using cached personality context for user {user_id}")
+                return context
+            else:
+                # Remove expired cache
+                del self._cache[user_id]
+        return None
+    
+    def _cache_context(self, user_id: str, context: PersonalityContextResponse):
+        """Cache personality context for user."""
+        self._cache[user_id] = (context, datetime.now())
+        logger.debug(f"Cached personality context for user {user_id}")
     
     async def get_user_personality_context(
         self, 
         user_id: str,
-        include_analysis_history: bool = False
+        include_analysis_history: bool = False,
+        use_cache: bool = True
     ) -> PersonalityContextResponse:
         """
-        Get comprehensive personality context for a user.
+        Get comprehensive personality context for a user with caching.
         
         Args:
             user_id: User's UUID
             include_analysis_history: Whether to include agent analysis history
+            use_cache: Whether to use cached data (default True)
             
         Returns:
             Complete personality context response
         """
+        # Check cache first
+        if use_cache and not include_analysis_history:
+            cached = self._get_cached_context(user_id)
+            if cached:
+                return cached
+        
         try:
             # Get onboarding status
             onboarding_status_data = await self.db_client.check_user_onboarding_status(user_id)
@@ -46,20 +73,27 @@ class PersonalityContextService:
             
             # If user doesn't exist or hasn't completed personality assessment
             if not onboarding_status.user_exists or not onboarding_status.has_personality_assessment:
-                return PersonalityContextResponse(
+                result = PersonalityContextResponse(
                     user_id=user_id,
                     has_assessment=False,
                     onboarding_status=onboarding_status
                 )
+                # Cache even negative results to avoid repeated DB calls
+                if use_cache:
+                    self._cache_context(user_id, result)
+                return result
             
             # Get personality data
             personality_data = await self.db_client.get_user_personality(user_id)
             if not personality_data:
-                return PersonalityContextResponse(
+                result = PersonalityContextResponse(
                     user_id=user_id,
                     has_assessment=False,
                     onboarding_status=onboarding_status
                 )
+                if use_cache:
+                    self._cache_context(user_id, result)
+                return result
             
             # Create personality profile
             personality_profile = PersonalityProfile(**personality_data)
@@ -90,7 +124,7 @@ class PersonalityContextService:
                     AgentAnalysisRecord(**record) for record in history_data
                 ]
             
-            return PersonalityContextResponse(
+            result = PersonalityContextResponse(
                 user_id=user_id,
                 has_assessment=True,
                 personality_profile=personality_profile,
@@ -98,6 +132,12 @@ class PersonalityContextService:
                 onboarding_status=onboarding_status,
                 agent_history=agent_history
             )
+            
+            # Cache the result
+            if use_cache and not include_analysis_history:
+                self._cache_context(user_id, result)
+            
+            return result
             
         except Exception as e:
             logger.error(f"Error getting personality context for user {user_id}: {e}")

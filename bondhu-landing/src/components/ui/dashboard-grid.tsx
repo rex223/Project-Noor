@@ -91,8 +91,8 @@ interface GridItemProps {
 
 const GridItem = ({ icon, title, description, onClick, isActive, gradient, darkGradient, showPreview, previewType }: GridItemProps) => {
   return (
-    <div className="min-h-[12rem] list-none cursor-pointer" onClick={onClick}>
-      <div className="relative h-full rounded-[1.25rem] border-[0.75px] border-border p-2 transition-all duration-300 hover:scale-[1.02]">
+    <div className="min-h-[12rem] list-none cursor-pointer group" onClick={onClick}>
+      <div className="relative h-full rounded-[1.25rem] border-[0.75px] border-border p-2 transition-all duration-300 hover:scale-[1.03] hover:shadow-xl hover:shadow-primary/10 dark:hover:shadow-primary/5">
         <GlowingEffect
           spread={30}
           glow={true}
@@ -102,24 +102,24 @@ const GridItem = ({ icon, title, description, onClick, isActive, gradient, darkG
           borderWidth={2}
         />
         <div className={cn(
-          "relative flex h-full flex-col justify-between gap-5 overflow-hidden rounded-xl border-[0.75px] p-5 shadow-sm transition-all duration-300",
+          "relative flex h-full flex-col justify-between gap-5 overflow-hidden rounded-xl border-[0.75px] p-5 shadow-md transition-all duration-300",
           isActive
-            ? `bg-gradient-to-br ${gradient} dark:bg-gradient-to-br dark:${darkGradient} text-white backdrop-blur-sm shadow-lg`
-            : "bg-card hover:bg-muted/30 dark:hover:bg-muted/20 backdrop-blur-sm"
+            ? `bg-gradient-to-br ${gradient} dark:bg-gradient-to-br dark:${darkGradient} text-white backdrop-blur-sm shadow-lg hover:shadow-2xl`
+            : "bg-card hover:bg-muted/40 dark:hover:bg-muted/30 backdrop-blur-sm hover:shadow-lg hover:border-primary/30"
         )}>
           <div className="relative flex flex-1 flex-col justify-between gap-4">
             <div className="flex items-start justify-between">
               <div className={cn(
-                "w-fit rounded-lg border-[0.75px] p-2.5 transition-all duration-300",
+                "w-fit rounded-lg border-[0.75px] p-2.5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-md",
                 isActive
-                  ? "border-white/30 bg-white/15 backdrop-blur-sm shadow-lg"
-                  : "border-border bg-muted/70 dark:bg-muted/40 dark:border-border/50"
+                  ? "border-white/30 bg-white/15 backdrop-blur-sm shadow-lg group-hover:bg-white/25"
+                  : "border-border bg-muted/70 dark:bg-muted/40 dark:border-border/50 group-hover:bg-primary/10 group-hover:border-primary/50"
               )}>
                 {icon}
               </div>
               {isActive && (
                 <div className="flex items-center space-x-1 text-white/80">
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className="h-4 w-4 animate-pulse" />
                   <span className="text-xs font-medium">Active</span>
                 </div>
               )}
@@ -127,17 +127,25 @@ const GridItem = ({ icon, title, description, onClick, isActive, gradient, darkG
 
             <div className="space-y-3">
               <h3 className={cn(
-                "text-lg leading-[1.25rem] font-semibold tracking-[-0.04em] text-balance",
-                isActive ? "text-white" : "text-foreground"
+                "text-lg leading-[1.25rem] font-semibold tracking-[-0.04em] text-balance transition-all duration-300",
+                isActive ? "text-white" : "text-foreground group-hover:text-primary"
               )}>
                 {title}
               </h3>
               <p className={cn(
-                "text-sm leading-[1.3rem] line-clamp-2",
-                isActive ? "text-white/80" : "text-muted-foreground"
+                "text-sm leading-[1.3rem] line-clamp-2 transition-all duration-300",
+                isActive ? "text-white/80" : "text-muted-foreground group-hover:text-foreground"
               )}>
                 {description}
               </p>
+
+              {/* Hover indicator for non-active cards */}
+              {!isActive && (
+                <div className="flex items-center space-x-1 text-primary/70 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  <Sparkles className="h-3 w-3 animate-pulse" />
+                  <span className="text-xs font-medium">Click to explore</span>
+                </div>
+              )}
 
               {/* Preview Components */}
               {showPreview && previewType === 'personality' && (
