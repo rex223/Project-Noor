@@ -110,7 +110,7 @@ class BaseAgent(ABC):
     def _initialize_llm(self) -> ChatGoogleGenerativeAI:
         """Initialize the language model."""
         return ChatGoogleGenerativeAI(
-            model="gemini-pro",
+            model="gemini-2.5-flash",
             temperature=0.7,
             google_api_key=self.config.gemini.api_key
         )

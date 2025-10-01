@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Mic, MoreVertical, Heart, Sparkles, Volume2, VolumeX, Copy, ThumbsUp, AlertCircle } from "lucide-react";
+import { Send, Mic, MoreVertical, Heart, Sparkles, Volume2, VolumeX, Copy, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -10,15 +10,15 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { BondhuAvatar } from "@/components/ui/bondhu-avatar";
 import { cn } from "@/lib/utils";
-import { useChat, useChatSession } from "@/hooks/use-chat";
 import type { Profile } from "@/types/auth";
-import type { ChatMessage } from "@/lib/api-client";
+import { bondhuAPI, type ChatMessage as APIChatMessage, type ChatRequest } from "@/lib/api-client";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Message {
-  id?: string;
-  sender_type: 'user' | 'ai';
-  message_text: string;
-  timestamp?: string;
+  id: number;
+  sender: 'user' | 'bondhu';
+  message: string;
+  timestamp: string;
   isTyping?: boolean;
   reactions?: string[];
   mood?: 'happy' | 'caring' | 'thinking' | 'excited';
@@ -29,29 +29,24 @@ interface EnhancedChatProps {
 }
 
 export function EnhancedChat({ profile }: EnhancedChatProps) {
-  const { sessionId } = useChatSession();
-  const { messages, isLoading, error, sendMessage, clearMessages } = useChat({
-    userId: profile.id,
-    sessionId
-  });
-
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      sender: 'bondhu',
+      message: `Hello ${profile.full_name?.split(' ')[0] || 'Friend'}! 🌟 I'm Bondhu, your AI companion. I've been looking forward to continuing our conversation. How are you feeling today?`,
+      timestamp: new Date().toLocaleTimeString(),
+    }
+  ]);
   const [newMessage, setNewMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [conversationContext, setConversationContext] = useState<string[]>([
     "mental wellness", "daily goals", "stress management"
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Add welcome message if no messages exist
-  const displayMessages = messages.length === 0 ? [
-    {
-      id: 'welcome',
-      sender_type: 'ai' as const,
-      message_text: `Hello ${profile.full_name?.split(' ')[0] || 'Friend'}! 🌟 I'm Bondhu, your AI companion. I've been looking forward to continuing our conversation. How are you feeling today?`,
-      timestamp: new Date().toISOString(),
-    }
-  ] : messages;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -61,22 +56,106 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || isLoading) return;
+  // Load chat history on mount
+  useEffect(() => {
+    if (user?.id) {
+      loadChatHistory();
+    }
+  }, [user?.id]);
 
-    const messageText = newMessage.trim();
-    setNewMessage('');
-
-    // Add context from conversation keywords
-    const context = {
-      conversation_context: conversationContext,
-      user_name: profile.full_name?.split(' ')[0] || 'Friend'
-    };
+  const loadChatHistory = async () => {
+    if (!user?.id) return;
 
     try {
-      await sendMessage(messageText, context);
-    } catch (err) {
-      console.error('Failed to send message:', err);
+      const response = await bondhuAPI.getChatHistory(user.id, { limit: 20 });
+
+      if (response.success && response.data && response.data.length > 0) {
+        const historyMessages: Message[] = response.data.map((msg, idx) => ({
+          id: Date.now() + idx,
+          sender: msg.role === 'assistant' ? 'bondhu' : 'user',
+          message: msg.content,
+          timestamp: msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString(),
+        }));
+
+        // Prepend history to existing messages
+        setMessages(prev => [...historyMessages.slice(-10), ...prev]);
+      }
+    } catch (error) {
+      console.error('Failed to load chat history:', error);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !user?.id) return;
+
+    const userMessage: Message = {
+      id: Date.now(),
+      sender: 'user',
+      message: newMessage,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    const messageToSend = newMessage;
+    setNewMessage('');
+    setIsTyping(true);
+
+    try {
+      // Build conversation history for context
+      const conversationHistory: APIChatMessage[] = messages.slice(-10).map(msg => ({
+        role: msg.sender === 'bondhu' ? 'assistant' : 'user',
+        content: msg.message,
+      }));
+
+      // Add current message
+      conversationHistory.push({
+        role: 'user',
+        content: messageToSend,
+      });
+
+      // Send to backend
+      const chatRequest: ChatRequest = {
+        user_id: user.id,
+        message: messageToSend,
+        conversation_history: conversationHistory,
+        session_id: sessionId || undefined,
+        personality_context: true, // Include personality traits for personalized responses
+      };
+
+      const response = await bondhuAPI.sendChatMessage(chatRequest);
+
+      if (response.success && response.data) {
+        // Store session ID for conversation continuity
+        if (response.data.session_id) {
+          setSessionId(response.data.session_id);
+        }
+
+        const aiMessage: Message = {
+          id: Date.now() + 1,
+          sender: 'bondhu',
+          message: response.data.message,
+          timestamp: new Date(response.data.timestamp).toLocaleTimeString(),
+          mood: response.data.mood_detected as any,
+        };
+
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        throw new Error(response.message || 'Failed to get response');
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+
+      // Fallback message on error
+      const errorMessage: Message = {
+        id: Date.now() + 1,
+        sender: 'bondhu',
+        message: "I apologize, but I'm having trouble connecting right now. Please try again in a moment.",
+        timestamp: new Date().toLocaleTimeString(),
+      };
+
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
     }
   };
 
@@ -111,8 +190,8 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
   };
 
   const addReaction = (messageId: number, reaction: string) => {
-    setMessages(prev => prev.map(msg => 
-      msg.id === messageId 
+    setMessages(prev => prev.map(msg =>
+      msg.id === messageId
         ? { ...msg, reactions: [...(msg.reactions || []), reaction] }
         : msg
     ));
@@ -136,9 +215,9 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
           <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-primary/8 dark:from-primary/10 dark:to-primary/15 rounded-t-xl p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <BondhuAvatar 
-                  size="md" 
-                  isTyping={isLoading}
+                <BondhuAvatar
+                  size="md"
+                  isTyping={isTyping}
                   mood="caring"
                   showAnimation={true}
                 />
@@ -160,8 +239,8 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
                   onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
                   className="h-8 w-8 p-0"
                 >
-                  {isVoiceEnabled ? 
-                    <Volume2 className="h-4 w-4 text-emerald-500" /> : 
+                  {isVoiceEnabled ?
+                    <Volume2 className="h-4 w-4 text-emerald-500" /> :
                     <VolumeX className="h-4 w-4 text-muted-foreground" />
                   }
                 </Button>
@@ -189,28 +268,21 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
           {/* Messages Area */}
           <CardContent className="p-0">
             <div className="h-[50vh] max-h-[500px] min-h-[400px] overflow-y-auto p-6 space-y-6 scroll-smooth">
-              {error && (
-                <div className="flex items-center space-x-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                  <AlertCircle className="h-4 w-4 text-destructive" />
-                  <p className="text-sm text-destructive">{error}</p>
-                </div>
-              )}
-              
-              {displayMessages.map((msg) => (
+              {messages.map((msg) => (
                 <div
-                  key={msg.id || `${msg.sender_type}-${msg.timestamp}`}
-                  className={`flex ${msg.sender_type === 'user' ? 'justify-end' : 'justify-start'} group`}
+                  key={msg.id}
+                  className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} group`}
                 >
                   <div
                     className={cn(
                       "max-w-xs lg:max-w-md relative",
-                      msg.sender_type === 'user' ? 'order-2' : 'order-1'
+                      msg.sender === 'user' ? 'order-2' : 'order-1'
                     )}
                   >
-                    {msg.sender_type === 'ai' && (
+                    {msg.sender === 'bondhu' && (
                       <div className="flex items-center space-x-2 mb-3">
-                        <BondhuAvatar 
-                          size="sm" 
+                        <BondhuAvatar
+                          size="sm"
                           isTyping={false}
                           mood="happy"
                           showAnimation={false}
@@ -218,31 +290,31 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
                         <span className="text-xs text-muted-foreground font-medium">Bondhu</span>
                       </div>
                     )}
-                    
+
                     <div
                       className={cn(
                         "px-4 py-3 relative group/message max-w-[85%] transition-all duration-200",
-                        msg.sender_type === 'user'
+                        msg.sender === 'user'
                           ? 'bg-gradient-to-br from-primary to-primary/90 text-primary-foreground ml-4 rounded-[1.25rem] rounded-br-md shadow-lg shadow-primary/20'
                           : 'bg-muted mr-4 border border-border/50 rounded-[1.25rem] rounded-bl-md shadow-md shadow-muted-foreground/5'
                       )}
                     >
-                      <p className="text-sm leading-[1.5]">{msg.message_text}</p>
+                      <p className="text-sm leading-[1.5]">{msg.message}</p>
                       <div className="flex items-center justify-between mt-2">
                         <p className={cn(
                           "text-xs",
-                          msg.sender_type === 'user' ? "text-primary-foreground/70" : "text-muted-foreground"
+                          msg.sender === 'user' ? "text-primary-foreground/70" : "text-muted-foreground"
                         )}>
-                          {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString()}
+                          {msg.timestamp}
                         </p>
-                        
-                        {msg.sender_type === 'ai' && (
+
+                        {msg.sender === 'bondhu' && (
                           <div className="flex items-center space-x-1 opacity-0 group-hover/message:opacity-100 transition-opacity">
                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-6 w-6 p-0 hover:bg-background/80"
-                              onClick={() => copyMessage(msg.message_text)}
+                              onClick={() => copyMessage(msg.message)}
                             >
                               <Copy className="h-3 w-3" />
                             </Button>
@@ -262,7 +334,7 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Reactions Display */}
                       {msg.reactions && msg.reactions.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1 ml-1">
@@ -285,12 +357,12 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
                 </div>
               ))}
 
-              {isLoading && (
+              {isTyping && (
                 <div className="flex justify-start group animate-fade-in">
                   <div className="max-w-xs lg:max-w-md relative order-1">
                     <div className="flex items-center space-x-2 mb-3">
-                      <BondhuAvatar 
-                        size="sm" 
+                      <BondhuAvatar
+                        size="sm"
                         isTyping={true}
                         mood="thinking"
                         showAnimation={true}
@@ -341,9 +413,9 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
                     placeholder="Share your thoughts with Bondhu..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                     className="pr-12 h-14 bg-card border-border focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-xl text-base"
-                    disabled={isLoading}
+                    disabled={isTyping}
                   />
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
                     <Button
@@ -355,16 +427,12 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
                     </Button>
                   </div>
                 </div>
-                <Button 
-                  onClick={handleSendMessage} 
-                  disabled={!newMessage.trim() || isLoading}
+                <Button
+                  onClick={sendMessage}
+                  disabled={!newMessage.trim() || isTyping}
                   className="h-14 w-14 p-0 bg-gradient-to-br from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 shadow-lg transition-all duration-200"
                 >
-                  {isLoading ? (
-                    <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full" />
-                  ) : (
-                    <Send className="h-6 w-6" />
-                  )}
+                  <Send className="h-6 w-6" />
                 </Button>
               </div>
             </div>

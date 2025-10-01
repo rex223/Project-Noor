@@ -8,7 +8,7 @@ import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Play, Pause, Heart, Share, ExternalLink, Headphones, TrendingUp } from 'lucide-react'
+import { Play, Pause, Heart, ThumbsDown, Share, ExternalLink, Headphones, TrendingUp } from 'lucide-react'
 import type { MusicRecommendation } from '@/lib/api-client'
 
 interface MusicRecommendationsProps {
@@ -16,6 +16,7 @@ interface MusicRecommendationsProps {
     isLoading?: boolean
     onPlay?: (recommendation: MusicRecommendation) => void
     onLike?: (recommendation: MusicRecommendation) => void
+    onDislike?: (recommendation: MusicRecommendation) => void
     onShare?: (recommendation: MusicRecommendation) => void
     currentlyPlaying?: string | null
 }
@@ -25,6 +26,7 @@ export function MusicRecommendations({
     isLoading = false,
     onPlay,
     onLike,
+    onDislike,
     onShare,
     currentlyPlaying
 }: MusicRecommendationsProps) {
@@ -177,9 +179,22 @@ export function MusicRecommendations({
                                                 size="sm"
                                                 variant="ghost"
                                                 onClick={() => onLike(recommendation)}
-                                                className="h-8 w-8 p-0"
+                                                className="h-8 w-8 p-0 hover:text-green-600"
+                                                title="Like"
                                             >
                                                 <Heart className="h-3 w-3" />
+                                            </Button>
+                                        )}
+
+                                        {onDislike && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => onDislike(recommendation)}
+                                                className="h-8 w-8 p-0 hover:text-red-600"
+                                                title="Dislike"
+                                            >
+                                                <ThumbsDown className="h-3 w-3" />
                                             </Button>
                                         )}
 
@@ -189,6 +204,7 @@ export function MusicRecommendations({
                                                 variant="ghost"
                                                 onClick={() => onShare(recommendation)}
                                                 className="h-8 w-8 p-0"
+                                                title="Share"
                                             >
                                                 <Share className="h-3 w-3" />
                                             </Button>

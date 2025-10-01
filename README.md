@@ -6,11 +6,13 @@
 
 **An AI companion that adapts to your personality, grows with your journey, and becomes the friend you've always needed.**
 
+[![Python](https://img.shields.io/badge/Python-3.13-blue?logo=python)](https://python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Latest-green?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Backend-green?logo=supabase)](https://supabase.com/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.0-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
-[![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-Components-black)](https://ui.shadcn.com/)
+[![Gemini](https://img.shields.io/badge/Gemini-2.5--flash-red?logo=google)](https://gemini.google.com/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-MultiAgent-purple?logo=langchain)](https://langgraph.dev/)
 
 [🚀 Live Demo](https://bondhu-ai.vercel.app) • [📖 Documentation](#documentation) • [🤝 Contributing](#contributing) • [📧 Support](mailto:support@bondhu.ai)
 
@@ -24,11 +26,13 @@
 - [🏗️ Architecture](#architecture)
 - [🚀 Quick Start](#quick-start)
 - [🔧 Installation & Setup](#installation--setup)
+- [🤖 Backend Implementation](#backend-implementation)
 - [🎯 Usage Guide](#usage-guide)
 - [🧠 AI & Personality System](#ai--personality-system)
 - [🎮 Entertainment Learning](#entertainment-learning)
-- [📱 Screenshots](#screenshots)
+- [� API Documentation](#api-documentation)
 - [🔐 Privacy & Security](#privacy--security)
+- [🐛 Troubleshooting](#troubleshooting)
 - [🤝 Contributing](#contributing)
 - [📄 License](#license)
 - [👥 Team](#team)
@@ -80,6 +84,31 @@ To democratize mental health support by providing personalized, accessible, and 
 
 ## 🛠️ Technology Stack
 
+### Backend Core
+```
+{
+  "runtime": "Python 3.13",
+  "framework": "FastAPI with async/await",
+  "ai_orchestration": "LangGraph (Multi-Agent Workflows)",
+  "ai_model": "Google Gemini 2.5-flash",
+  "database": "Supabase (PostgreSQL)",
+  "architecture": "Multi-Agent Personality Analysis",
+  "environment": "Async FastAPI with lifespan management"
+}
+```
+
+### AI & Agent System
+```
+{
+  "orchestrator": "LangGraph StateGraph workflows",
+  "personality_agent": "Big Five (OCEAN) analysis with adaptive responses",
+  "gaming_agent": "Steam API integration for game preference analysis",
+  "music_agent": "Spotify API for musical personality insights",
+  "video_agent": "YouTube API for content preference learning",
+  "chat_system": "Real-time conversation with personality context"
+}
+```
+
 ### Frontend
 ```
 {
@@ -89,50 +118,45 @@ To democratize mental health support by providing personalized, accessible, and 
   "components": "shadcn/ui",
   "animations": "Framer Motion",
   "icons": "Lucide React",
-  "charts": "Recharts"
+  "charts": "Recharts",
+  "api_client": "Custom TypeScript client with error handling"
 }
 ```
 
-### Backend & Database
+### Database & Storage
 ```
 {
-  "database": "Supabase (PostgreSQL)",
-  "auth": "Supabase Auth",
-  "realtime": "Supabase Realtime",
-  "storage": "Supabase Storage",
-  "security": "Row Level Security (RLS)"
+  "primary_db": "Supabase PostgreSQL",
+  "auth": "Supabase Auth with JWT",
+  "realtime": "Supabase Realtime subscriptions",
+  "storage": "Supabase Storage for media",
+  "security": "Row Level Security (RLS)",
+  "client": "Custom Supabase client wrapper"
 }
 ```
 
-### AI & Analytics
+### Development & Deployment
 ```
 {
-  "personality_analysis": "Big Five (OCEAN) Model",
-  "conversation_ai": "Large Language Model Integration",
-  "recommendation_engine": "Cross-modal preference learning",
-  "analytics": "Custom personality scoring algorithms"
-}
-```
-
-### Entertainment Integration
-```
-{
-  "games": "HTML5 Canvas + React",
-  "music": "Spotify/YouTube Music API",
-  "video": "Custom HTML5 player",
-  "data_tracking": "Real-time user behavior analytics"
+  "package_manager": "pip with requirements.txt",
+  "testing": "pytest with async support",
+  "linting": "pylint + black formatting",
+  "environment": "python-dotenv for configuration",
+  "cors": "FastAPI CORS middleware",
+  "logging": "Python logging with structured output"
 }
 ```
 
 ## 🏗️ Architecture
 
+### System Overview
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Backend API    │    │   Database      │
-│   (Next.js 15) │────│   (Supabase)     │────│   (PostgreSQL)  │
+│   Frontend      │    │   FastAPI        │    │   Supabase      │
+│   (Next.js 15) │────│   Backend        │────│   (PostgreSQL)  │
 │                 │    │                  │    │                 │
-│ -  Landing Page  │    │ -  Authentication │    │ -  User Profiles │
-│ -  Dashboard     │    │ -  Chat System    │    │ -  Conversations │
+│ -  Landing Page  │    │ -  Chat Routes    │    │ -  Users        │
+│ -  Dashboard     │    │ -  Agent Routes   │    │ -  Conversations │
 │ -  Profile       │    │ -  Personality    │    │ -  Personality   │
 │ -  Entertainment │    │ -  Entertainment  │    │ -  Entertainment │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
@@ -140,13 +164,45 @@ To democratize mental health support by providing personalized, accessible, and 
          └───────────────────────┼───────────────────────┘
                                  │
                     ┌──────────────────┐
-                    │   AI Services    │
+                    │   LangGraph      │
+                    │   Orchestrator   │
                     │                  │
-                    │ -  LLM Integration│
-                    │ -  Personality AI │
-                    │ -  Recommendation │
-                    │ -  Content Curation│
+                    │ ┌──────────────┐ │
+                    │ │Gaming Agent  │ │
+                    │ │Music Agent   │ │
+                    │ │Video Agent   │ │
+                    │ │Personality   │ │
+                    │ └──────────────┘ │
                     └──────────────────┘
+                              │
+                    ┌──────────────────┐
+                    │   External APIs  │
+                    │                  │
+                    │ -  Gemini 2.5    │
+                    │ -  Spotify API   │
+                    │ -  YouTube API   │
+                    │ -  Steam API     │
+                    └──────────────────┘
+```
+
+### Multi-Agent Workflow
+```
+User Input → FastAPI → LangGraph Orchestrator
+                            │
+                            ├─→ Personality Agent → Big Five Analysis
+                            ├─→ Gaming Agent → Steam Integration
+                            ├─→ Music Agent → Spotify Analysis  
+                            ├─→ Video Agent → YouTube Preferences
+                            │
+                            ↓
+                       Gemini 2.5-flash
+                            │
+                            ↓
+                      Personality-Adaptive
+                        Response Generation
+                            │
+                            ↓
+                     Supabase Storage ← Frontend Update
 ```
 
 ## 🚀 Quick Start
@@ -178,27 +234,119 @@ Visit [http://localhost:3000](http://localhost:3000) to see Bondhu in action! �
 
 ## 🔧 Installation & Setup
 
-### Environment Variables
-Create a `.env.local` file in the root directory:
+### Backend Setup (Python 3.13)
 
+#### Prerequisites
+- Python 3.13+
+- pip package manager
+- Supabase account
+- Google AI API key for Gemini
+
+#### Environment Variables
+Create a `.env` file in the `bondhu-ai/` directory:
+
+```bash
+# Supabase Configuration
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# AI Configuration  
+GOOGLE_API_KEY=your_gemini_api_key
+AI_MODEL=gemini-2.5-flash
+
+# Entertainment APIs
+SPOTIFY_CLIENT_ID=your_spotify_client_id
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+YOUTUBE_API_KEY=your_youtube_api_key
+STEAM_API_KEY=your_steam_api_key
+
+# Development
+DEBUG=true
+LOG_LEVEL=INFO
 ```
+
+#### Backend Installation
+```bash
+# Navigate to backend directory
+cd bondhu-ai
+
+# Install Python dependencies (Python 3.13 compatible)
+pip install -r requirements.txt
+
+# Run setup script
+python setup_env.py
+
+# Start the FastAPI server
+python main.py
+```
+
+#### Backend Dependencies (requirements.txt)
+```text
+# Core Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart
+
+# AI & Machine Learning
+google-generativeai>=0.3.0
+langgraph>=0.0.40
+langchain>=0.1.0
+langchain-community>=0.0.20
+numpy>=2.0.0,<3.0.0
+
+# Database
+supabase>=2.0.0
+asyncpg
+
+# Utilities
+python-dotenv
+pydantic>=2.5.0
+pydantic-settings
+requests
+aiohttp
+
+# Development
+pytest
+pytest-asyncio
+black
+pylint
+```
+
+### Frontend Setup (Next.js)
+
+#### Environment Variables
+Create a `.env.local` file in the `bondhu-landing/` directory:
+
+```bash
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
+# Backend API
+NEXT_PUBLIC_API_URL=http://localhost:8000
+
 # Authentication
 NEXTAUTH_SECRET=your_nextauth_secret
 NEXTAUTH_URL=http://localhost:3000
-
-# AI Integration (Optional)
-OPENAI_API_KEY=your_openai_key
-ANTHROPIC_API_KEY=your_anthropic_key
 
 # Entertainment APIs (Optional)
 SPOTIFY_CLIENT_ID=your_spotify_client_id
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 YOUTUBE_API_KEY=your_youtube_api_key
+```
+
+#### Frontend Installation
+```bash
+# Navigate to frontend directory
+cd bondhu-landing
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
 ### Database Setup

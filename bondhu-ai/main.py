@@ -12,10 +12,14 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from core import get_config, PersonalityOrchestrator
-from api.routes import personality_router, agents_router, chat_router
+from core import get_config
+from api.routes import personality_router, agents_router
 from api.routes.personality_context import router as personality_context_router
+from api.routes.chat import chat_router
+from api.routes.entertainment import entertainment_router
+from api.routes.admin import admin_router
 from core.database.supabase_client import cleanup_database
+from core.scheduler import start_scheduler, stop_scheduler
 
 # Configure logging
 logging.basicConfig(
@@ -49,7 +53,8 @@ async def lifespan(app: FastAPI):
         personality_service = get_personality_service()
         logger.info("Database services initialized")
         
-        # Initialize orchestrator
+        # Initialize orchestrator (lazy import to avoid circular dependency)
+        from core.orchestrator import PersonalityOrchestrator
         orchestrator = PersonalityOrchestrator()
         logger.info("Orchestrator initialized successfully")
         
@@ -60,6 +65,14 @@ async def lifespan(app: FastAPI):
         else:
             logger.warning(f"System health check issues: {health_check}")
         
+        # Start background scheduler for periodic tasks
+        try:
+            start_scheduler()
+            logger.info("Background scheduler started successfully")
+        except Exception as e:
+            logger.error(f"Failed to start scheduler: {e}")
+            logger.warning("Continuing without scheduler - manual task triggers available via admin API")
+        
         yield
         
     except Exception as e:
@@ -69,10 +82,14 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down Bondhu AI application")
     try:
+        # Stop scheduler
+        stop_scheduler()
+        logger.info("Background scheduler stopped")
+        
         await cleanup_database()
         logger.info("Database cleanup completed")
     except Exception as e:
-        logger.error(f"Database cleanup error: {e}")
+        logger.error(f"Shutdown error: {e}")
 
 # Create FastAPI application
 app = FastAPI(
@@ -94,8 +111,10 @@ app.add_middleware(
 # Include routers
 app.include_router(personality_router)
 app.include_router(agents_router)
-app.include_router(chat_router)
 app.include_router(personality_context_router)
+app.include_router(chat_router)
+app.include_router(entertainment_router)
+app.include_router(admin_router)
 
 @app.get("/")
 async def root() -> Dict[str, str]:

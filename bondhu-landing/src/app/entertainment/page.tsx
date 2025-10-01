@@ -90,27 +90,37 @@ export default function EnhancedEntertainmentPage() {
     loadProfile()
   }, [supabase.auth, supabase, router])
 
+  // Helper to get content ID from recommendation
+  const getContentId = (rec: MusicRecommendation | VideoRecommendation | GameRecommendation): string => {
+    if ('spotify_id' in rec && rec.spotify_id) return rec.spotify_id
+    if ('youtube_url' in rec && rec.youtube_url) return rec.youtube_url
+    if ('imdb_id' in rec && rec.imdb_id) return rec.imdb_id
+    return rec.title
+  }
+
+  // Helper to get content type
+  const getContentType = (rec: MusicRecommendation | VideoRecommendation | GameRecommendation): 'music' | 'video' | 'game' => {
+    if ('spotify_id' in rec) return 'music'
+    if ('youtube_url' in rec || 'imdb_id' in rec) return 'video'
+    return 'game'
+  }
+
   // Handle play actions
   const handlePlay = useCallback(async (recommendation: MusicRecommendation | VideoRecommendation | GameRecommendation) => {
     if (!profile?.id) return
 
     // Toggle play state
-    const newPlayingState = currentlyPlaying === recommendation.title ? null : recommendation.title
+    const isCurrentlyPlaying = currentlyPlaying === recommendation.title
+    const newPlayingState = isCurrentlyPlaying ? null : recommendation.title
     setCurrentlyPlaying(newPlayingState)
 
-    // Record interaction
-    if (newPlayingState) {
+    // Record interaction - only when starting to play
+    if (!isCurrentlyPlaying) {
       await recordInteraction({
-        content_type: 'music' in recommendation ? 'music' : 'video' in recommendation ? 'video' : 'game',
-        content_id: recommendation.title,
+        content_type: getContentType(recommendation),
+        content_id: getContentId(recommendation),
+        content_title: recommendation.title,
         interaction_type: 'play',
-        context: { source: 'entertainment_hub' }
-      })
-    } else {
-      await recordInteraction({
-        content_type: 'music' in recommendation ? 'music' : 'video' in recommendation ? 'video' : 'game',
-        content_id: recommendation.title,
-        interaction_type: 'pause',
         context: { source: 'entertainment_hub' }
       })
     }
@@ -121,10 +131,25 @@ export default function EnhancedEntertainmentPage() {
     if (!profile?.id) return
 
     await recordInteraction({
-      content_type: 'music' in recommendation ? 'music' : 'video' in recommendation ? 'video' : 'game',
-      content_id: recommendation.title,
+      content_type: getContentType(recommendation),
+      content_id: getContentId(recommendation),
+      content_title: recommendation.title,
       interaction_type: 'like',
       rating: 5,
+      context: { source: 'entertainment_hub' }
+    })
+  }, [profile?.id, recordInteraction])
+
+  // Handle dislike actions
+  const handleDislike = useCallback(async (recommendation: MusicRecommendation | VideoRecommendation | GameRecommendation) => {
+    if (!profile?.id) return
+
+    await recordInteraction({
+      content_type: getContentType(recommendation),
+      content_id: getContentId(recommendation),
+      content_title: recommendation.title,
+      interaction_type: 'dislike',
+      rating: 1,
       context: { source: 'entertainment_hub' }
     })
   }, [profile?.id, recordInteraction])
@@ -133,10 +158,10 @@ export default function EnhancedEntertainmentPage() {
   const handleShare = useCallback(async (recommendation: MusicRecommendation | VideoRecommendation | GameRecommendation) => {
     if (!profile?.id) return
 
+    const contentType = getContentType(recommendation)
+
     // Create share text
-    const shareText = `Check out this ${
-      'music' in recommendation ? 'song' : 'video' in recommendation ? 'video' : 'game'
-    }: ${recommendation.title}`
+    const shareText = `Check out this ${contentType === 'music' ? 'song' : contentType === 'video' ? 'video' : 'game'}: ${recommendation.title}`
 
     // Try to use Web Share API if available
     if (navigator.share) {
@@ -146,10 +171,11 @@ export default function EnhancedEntertainmentPage() {
           text: shareText,
           url: window.location.href
         })
-        
+
         await recordInteraction({
-          content_type: 'music' in recommendation ? 'music' : 'video' in recommendation ? 'video' : 'game',
-          content_id: recommendation.title,
+          content_type: contentType,
+          content_id: getContentId(recommendation),
+          content_title: recommendation.title,
           interaction_type: 'share',
           context: { source: 'entertainment_hub', method: 'web_share_api' }
         })
@@ -161,10 +187,11 @@ export default function EnhancedEntertainmentPage() {
       try {
         await navigator.clipboard.writeText(shareText)
         // Could show a toast notification here
-        
+
         await recordInteraction({
-          content_type: 'music' in recommendation ? 'music' : 'video' in recommendation ? 'video' : 'game',
-          content_id: recommendation.title,
+          content_type: contentType,
+          content_id: getContentId(recommendation),
+          content_title: recommendation.title,
           interaction_type: 'share',
           context: { source: 'entertainment_hub', method: 'clipboard' }
         })
@@ -180,13 +207,13 @@ export default function EnhancedEntertainmentPage() {
   }, [selectedMood])
 
   // Get filtered recommendations based on mood
-  const filteredRecommendations = selectedMood 
+  const filteredRecommendations = selectedMood
     ? getRecommendationsByMood(selectedMood)
     : {
-        music: musicRecommendations,
-        videos: videoRecommendations,
-        games: gameRecommendations
-      }
+      music: musicRecommendations,
+      videos: videoRecommendations,
+      games: gameRecommendations
+    }
 
   // Get top recommendations for overview
   const topRecommendations = getTopRecommendations(3)
@@ -271,7 +298,7 @@ export default function EnhancedEntertainmentPage() {
             <p className="text-lg text-muted-foreground mb-6">
               AI-curated recommendations based on your unique personality profile
             </p>
-            
+
             {recommendations && (
               <div className="flex items-center justify-center space-x-6 text-sm text-muted-foreground">
                 <div className="flex items-center space-x-2">
@@ -324,7 +351,7 @@ export default function EnhancedEntertainmentPage() {
                       <p className="text-xs text-muted-foreground">{topRecommendations.music[0].reasoning}</p>
                     </div>
                   )}
-                  
+
                   {topRecommendations.videos[0] && (
                     <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 rounded-lg">
                       <div className="flex items-center space-x-2 mb-3">
@@ -338,7 +365,7 @@ export default function EnhancedEntertainmentPage() {
                       <p className="text-xs text-muted-foreground">{topRecommendations.videos[0].reasoning}</p>
                     </div>
                   )}
-                  
+
                   {topRecommendations.games[0] && (
                     <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg">
                       <div className="flex items-center space-x-2 mb-3">
@@ -419,6 +446,7 @@ export default function EnhancedEntertainmentPage() {
                 isLoading={recommendationsLoading}
                 onPlay={handlePlay}
                 onLike={handleLike}
+                onDislike={handleDislike}
                 onShare={handleShare}
                 currentlyPlaying={currentlyPlaying}
               />
@@ -430,6 +458,7 @@ export default function EnhancedEntertainmentPage() {
                 isLoading={recommendationsLoading}
                 onPlay={handlePlay}
                 onLike={handleLike}
+                onDislike={handleDislike}
                 onShare={handleShare}
                 currentlyPlaying={currentlyPlaying}
               />
@@ -441,6 +470,7 @@ export default function EnhancedEntertainmentPage() {
                 isLoading={recommendationsLoading}
                 onPlay={handlePlay}
                 onLike={handleLike}
+                onDislike={handleDislike}
                 onShare={handleShare}
                 currentlyPlaying={currentlyPlaying}
               />

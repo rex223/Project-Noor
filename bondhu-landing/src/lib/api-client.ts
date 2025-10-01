@@ -137,40 +137,57 @@ export interface APIError {
     details?: Record<string, any>
 }
 
-// Chat API Types
-export interface ChatMessageRequest {
-    user_id: string
-    message: string
-    session_id?: string
-    context?: Record<string, any>
+// Chat interfaces
+export interface ChatMessage {
+    role: 'user' | 'assistant'
+    content: string
+    timestamp?: string
 }
 
-export interface ChatMessage {
-    id?: string
+export interface ChatRequest {
     user_id: string
-    sender_type: 'user' | 'ai'
-    message_text: string
+    message: string
+    conversation_history?: ChatMessage[]
     session_id?: string
-    timestamp?: string
-    mood_detected?: string
-    sentiment_score?: number
-    personality_context?: Record<string, any>
+    personality_context?: boolean
 }
 
 export interface ChatResponse {
-    user_message: ChatMessage
-    ai_response: ChatMessage
-    personality_insights: Record<string, any>
-    conversation_context: string[]
-    processing_time: number
+    message: string
+    session_id: string
+    timestamp: string
+    mood_detected?: string
+    sentiment_score?: number
 }
 
-export interface ChatAPIResponse {
+export interface APIResponse<T> {
     success: boolean
-    data: ChatResponse
+    data: T | null
     message: string
     error_code?: string
     timestamp?: string
+}
+
+// Entertainment interaction interfaces
+export interface InteractionRequest {
+    content_id: string
+    content_type: 'music' | 'video' | 'game'
+    interaction_type: 'view' | 'play' | 'like' | 'dislike' | 'skip' | 'complete' | 'share'
+    content_title?: string
+    duration_seconds?: number
+    completion_percentage?: number
+    mood_before?: string
+    mood_after?: string
+    rating?: number
+    context?: Record<string, any>
+}
+
+export interface InteractionStats {
+    total_interactions: number
+    like_rate: number
+    completion_rate: number
+    most_engaged_content_type: string
+    recent_mood_trend?: string
 }
 
 class BondhuAPIClient {
@@ -223,7 +240,23 @@ class BondhuAPIClient {
                         status_code: response.status,
                     }
                 }
-                throw new Error(`API Error: ${errorData.message}`)
+                
+                // Handle different error response formats
+                const errorMessage = errorData.message || 
+                                   (errorData as any).detail || // FastAPI returns 'detail' field
+                                   errorData.error || 
+                                   `HTTP ${response.status}: ${response.statusText}` ||
+                                   'Unknown API error'
+                
+                // Log full error for debugging
+                console.error('API Error Details:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    errorData: errorData,
+                    url: response.url
+                })
+                
+                throw new Error(`API Error: ${errorMessage}`)
             }
 
             return await response.json()
@@ -469,6 +502,163 @@ class BondhuAPIClient {
     }
 
     /**
+     * Send a chat message and get AI response
+     */
+    async sendChatMessage(request: ChatRequest): Promise<APIResponse<ChatResponse>> {
+        return this.makeRequest<APIResponse<ChatResponse>>('/api/v1/chat/send', {
+            method: 'POST',
+            body: JSON.stringify(request)
+        })
+    }
+
+    /**
+     * Get chat history for a user
+     */
+    async getChatHistory(
+        userId: string,
+        options: {
+            session_id?: string
+            limit?: number
+        } = {}
+    ): Promise<APIResponse<ChatMessage[]>> {
+        const params = new URLSearchParams()
+
+        if (options.session_id) {
+            params.append('session_id', options.session_id)
+        }
+        if (options.limit) {
+            params.append('limit', options.limit.toString())
+        }
+
+        const queryString = params.toString()
+        const endpoint = `/api/v1/chat/history/${userId}${queryString ? `?${queryString}` : ''}`
+
+        return this.makeRequest<APIResponse<ChatMessage[]>>(endpoint, {
+            method: 'GET'
+        })
+    }
+
+    /**
+     * Delete a chat session
+     */
+    async deleteChatSession(userId: string, sessionId: string): Promise<APIResponse<{ deleted: boolean }>> {
+        return this.makeRequest<APIResponse<{ deleted: boolean }>>(`/api/v1/chat/history/${userId}/${sessionId}`, {
+            method: 'DELETE'
+        })
+    }
+
+    /**
+     * Get personalized music recommendations from Spotify based on personality
+     */
+    async getMusicRecommendations(
+        userId: string,
+        options: {
+            limit?: number
+            mood?: string
+            refresh?: boolean
+        } = {}
+    ): Promise<APIResponse<MusicRecommendation[]>> {
+        const params = new URLSearchParams()
+
+        if (options.limit) {
+            params.append('limit', options.limit.toString())
+        }
+        if (options.mood) {
+            params.append('mood', options.mood)
+        }
+        if (options.refresh !== undefined) {
+            params.append('refresh', options.refresh.toString())
+        }
+
+        const queryString = params.toString()
+        const endpoint = `/api/v1/entertainment/music/recommendations/${userId}${queryString ? `?${queryString}` : ''}`
+
+        return this.makeRequest<APIResponse<MusicRecommendation[]>>(endpoint, {
+            method: 'GET'
+        })
+    }
+
+    /**
+     * Get personalized video recommendations from YouTube based on personality
+     */
+    async getVideoRecommendations(
+        userId: string,
+        options: {
+            limit?: number
+            mood?: string
+            refresh?: boolean
+        } = {}
+    ): Promise<APIResponse<VideoRecommendation[]>> {
+        const params = new URLSearchParams()
+
+        if (options.limit) {
+            params.append('limit', options.limit.toString())
+        }
+        if (options.mood) {
+            params.append('mood', options.mood)
+        }
+        if (options.refresh !== undefined) {
+            params.append('refresh', options.refresh.toString())
+        }
+
+        const queryString = params.toString()
+        const endpoint = `/api/v1/entertainment/video/recommendations/${userId}${queryString ? `?${queryString}` : ''}`
+
+        return this.makeRequest<APIResponse<VideoRecommendation[]>>(endpoint, {
+            method: 'GET'
+        })
+    }
+
+    /**
+     * Record user interaction with entertainment content for RL training
+     */
+    async recordInteraction(
+        userId: string,
+        interaction: InteractionRequest
+    ): Promise<APIResponse<{ recorded: boolean }>> {
+        return this.makeRequest<APIResponse<{ recorded: boolean }>>(
+            `/api/v1/entertainment/interactions/${userId}`,
+            {
+                method: 'POST',
+                body: JSON.stringify(interaction)
+            }
+        )
+    }
+
+    /**
+     * Get user interaction statistics
+     */
+    async getInteractionStats(
+        userId: string
+    ): Promise<APIResponse<InteractionStats>> {
+        return this.makeRequest<APIResponse<InteractionStats>>(
+            `/api/v1/entertainment/interactions/${userId}/stats`,
+            {
+                method: 'GET'
+            }
+        )
+    }
+
+    /**
+     * Trigger personality profile update for a user
+     * Aggregates insights from chat and entertainment interactions
+     */
+    async updatePersonalityProfile(
+        userId: string
+    ): Promise<APIResponse<{
+        updated: boolean
+        insights_processed: number
+        trait_changes: Record<string, number>
+    }>> {
+        return this.makeRequest(
+            `/api/v1/chat/personality/update/${userId}`,
+            {
+                method: 'POST'
+            }
+        )
+    }
+
+    /**
      * Set custom timeout for requests
      */
     setTimeout(timeoutMs: number): void {
@@ -480,40 +670,6 @@ class BondhuAPIClient {
      */
     getBaseURL(): string {
         return this.baseURL
-    }
-
-    // Chat API Methods
-
-    /**
-     * Send a chat message and get AI response
-     */
-    async sendChatMessage(request: ChatMessageRequest): Promise<ChatAPIResponse> {
-        return this.makeRequest('/chat/message', {
-            method: 'POST',
-            body: JSON.stringify(request)
-        })
-    }
-
-    /**
-     * Get chat message history for a user
-     */
-    async getChatHistory(
-        userId: string, 
-        sessionId?: string, 
-        limit: number = 50
-    ): Promise<{
-        success: boolean
-        data: ChatMessage[]
-        message: string
-    }> {
-        const params = new URLSearchParams()
-        if (sessionId) params.append('session_id', sessionId)
-        if (limit) params.append('limit', limit.toString())
-
-        const queryString = params.toString()
-        const endpoint = `/chat/history/${userId}${queryString ? `?${queryString}` : ''}`
-
-        return this.makeRequest(endpoint, { method: 'GET' })
     }
 }
 

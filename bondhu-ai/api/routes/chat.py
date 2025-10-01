@@ -1,132 +1,388 @@
 """
-Chat API endpoints for Bondhu AI conversational interface.
-Integrates personality context with LLM for personalized responses.
+Chat API endpoints for real-time conversation with Gemini AI.
 """
 
-import asyncio
 import logging
-import uuid
-from typing import Dict, Any, Optional
-from datetime import datetime
+from typing import List, Optional, Dict
+from datetime import datetime, timedelta
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Depends, status
-from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+import google.generativeai as genai
 
-from core import get_config
-from core.database.personality_service import get_personality_service
-from api.models.schemas import (
-    ChatMessageRequest,
-    ChatMessage,
-    ChatResponse,
-    APIResponse
-)
+from core.config import get_config
+from core.database.supabase_client import get_supabase_client
+from api.models.schemas import APIResponse
 
 # Create router
 chat_router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
 
-# Configure logging
 logger = logging.getLogger(__name__)
 
-@chat_router.post("/message", response_model=APIResponse[ChatResponse])
-async def send_chat_message(request: ChatMessageRequest) -> APIResponse[ChatResponse]:
+
+# Request/Response Models
+class ChatMessage(BaseModel):
+    """Single chat message."""
+    role: str = Field(..., pattern="^(user|assistant)$")
+    content: str
+    timestamp: Optional[datetime] = None
+
+
+class ChatRequest(BaseModel):
+    """Request for chat completion."""
+    user_id: str
+    message: str
+    conversation_history: List[ChatMessage] = []
+    session_id: Optional[str] = None
+    personality_context: bool = True
+
+
+class ChatResponse(BaseModel):
+    """Response from chat completion."""
+    message: str
+    session_id: str
+    timestamp: datetime
+    mood_detected: Optional[str] = None
+    sentiment_score: Optional[float] = None
+
+
+# Initialize Gemini
+def get_gemini_model():
+    """Get configured Gemini model."""
+    config = get_config()
+    
+    if not config.gemini.api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Gemini API key not configured"
+        )
+    
+    genai.configure(api_key=config.gemini.api_key)
+    
+    generation_config = {
+        "temperature": config.gemini.temperature,
+        "top_p": 0.95,
+        "top_k": 40,
+        "max_output_tokens": 2048,
+    }
+    
+    return genai.GenerativeModel(
+        model_name=config.gemini.model,
+        generation_config=generation_config
+    )
+
+
+async def get_personality_context(user_id: str) -> str:
     """
-    Send a chat message and get AI response with personality context.
+    Get user's personality context for personalized responses.
+    Falls back to survey data if no personality traits are available.
+    """
+    try:
+        supabase_wrapper = get_supabase_client()
+        supabase = supabase_wrapper.supabase  # Access the raw client
+        
+        # Method 1: Try to get processed personality traits
+        traits_response = supabase.table("personality_traits").select("*").eq("user_id", user_id).execute()
+        
+        if traits_response.data:
+            # Build context from processed traits
+            traits = {trait["trait_name"]: trait["trait_value"] for trait in traits_response.data}
+            
+            context = f"""
+User Personality Profile (Processed):
+- Openness: {traits.get('openness', 'Unknown')}
+- Conscientiousness: {traits.get('conscientiousness', 'Unknown')}
+- Extraversion: {traits.get('extraversion', 'Unknown')}
+- Agreeableness: {traits.get('agreeableness', 'Unknown')}
+- Emotional Stability: {traits.get('emotional_stability', 'Unknown')}
+
+Adapt your communication style based on these personality traits.
+"""
+            return context.strip()
+        
+        # Method 2: Fallback to user profile/survey data
+        profile_response = supabase.table("personality_profiles").select("*").eq("id", user_id).execute()
+        
+        if profile_response.data:
+            profile = profile_response.data[0]
+            
+            # Check if user has completed personality assessment
+            if profile.get('has_completed_personality_assessment'):
+                context = f"""
+User Personality Profile (From Assessment):
+- Openness: {profile.get('personality_openness', 'Unknown')}
+- Conscientiousness: {profile.get('personality_conscientiousness', 'Unknown')}
+- Extraversion: {profile.get('personality_extraversion', 'Unknown')}
+- Agreeableness: {profile.get('personality_agreeableness', 'Unknown')}
+- Neuroticism: {profile.get('personality_neuroticism', 'Unknown')}
+
+Additional Context:
+- Full Name: {profile.get('full_name', 'Unknown')}
+- Onboarding Status: {'Completed' if profile.get('onboarding_completed') else 'In Progress'}
+
+LLM Context: {profile.get('personality_llm_context', 'No additional context')}
+
+Adapt your communication style based on these personality traits and user information.
+"""
+                return context.strip()
+            
+            # Method 3: Basic profile information for new users
+            context = f"""
+New User Profile:
+- Full Name: {profile.get('full_name', 'Unknown')}
+- Profile Completion: {profile.get('profile_completion_percentage', 0)}%
+- Onboarding Status: {'Completed' if profile.get('onboarding_completed') else 'In Progress'}
+
+Note: This user hasn't completed a personality assessment yet. Use a friendly, welcoming tone 
+and consider asking engaging questions to understand their preferences and personality over time.
+Be supportive and help them explore the platform features.
+"""
+            return context.strip()
+        
+        # Method 4: Complete fallback for truly new users
+        return """
+New User - No Profile Data:
+This appears to be a completely new user with no profile information. 
+Use a warm, welcoming tone and introduce yourself as Bondhu, their AI companion.
+Focus on helping them get started, understanding their needs, and encouraging 
+them to complete their personality assessment for more personalized interactions.
+"""
+        
+    except Exception as e:
+        logger.warning(f"Failed to get personality context for user {user_id}: {e}")
+        return """
+Default Interaction Mode:
+Unable to retrieve user personality data. Use a balanced, friendly communication style.
+Be helpful, supportive, and adaptable to the user's apparent preferences during the conversation.
+"""
+        
+    except Exception as e:
+        logger.warning(f"Could not fetch personality context: {e}")
+        return ""
+
+
+async def store_chat_message(
+    user_id: str,
+    message: str,
+    sender_type: str,
+    session_id: str,
+    mood: Optional[str] = None,
+    sentiment: Optional[float] = None
+):
+    """Store chat message in database."""
+    try:
+        supabase_wrapper = get_supabase_client()
+        supabase = supabase_wrapper.supabase  # Access the raw client
+        
+        data = {
+            "user_id": user_id,
+            "message_text": message,
+            "sender_type": sender_type,
+            "session_id": session_id,
+            "timestamp": datetime.now().isoformat(),
+            "mood_detected": mood,
+            "sentiment_score": sentiment
+        }
+        
+        supabase.table("chat_messages").insert(data).execute()
+        
+    except Exception as e:
+        logger.error(f"Failed to store chat message: {e}")
+
+
+async def analyze_chat_for_personality(user_message: str, ai_response: str) -> Dict[str, float]:
+    """
+    Analyze chat conversation patterns to infer personality traits.
+    Returns personality score adjustments based on communication style.
+    """
+    adjustments = {
+        "openness": 0.0,
+        "conscientiousness": 0.0,
+        "extraversion": 0.0,
+        "agreeableness": 0.0,
+        "neuroticism": 0.0
+    }
+    
+    user_lower = user_message.lower()
+    
+    # Openness indicators
+    openness_keywords = ["creative", "imagine", "curious", "wonder", "explore", "learn", "new", "different", "art", "philosophy"]
+    if any(keyword in user_lower for keyword in openness_keywords):
+        adjustments["openness"] += 0.3
+    
+    # Conscientiousness indicators
+    conscientiousness_keywords = ["plan", "organize", "schedule", "goal", "task", "complete", "finish", "achieve", "work", "productive"]
+    if any(keyword in user_lower for keyword in conscientiousness_keywords):
+        adjustments["conscientiousness"] += 0.3
+    
+    # Extraversion indicators
+    extraversion_keywords = ["party", "friends", "social", "meet", "talk", "people", "fun", "exciting", "adventure", "energy"]
+    if any(keyword in user_lower for keyword in extraversion_keywords):
+        adjustments["extraversion"] += 0.3
+    
+    introversion_keywords = ["alone", "quiet", "peace", "solitude", "recharge", "introspect", "private"]
+    if any(keyword in user_lower for keyword in introversion_keywords):
+        adjustments["extraversion"] -= 0.3
+    
+    # Agreeableness indicators
+    agreeableness_keywords = ["help", "kind", "care", "support", "friend", "love", "appreciate", "thanks", "grateful", "understand"]
+    if any(keyword in user_lower for keyword in agreeableness_keywords):
+        adjustments["agreeableness"] += 0.3
+    
+    # Neuroticism indicators (emotional language)
+    negative_emotion_keywords = ["anxious", "worry", "stress", "fear", "nervous", "upset", "sad", "depressed", "overwhelmed"]
+    if any(keyword in user_lower for keyword in negative_emotion_keywords):
+        adjustments["neuroticism"] += 0.4
+    
+    positive_emotion_keywords = ["happy", "joy", "excited", "great", "wonderful", "awesome", "calm", "peaceful", "relaxed"]
+    if any(keyword in user_lower for keyword in positive_emotion_keywords):
+        adjustments["neuroticism"] -= 0.3
+    
+    # Message length and complexity (Openness)
+    word_count = len(user_message.split())
+    if word_count > 50:  # Longer, more elaborate messages
+        adjustments["openness"] += 0.2
+        adjustments["conscientiousness"] += 0.1
+    
+    # Question-asking behavior (Openness & Agreeableness)
+    if "?" in user_message:
+        adjustments["openness"] += 0.1
+        adjustments["agreeableness"] += 0.1
+    
+    return adjustments
+
+
+
+@chat_router.post("/send", response_model=APIResponse[ChatResponse])
+async def send_chat_message(request: ChatRequest) -> APIResponse[ChatResponse]:
+    """
+    Send a chat message and get AI response using Gemini.
     
     Args:
-        request: Chat message request with user message and context
+        request: Chat request with user message and context
         
     Returns:
-        Chat response with AI reply and personality insights
+        AI-generated response with metadata
     """
-    start_time = asyncio.get_event_loop().time()
-    
     try:
-        config = get_config()
-        personality_service = get_personality_service()
+        # Generate or use existing session ID
+        session_id = request.session_id or str(uuid4())
         
-        # Generate session ID if not provided
-        session_id = request.session_id or str(uuid.uuid4())
+        # Get Gemini model
+        model = get_gemini_model()
         
-        # Create user message record
-        user_message = ChatMessage(
-            id=str(uuid.uuid4()),
-            user_id=request.user_id,
-            sender_type="user",
-            message_text=request.message,
-            session_id=session_id,
-            timestamp=datetime.now()
-        )
+        # Build conversation history for Gemini
+        chat_history = []
+        for msg in request.conversation_history[-10:]:  # Last 10 messages for context
+            # Map roles: frontend sends "assistant" but Gemini expects "model"
+            gemini_role = "model" if msg.role == "assistant" else "user"
+            chat_history.append({
+                "role": gemini_role,
+                "parts": [msg.content]
+            })
         
-        # Get user's personality context for LLM
-        personality_context = await personality_service.get_llm_system_prompt(request.user_id)
+        # Get personality context if requested
+        system_context = ""
+        if request.personality_context:
+            personality_ctx = await get_personality_context(request.user_id)
+            if personality_ctx:
+                system_context = f"\n\n{personality_ctx}\n\n"
+                logger.info(f"Using personality context for user {request.user_id}")
+            else:
+                logger.info(f"No personality context available for user {request.user_id}")
+        else:
+            logger.info(f"Personality context disabled for user {request.user_id}")
         
-        # Get recent conversation history (last 5 messages)
-        conversation_history = await _get_conversation_history(request.user_id, session_id)
+        # Build system prompt
+        system_prompt = f"""You are Bondhu, a caring and empathetic AI companion focused on mental wellness and personal growth.
+
+Your communication style:
+- Warm, friendly, and supportive
+- Use emojis naturally but not excessively
+- Ask thoughtful follow-up questions
+- Provide actionable advice when appropriate
+- Be genuine and authentic in your responses
+- Adapt to the user's emotional state
+
+{system_context}
+
+Respond to the user's message in a way that makes them feel heard, understood, and supported."""
+
+        # Create chat session
+        chat = model.start_chat(history=chat_history)
         
-        # Generate AI response using personality-aware LLM
-        ai_response_text, personality_insights = await _generate_ai_response(
-            user_message=request.message,
-            personality_context=personality_context,
-            conversation_history=conversation_history,
-            config=config
-        )
+        # Get response from Gemini
+        full_prompt = f"{system_prompt}\n\nUser: {request.message}"
+        response = chat.send_message(full_prompt)
         
-        # Create AI message record
-        ai_message = ChatMessage(
-            id=str(uuid.uuid4()),
-            user_id=request.user_id,
-            sender_type="ai",
-            message_text=ai_response_text,
-            session_id=session_id,
-            timestamp=datetime.now(),
-            personality_context=personality_insights
-        )
+        ai_message = response.text
         
         # Store both messages in database
-        await _store_chat_messages([user_message, ai_message])
-        
-        # Extract conversation context keywords
-        conversation_context = _extract_conversation_context(
-            request.message, 
-            ai_response_text, 
-            personality_insights
+        await store_chat_message(
+            user_id=request.user_id,
+            message=request.message,
+            sender_type="user",
+            session_id=session_id
         )
         
-        processing_time = asyncio.get_event_loop().time() - start_time
+        await store_chat_message(
+            user_id=request.user_id,
+            message=ai_message,
+            sender_type="ai",
+            session_id=session_id
+        )
         
+        # Analyze conversation for personality insights
+        personality_adjustments = await analyze_chat_for_personality(request.message, ai_message)
+        
+        # Store personality insights if there are significant adjustments
+        if any(abs(adj) > 0.1 for adj in personality_adjustments.values()):
+            try:
+                supabase_wrapper = get_supabase_client()
+                supabase = supabase_wrapper.supabase  # Access the raw client
+                supabase.table("chat_personality_insights").insert({
+                    "user_id": request.user_id,
+                    "session_id": session_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "adjustments": personality_adjustments,
+                    "message_context": request.message[:200]  # Store snippet for context
+                }).execute()
+            except Exception as e:
+                logger.error(f"Failed to store personality insights: {e}")
+        
+        # Create response
         chat_response = ChatResponse(
-            user_message=user_message,
-            ai_response=ai_message,
-            personality_insights=personality_insights,
-            conversation_context=conversation_context,
-            processing_time=processing_time
+            message=ai_message,
+            session_id=session_id,
+            timestamp=datetime.now()
         )
         
         return APIResponse[ChatResponse](
             success=True,
             data=chat_response,
-            message="Chat message processed successfully"
+            message="Message sent successfully"
         )
         
     except Exception as e:
-        logger.error(f"Error processing chat message: {e}")
+        logger.error(f"Chat error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process chat message: {str(e)}"
         )
 
 
-@chat_router.get("/history/{user_id}", response_model=APIResponse[list[ChatMessage]])
+@chat_router.get("/history/{user_id}", response_model=APIResponse[List[ChatMessage]])
 async def get_chat_history(
-    user_id: str, 
+    user_id: str,
     session_id: Optional[str] = None,
     limit: int = 50
-) -> APIResponse[list[ChatMessage]]:
+) -> APIResponse[List[ChatMessage]]:
     """
-    Get chat message history for a user.
+    Get chat history for a user.
     
     Args:
-        user_id: User ID to get history for
+        user_id: User ID
         session_id: Optional session ID to filter by
         limit: Maximum number of messages to return
         
@@ -134,191 +390,220 @@ async def get_chat_history(
         List of chat messages
     """
     try:
-        messages = await _get_conversation_history(user_id, session_id, limit)
+        supabase_wrapper = get_supabase_client()
+        supabase = supabase_wrapper.supabase  # Access the raw client
         
-        return APIResponse[list[ChatMessage]](
-            success=True,
-            data=messages,
-            message=f"Retrieved {len(messages)} chat messages"
-        )
+        query = supabase.table("chat_messages").select("*").eq("user_id", user_id)
         
-    except Exception as e:
-        logger.error(f"Error getting chat history: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get chat history: {str(e)}"
-        )
-
-
-async def _generate_ai_response(
-    user_message: str,
-    personality_context: Optional[str],
-    conversation_history: list[ChatMessage],
-    config: Any
-) -> tuple[str, Dict[str, Any]]:
-    """Generate AI response using personality context and LLM."""
-    
-    try:
-        # Import Google Generative AI
-        import google.generativeai as genai
+        if session_id:
+            query = query.eq("session_id", session_id)
         
-        # Configure Gemini
-        genai.configure(api_key=config.gemini.api_key)
-        model = genai.GenerativeModel(config.gemini.model or 'gemini-2.5-pro')
+        response = query.order("timestamp", desc=True).limit(limit).execute()
         
-        # Build conversation context
-        conversation_context = ""
-        if conversation_history:
-            recent_messages = conversation_history[-6:]  # Last 3 exchanges
-            for msg in recent_messages:
-                role = "User" if msg.sender_type == "user" else "Bondhu"
-                conversation_context += f"{role}: {msg.message_text}\n"
-        
-        # Build system prompt with personality context
-        system_prompt = f"""You are Bondhu, an empathetic AI mental health companion. 
-
-{personality_context or "Use a caring, supportive tone appropriate for mental wellness conversations."}
-
-CONVERSATION HISTORY:
-{conversation_context}
-
-GUIDELINES:
-- Respond naturally and conversationally
-- Show empathy and understanding
-- Ask thoughtful follow-up questions when appropriate
-- Provide gentle guidance and support
-- Keep responses concise but meaningful (2-3 sentences typically)
-- Adapt your tone to the user's emotional state
-
-Current user message: "{user_message}"
-
-Respond as Bondhu with care and personality awareness:"""
-        
-        # Generate response
-        response = await asyncio.to_thread(
-            model.generate_content,
-            system_prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=float(config.gemini.temperature or 0.7),
-                max_output_tokens=300,
-                top_p=0.8,
-                top_k=40
+        messages = [
+            ChatMessage(
+                role="assistant" if msg["sender_type"] == "ai" else "user",
+                content=msg["message_text"],
+                timestamp=msg["timestamp"]
             )
-        )
-        
-        ai_response = response.text.strip()
-        
-        # Extract personality insights (simplified)
-        personality_insights = {
-            "response_tone": "empathetic",
-            "personality_adapted": bool(personality_context),
-            "conversation_length": len(conversation_history),
-            "user_sentiment": _analyze_sentiment(user_message)
-        }
-        
-        return ai_response, personality_insights
-        
-    except Exception as e:
-        logger.error(f"Error generating AI response: {e}")
-        # Fallback response
-        fallback_responses = [
-            "I'm here to listen and support you. Tell me more about what's on your mind.",
-            "Thank you for sharing that with me. How are you feeling about this situation?",
-            "I appreciate you opening up to me. What would be most helpful for you right now?",
-            "That sounds meaningful to you. Can you help me understand more about your experience?",
-            "I'm glad you feel comfortable sharing with me. What's been weighing on your heart lately?"
+            for msg in reversed(response.data)
         ]
         
-        import random
-        fallback_response = random.choice(fallback_responses)
+        # If no messages found, provide a helpful response for new users
+        if not messages:
+            return APIResponse[List[ChatMessage]](
+                success=True,
+                data=[],
+                message="No chat history found. This user is ready to start their first conversation!"
+            )
         
-        return fallback_response, {
-            "response_tone": "supportive",
-            "fallback_used": True,
-            "error": str(e)
-        }
-
-
-async def _get_conversation_history(
-    user_id: str, 
-    session_id: Optional[str] = None, 
-    limit: int = 10
-) -> list[ChatMessage]:
-    """Get recent conversation history from database."""
-    
-    # TODO: Implement actual database query
-    # For now, return empty list - you can implement this based on your chat_messages table
-    
-    return []
-
-
-async def _store_chat_messages(messages: list[ChatMessage]) -> None:
-    """Store chat messages in database."""
-    
-    try:
-        # TODO: Implement actual database storage
-        # This should store messages in your chat_messages table
+        return APIResponse[List[ChatMessage]](
+            success=True,
+            data=messages,
+            message=f"Retrieved {len(messages)} messages"
+        )
         
-        logger.info(f"Would store {len(messages)} chat messages to database")
-        
-        # For now, just log the messages
-        for msg in messages:
-            logger.info(f"Chat message: {msg.sender_type} - {msg.message_text[:50]}...")
-            
     except Exception as e:
-        logger.error(f"Error storing chat messages: {e}")
-        # Don't raise exception - chat should work even if storage fails
+        logger.error(f"Failed to get chat history: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve chat history: {str(e)}"
+        )
 
 
-def _analyze_sentiment(message: str) -> str:
-    """Simple sentiment analysis of user message."""
+@chat_router.delete("/history/{user_id}/{session_id}")
+async def delete_chat_session(user_id: str, session_id: str) -> APIResponse[dict]:
+    """
+    Delete a chat session.
     
-    positive_words = ['good', 'great', 'happy', 'excited', 'love', 'wonderful', 'amazing', 'better']
-    negative_words = ['sad', 'angry', 'upset', 'worried', 'anxious', 'depressed', 'frustrated', 'terrible']
-    
-    message_lower = message.lower()
-    
-    positive_count = sum(1 for word in positive_words if word in message_lower)
-    negative_count = sum(1 for word in negative_words if word in message_lower)
-    
-    if positive_count > negative_count:
-        return "positive"
-    elif negative_count > positive_count:
-        return "negative"
-    else:
-        return "neutral"
+    Args:
+        user_id: User ID
+        session_id: Session ID to delete
+        
+    Returns:
+        Deletion confirmation
+    """
+    try:
+        supabase_wrapper = get_supabase_client()
+        supabase = supabase_wrapper.supabase  # Access the raw client
+        
+        supabase.table("chat_messages").delete().eq("user_id", user_id).eq("session_id", session_id).execute()
+        
+        return APIResponse[dict](
+            success=True,
+            data={"deleted": True},
+            message="Chat session deleted successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to delete chat session: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete chat session: {str(e)}"
+        )
 
 
-def _extract_conversation_context(
-    user_message: str, 
-    ai_response: str, 
-    personality_insights: Dict[str, Any]
-) -> list[str]:
-    """Extract conversation context keywords."""
+@chat_router.post("/personality/update/{user_id}")
+async def update_personality_from_insights(user_id: str) -> APIResponse[dict]:
+    """
+    Aggregate personality insights from chat and entertainment interactions
+    and update the user's personality profile.
     
-    # Simple keyword extraction
-    keywords = []
-    
-    # Check for common themes
-    message_lower = user_message.lower()
-    
-    if any(word in message_lower for word in ['stress', 'anxiety', 'worried', 'anxious']):
-        keywords.append("stress management")
-    
-    if any(word in message_lower for word in ['goal', 'goals', 'achieve', 'accomplish']):
-        keywords.append("goal setting")
-    
-    if any(word in message_lower for word in ['relationship', 'friends', 'family', 'social']):
-        keywords.append("relationships")
-    
-    if any(word in message_lower for word in ['work', 'job', 'career', 'workplace']):
-        keywords.append("work life")
-    
-    if any(word in message_lower for word in ['sleep', 'tired', 'energy', 'rest']):
-        keywords.append("wellness")
-    
-    # Add default contexts if none found
-    if not keywords:
-        keywords = ["mental wellness", "personal growth"]
-    
-    return keywords[:5]  # Limit to 5 keywords
+    This endpoint should be called periodically (e.g., daily) to apply
+    accumulated personality insights to the user's profile.
+    """
+    try:
+        supabase_wrapper = get_supabase_client()
+        supabase = supabase_wrapper.supabase  # Access the raw client
+        
+        # Get chat personality insights (last 30 days)
+        thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()
+        
+        chat_insights = supabase.table("chat_personality_insights")\
+            .select("adjustments")\
+            .eq("user_id", user_id)\
+            .gte("timestamp", thirty_days_ago)\
+            .execute()
+        
+        # Get entertainment interaction insights (last 30 days)
+        entertainment_insights = supabase.table("entertainment_interactions")\
+            .select("personality_insights")\
+            .eq("user_id", user_id)\
+            .gte("timestamp", thirty_days_ago)\
+            .is_("personality_insights", "not.null")\
+            .execute()
+        
+        # Aggregate all adjustments
+        total_adjustments = {
+            "openness": 0.0,
+            "conscientiousness": 0.0,
+            "extraversion": 0.0,
+            "agreeableness": 0.0,
+            "neuroticism": 0.0
+        }
+        
+        insight_count = 0
+        
+        # Process chat insights
+        for insight in chat_insights.data:
+            adjustments = insight.get("adjustments", {})
+            for trait, value in adjustments.items():
+                if trait in total_adjustments:
+                    total_adjustments[trait] += value
+                    insight_count += 1
+        
+        # Process entertainment insights
+        for insight in entertainment_insights.data:
+            adjustments = insight.get("personality_insights", {})
+            for trait, value in adjustments.items():
+                if trait in total_adjustments:
+                    total_adjustments[trait] += value
+                    insight_count += 1
+        
+        if insight_count == 0:
+            return APIResponse(
+                success=True,
+                data={"updated": False},
+                message="No personality insights to process"
+            )
+        
+        # Get current personality scores
+        current_profile = supabase.table("user_personality_profiles")\
+            .select("*")\
+            .eq("user_id", user_id)\
+            .single()\
+            .execute()
+        
+        if not current_profile.data:
+            return APIResponse(
+                success=False,
+                data={"updated": False},
+                message="User personality profile not found"
+            )
+        
+        # Apply adjustments with dampening factor (to prevent drastic changes)
+        dampening_factor = 0.1  # Only apply 10% of accumulated changes
+        
+        updated_traits = {}
+        for trait in total_adjustments.keys():
+            current_value = current_profile.data.get(trait, 50.0)
+            adjustment = total_adjustments[trait] * dampening_factor
+            
+            # Clamp between 0 and 100
+            new_value = max(0.0, min(100.0, current_value + adjustment))
+            updated_traits[trait] = new_value
+        
+        # Update personality profile
+        supabase.table("user_personality_profiles")\
+            .update(updated_traits)\
+            .eq("user_id", user_id)\
+            .execute()
+        
+        return APIResponse(
+            success=True,
+            data={
+                "updated": True,
+                "insights_processed": insight_count,
+                "trait_changes": {
+                    trait: updated_traits[trait] - current_profile.data.get(trait, 50.0)
+                    for trait in updated_traits.keys()
+                }
+            },
+            message=f"Personality profile updated based on {insight_count} insights"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error updating personality: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update personality: {str(e)}"
+        )
+
+
+@chat_router.get("/personality-context/{user_id}")
+async def get_user_personality_context(user_id: str) -> APIResponse[dict]:
+    """
+    Test endpoint to check personality context for a user.
+    Useful for debugging and verifying personality data retrieval.
+    """
+    try:
+        personality_context = await get_personality_context(user_id)
+        
+        return APIResponse[dict](
+            success=True,
+            data={
+                "user_id": user_id,
+                "personality_context": personality_context,
+                "context_length": len(personality_context),
+                "has_context": bool(personality_context and personality_context.strip())
+            },
+            message="Personality context retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting personality context: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get personality context: {str(e)}"
+        )
+

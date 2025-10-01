@@ -43,8 +43,9 @@ class AnthropicConfig:
 class GeminiConfig:
     """Google Gemini API configuration."""
     api_key: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
-    model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-pro"))
+    model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
     temperature: float = field(default_factory=lambda: float(os.getenv("GEMINI_TEMPERATURE", "0.7")))
+    max_tokens: int = field(default_factory=lambda: int(os.getenv("GEMINI_MAX_TOKENS", "4000")))
     
     def __post_init__(self):
         if not self.api_key:
@@ -69,8 +70,9 @@ class YouTubeConfig:
     quota_limit: int = field(default_factory=lambda: int(os.getenv("YOUTUBE_QUOTA_LIMIT", "10000")))
     
     def __post_init__(self):
+        # Require YouTube Data API v3 key
         if not self.api_key:
-            raise ValueError("YouTube API key must be provided")
+            raise ValueError("YouTube API key (Data API v3) must be provided")
 
 @dataclass
 class SteamConfig:
@@ -78,8 +80,9 @@ class SteamConfig:
     api_key: str = field(default_factory=lambda: os.getenv("STEAM_API_KEY", ""))
     
     def __post_init__(self):
+        # Make Steam optional for boot; warn instead of raising
         if not self.api_key:
-            raise ValueError("Steam API key must be provided")
+            print("Warning: No STEAM_API_KEY provided; Steam features will be disabled.")
 
 @dataclass
 class AgentConfig:

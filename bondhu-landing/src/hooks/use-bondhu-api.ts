@@ -278,8 +278,69 @@ export function useBondhuAPI() {
         }
     ) => {
         try {
-            const response = await bondhuAPI.getEntertainmentRecommendations(userId, options)
-            return response
+            // Call individual category endpoints for real data
+            const results: any = {
+                user_id: userId,
+                recommendations: {
+                    music: [],
+                    videos: [],
+                    games: []
+                },
+                generated_at: new Date().toISOString(),
+                context: {
+                    time_of_day: options?.time_context || 'afternoon',
+                    day_of_week: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+                    mood_detected: options?.mood_override,
+                    recent_activity: []
+                },
+                overall_confidence: 0,
+                personalization_factors: {
+                    personality_weight: 0.6,
+                    activity_history_weight: 0.3,
+                    current_context_weight: 0.1
+                }
+            }
+
+            const categories = options?.categories || ['music', 'videos', 'games']
+            const limit = options?.limit_per_category || 12
+
+            // Fetch music recommendations if requested
+            if (categories.includes('music')) {
+                try {
+                    const musicResponse = await bondhuAPI.getMusicRecommendations(userId, {
+                        limit,
+                        mood: options?.mood_override,
+                        refresh: false
+                    })
+
+                    if (musicResponse.success && musicResponse.data) {
+                        results.recommendations.music = musicResponse.data
+                    }
+                } catch (err) {
+                    console.error('Music recommendations failed:', err)
+                }
+            }
+
+            // Fetch video recommendations if requested
+            if (categories.includes('videos')) {
+                try {
+                    const videoResponse = await bondhuAPI.getVideoRecommendations(userId, {
+                        limit,
+                        mood: options?.mood_override,
+                        refresh: false
+                    })
+
+                    if (videoResponse.success && videoResponse.data) {
+                        results.recommendations.videos = videoResponse.data
+                    }
+                } catch (err) {
+                    console.error('Video recommendations failed:', err)
+                }
+            }
+
+            // TODO: Add games recommendations when endpoint is implemented
+
+            return results
         } catch (err) {
             console.error('Entertainment recommendations failed:', err)
             setError(err as Error)
@@ -292,19 +353,22 @@ export function useBondhuAPI() {
         interaction: {
             content_type: 'music' | 'video' | 'game'
             content_id: string
-            interaction_type: 'play' | 'pause' | 'skip' | 'like' | 'dislike' | 'complete' | 'share'
+            interaction_type: 'view' | 'play' | 'like' | 'dislike' | 'skip' | 'complete' | 'share'
+            content_title?: string
             duration_seconds?: number
             completion_percentage?: number
             rating?: number
+            mood_before?: string
+            mood_after?: string
             context?: Record<string, any>
         }
     ) => {
         try {
-            const response = await bondhuAPI.recordEntertainmentInteraction(userId, interaction)
+            const response = await bondhuAPI.recordInteraction(userId, interaction)
             return response
         } catch (err) {
             console.error('Recording interaction failed:', err)
-            return { success: false, message: 'Failed to record interaction' }
+            return { success: false, data: null, message: 'Failed to record interaction' }
         }
     }, [])
 

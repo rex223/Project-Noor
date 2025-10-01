@@ -34,10 +34,13 @@ export interface UseEntertainmentRecommendationsReturn {
     recordInteraction: (interaction: {
         content_type: 'music' | 'video' | 'game'
         content_id: string
-        interaction_type: 'play' | 'pause' | 'skip' | 'like' | 'dislike' | 'complete' | 'share'
+        interaction_type: 'view' | 'play' | 'like' | 'dislike' | 'skip' | 'complete' | 'share'
+        content_title?: string
         duration_seconds?: number
         completion_percentage?: number
         rating?: number
+        mood_before?: string
+        mood_after?: string
         context?: Record<string, any>
     }) => Promise<boolean>
 
@@ -136,10 +139,13 @@ export function useEntertainmentRecommendations(
     const recordInteraction = useCallback(async (interaction: {
         content_type: 'music' | 'video' | 'game'
         content_id: string
-        interaction_type: 'play' | 'pause' | 'skip' | 'like' | 'dislike' | 'complete' | 'share'
+        interaction_type: 'view' | 'play' | 'like' | 'dislike' | 'skip' | 'complete' | 'share'
+        content_title?: string
         duration_seconds?: number
         completion_percentage?: number
         rating?: number
+        mood_before?: string
+        mood_after?: string
         context?: Record<string, any>
     }): Promise<boolean> => {
         if (!userId) return false

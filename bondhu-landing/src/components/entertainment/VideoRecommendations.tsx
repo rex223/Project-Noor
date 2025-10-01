@@ -8,7 +8,7 @@ import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Play, Heart, Share, ExternalLink, Video, Clock, Star } from 'lucide-react'
+import { Play, Heart, ThumbsDown, Share, ExternalLink, Video, Clock, Star } from 'lucide-react'
 import type { VideoRecommendation } from '@/lib/api-client'
 
 interface VideoRecommendationsProps {
@@ -16,6 +16,7 @@ interface VideoRecommendationsProps {
     isLoading?: boolean
     onPlay?: (recommendation: VideoRecommendation) => void
     onLike?: (recommendation: VideoRecommendation) => void
+    onDislike?: (recommendation: VideoRecommendation) => void
     onShare?: (recommendation: VideoRecommendation) => void
     currentlyPlaying?: string | null
 }
@@ -25,6 +26,7 @@ export function VideoRecommendations({
     isLoading = false,
     onPlay,
     onLike,
+    onDislike,
     onShare,
     currentlyPlaying
 }: VideoRecommendationsProps) {
@@ -217,6 +219,18 @@ export function VideoRecommendations({
                                             >
                                                 <Heart className="h-3 w-3 mr-1" />
                                                 Like
+                                            </Button>
+                                        )}
+
+                                        {onDislike && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => onDislike(recommendation)}
+                                                className="h-8 px-2"
+                                            >
+                                                <ThumbsDown className="h-3 w-3 mr-1" />
+                                                Dislike
                                             </Button>
                                         )}
 
