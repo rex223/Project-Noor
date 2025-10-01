@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, ChevronRight, Settings, User } from "lucide-react"
 import { GlowingEffect } from "@/components/ui/glowing-effect"
+import AnimatedLoader from "@/components/ui/animated-loader"
 import type { Profile } from "@/types/auth"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -306,8 +307,8 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-secondary/20">
+        <AnimatedLoader size="lg" />
       </div>
     )
   }
@@ -599,7 +600,7 @@ function SettingsPanel({
                   </Avatar>
                   {avatarUploadStatus === 'loading' && (
                     <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                      <AnimatedLoader size="sm" />
                     </div>
                   )}
                 </div>
@@ -878,7 +879,11 @@ function SettingsPanel({
                   disabled={exportStatus === 'loading'}
                   className="flex items-center space-x-2"
                 >
-                  {exportStatus === 'loading' && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
+                  {exportStatus === 'loading' && (
+                    <div className="scale-[0.3] -my-2">
+                      <AnimatedLoader size="sm" />
+                    </div>
+                  )}
                   <span>
                     {exportStatus === 'loading' ? 'Exporting...' :
                       exportStatus === 'success' ? 'Exported!' :
@@ -1035,7 +1040,9 @@ function SettingsPanel({
                   <span className="relative z-10 flex items-center justify-center">
                     {escapeStatus === 'loading' ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        <div className="scale-[0.3] -my-2 mr-2">
+                          <AnimatedLoader size="sm" />
+                        </div>
                         Initiating Matrix Escape...
                       </>
                     ) : escapeStatus === 'success' ? (

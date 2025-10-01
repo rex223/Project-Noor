@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, Settings, Heart, Share2 } from 'lucide-react'
+import AnimatedLoader from '@/components/ui/animated-loader'
 
 interface VideoWatchData {
   contentId: string
@@ -338,8 +339,8 @@ export function VideoPlayer({ video, onWatchComplete, onClose }: VideoPlayerProp
 
           {/* Loading spinner */}
           {isBuffering && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white"></div>
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+              <AnimatedLoader size="md" />
             </div>
           )}
 

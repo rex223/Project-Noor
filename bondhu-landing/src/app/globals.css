@@ -226,8 +226,27 @@
   }
 }
 
+@keyframes ripple {
+  0% {
+    background-color: transparent;
+  }
+  30% {
+    background-color: var(--ripple-color);
+  }
+  60% {
+    background-color: transparent;
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
 .animate-shine {
   animation: shine 2s ease-in-out;
+}
+
+.animate-ripple {
+  animation: ripple 1.5s ease infinite;
 }
 
 /* Glowing effect CSS variables and styles */

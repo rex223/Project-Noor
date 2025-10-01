@@ -19,6 +19,7 @@ import { DashboardStats } from "@/components/ui/dashboard-stats"
 import { DashboardGrid } from "@/components/ui/dashboard-grid"
 import { DashboardWelcome } from "@/components/ui/dashboard-welcome"
 import { EnhancedChat } from "@/components/ui/enhanced-chat"
+import AnimatedLoader from "@/components/ui/animated-loader"
 import Link from "next/link"
 import { PuzzleMaster } from "@/components/games/PuzzleMaster"
 import { MemoryPalace } from "@/components/games/MemoryPalace"
@@ -74,8 +75,8 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-secondary/20">
+        <AnimatedLoader size="lg" />
       </div>
     )
   }
@@ -140,21 +141,21 @@ export default function DashboardPage() {
         </header>
 
         {/* Main Content */}
-        <main className="container mx-auto px-4 py-6">
+        <main className="container mx-auto px-4 py-4">
           {/* Compact Welcome Section */}
           <DashboardWelcome userName={profile.full_name?.split(' ')[0] || 'Friend'} compact={true} />
 
           {/* Main Dashboard Layout - 50% Chat + 50% Explore More */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             {/* Chat Section - 50% width */}
             <div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-2xl font-bold">Chat with Bondhu</h3>
-                  <p className="text-muted-foreground">Your AI companion is ready to listen and support you</p>
+                  <h3 className="text-xl font-bold">Chat with Bondhu</h3>
+                  <p className="text-sm text-muted-foreground">Your AI companion is ready to listen and support you</p>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                  <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                     <span>Online</span>
                   </div>
@@ -164,21 +165,21 @@ export default function DashboardPage() {
             </div>
 
             {/* Right Column - Explore More + Your Progress */}
-            <div className="space-y-8">
+            <div className="space-y-4">
               {/* Explore More Section */}
               <div>
-                <div className="mb-4">
-                  <h3 className="text-xl font-bold">Explore More</h3>
-                  <p className="text-sm text-muted-foreground">Discover features and tools for your mental wellness journey</p>
+                <div className="mb-3">
+                  <h3 className="text-lg font-bold">Explore More</h3>
+                  <p className="text-xs text-muted-foreground">Discover features and tools for your mental wellness journey</p>
                 </div>
                 <DashboardGrid currentPage="dashboard" />
               </div>
 
               {/* Your Progress Section */}
               <div>
-                <div className="mb-4">
-                  <h3 className="text-xl font-bold">Your Progress</h3>
-                  <p className="text-sm text-muted-foreground">Track your mental wellness journey</p>
+                <div className="mb-3">
+                  <h3 className="text-lg font-bold">Your Progress</h3>
+                  <p className="text-xs text-muted-foreground">Track your mental wellness journey</p>
                 </div>
                 <DashboardStats />
               </div>

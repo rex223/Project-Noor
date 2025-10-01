@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ArrowLeft, Play, Pause, Volume2, ChevronRight, Gamepad2, Camera, Headphones, TrendingUp, Clock, Star, Users } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 import { GlowingEffect } from "@/components/ui/glowing-effect"
+import AnimatedLoader from "@/components/ui/animated-loader"
 import type { Profile } from "@/types/auth"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -401,8 +402,8 @@ export default function EntertainmentHubPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-secondary/20">
+        <AnimatedLoader size="lg" />
       </div>
     )
   }
