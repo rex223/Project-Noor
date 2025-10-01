@@ -32,6 +32,7 @@ import { GlowingEffect } from "@/components/ui/glowing-effect"
 export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [activityStats, setActivityStats] = useState<any>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -57,6 +58,13 @@ export default function DashboardPage() {
         }
 
         setProfile(profileData)
+
+        // Fetch activity stats
+        const response = await fetch('/api/activity-stats')
+        if (response.ok) {
+          const stats = await response.json()
+          setActivityStats(stats)
+        }
       } catch (error) {
         console.error('Error:', error)
       } finally {
@@ -143,7 +151,12 @@ export default function DashboardPage() {
         {/* Main Content */}
         <main className="container mx-auto px-4 py-4">
           {/* Compact Welcome Section */}
-          <DashboardWelcome userName={profile.full_name?.split(' ')[0] || 'Friend'} compact={true} />
+          <DashboardWelcome 
+            userName={profile.full_name?.split(' ')[0] || 'Friend'} 
+            streak={activityStats?.currentStreakDays || 0}
+            wellnessScore={activityStats?.wellnessScore || 0}
+            compact={true} 
+          />
 
           {/* Main Dashboard Layout - 50% Chat + 50% Explore More */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
@@ -172,7 +185,7 @@ export default function DashboardPage() {
                   <h3 className="text-lg font-bold">Explore More</h3>
                   <p className="text-xs text-muted-foreground">Discover features and tools for your mental wellness journey</p>
                 </div>
-                <DashboardGrid currentPage="dashboard" />
+                <DashboardGrid currentPage="dashboard" stats={activityStats} />
               </div>
 
               {/* Your Progress Section */}
@@ -181,7 +194,7 @@ export default function DashboardPage() {
                   <h3 className="text-lg font-bold">Your Progress</h3>
                   <p className="text-xs text-muted-foreground">Track your mental wellness journey</p>
                 </div>
-                <DashboardStats />
+                <DashboardStats stats={activityStats} />
               </div>
             </div>
           </div>

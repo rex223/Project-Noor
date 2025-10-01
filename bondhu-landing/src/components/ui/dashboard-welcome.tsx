@@ -8,10 +8,11 @@ interface DashboardWelcomeProps {
   userName?: string;
   lastActive?: string;
   streak?: number;
+  wellnessScore?: number;
   compact?: boolean;
 }
 
-export function DashboardWelcome({ userName = "Friend", lastActive, streak = 7, compact = false }: DashboardWelcomeProps) {
+export function DashboardWelcome({ userName = "Friend", lastActive, streak = 0, wellnessScore = 0, compact = false }: DashboardWelcomeProps) {
   const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const currentDate = new Date().toLocaleDateString([], { 
     weekday: 'long', 
@@ -108,7 +109,7 @@ export function DashboardWelcome({ userName = "Friend", lastActive, streak = 7, 
                 <div className="text-xs text-muted-foreground">Day Streak</div>
               </div>
               <div className="bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-700/30 rounded-xl p-4 text-center backdrop-blur-sm">
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">85%</div>
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{wellnessScore}%</div>
                 <div className="text-xs text-muted-foreground">Wellness Score</div>
               </div>
             </div>

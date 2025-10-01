@@ -226,6 +226,16 @@ export function MemoryPalace({ onGameComplete }: MemoryPalaceProps) {
     if (matchedPairs === totalPairs && gameStarted && !gameCompleted) {
       setGameCompleted(true)
 
+      // Track game completion in activity stats
+      fetch('/api/activity-stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'increment_game',
+          data: { gameName: 'Memory Palace' }
+        })
+      }).catch(err => console.error('Failed to update game stats:', err));
+
       if (startTime) {
         const endTime = new Date()
         const playDuration = (endTime.getTime() - startTime.getTime()) / 1000

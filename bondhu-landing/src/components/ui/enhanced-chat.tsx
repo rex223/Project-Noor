@@ -104,6 +104,21 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
       setMessages(prev => [...prev, aiMessage]);
       setHasPersonalityContext(response.has_personality_context);
       
+      // Update activity stats - track chat message
+      try {
+        await fetch('/api/activity-stats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'increment_chat',
+            data: { messageCount: 1 }
+          })
+        });
+      } catch (statsError) {
+        console.error('Failed to update chat stats:', statsError);
+        // Don't show error to user, this is a background operation
+      }
+      
       // Show warning if no personality context
       if (!response.has_personality_context) {
         setError("💡 Complete your personality assessment for more personalized responses!");

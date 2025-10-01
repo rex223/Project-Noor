@@ -1000,6 +1000,26 @@ function GamingSection({
     setGameResults(prev => [...prev, enhancedData])
     setSelectedGame(null)
 
+    // Update activity stats - track game completion
+    try {
+      const gameNames: Record<string, string> = {
+        'puzzle_master': 'Puzzle Master',
+        'memory_palace': 'Memory Palace',
+        'color_symphony': 'Color Symphony'
+      };
+      
+      await fetch('/api/activity-stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'increment_game',
+          data: { gameName: gameNames[gameData.gameId] || gameData.gameId }
+        })
+      });
+    } catch (statsError) {
+      console.error('Failed to update game stats:', statsError);
+    }
+
     // Add to main activity history for stats dashboard
     const activityData = {
       type: 'game',

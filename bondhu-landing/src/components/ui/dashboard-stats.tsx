@@ -6,27 +6,64 @@ import { cn } from "@/lib/utils";
 
 interface DashboardStatsProps {
   stats?: {
-    totalSessions?: number;
-    totalGamesPlayed?: number;
+    wellnessScore?: number;
+    wellnessTrend?: number;
     totalMessages?: number;
-    achievements?: number;
-    weeklyGrowth?: number;
-    moodScore?: number;
+    messagesToday?: number;
+    totalGamesPlayed?: number;
+    gamesThisWeek?: number;
+    currentStreakDays?: number;
+    longestStreakDays?: number;
+    totalAchievements?: number;
+    achievementsThisMonth?: number;
     activeSessions?: number;
-  };
+    activeSessionsToday?: number;
+  } | null;
 }
 
 export function DashboardStats({ stats }: DashboardStatsProps) {
-  const defaultStats = {
-    totalSessions: 47,
-    totalGamesPlayed: 12,
-    totalMessages: 150,
-    achievements: 8,
-    weeklyGrowth: 23,
-    moodScore: 85,
-    activeSessions: 3,
-    ...stats
-  };
+  // Show loading state with default values if stats are null/undefined
+  const isLoading = !stats;
+  
+  const wellnessScore = stats?.wellnessScore || 0;
+  const wellnessTrend = stats?.wellnessTrend || 0;
+  const totalMessages = stats?.totalMessages || 0;
+  const messagesToday = stats?.messagesToday || 0;
+  const totalGamesPlayed = stats?.totalGamesPlayed || 0;
+  const gamesThisWeek = stats?.gamesThisWeek || 0;
+  const currentStreakDays = stats?.currentStreakDays || 0;
+  const totalAchievements = stats?.totalAchievements || 0;
+  const achievementsThisMonth = stats?.achievementsThisMonth || 0;
+  const activeSessions = stats?.activeSessions || 0;
+
+  // Calculate trend text
+  const wellnessTrendText = wellnessTrend > 0 
+    ? `+${wellnessTrend}% this week` 
+    : wellnessTrend < 0 
+    ? `${wellnessTrend}% this week` 
+    : 'No change';
+  
+  const messageTrendText = messagesToday > 0 
+    ? `+${messagesToday} today` 
+    : 'Start chatting!';
+  
+  const gameTrendText = gamesThisWeek > 0 
+    ? `+${gamesThisWeek} this week` 
+    : 'Play your first game!';
+  
+  const streakText = currentStreakDays > 0 
+    ? currentStreakDays >= 7 
+      ? 'Amazing streak!' 
+      : 'Keep it up!' 
+    : 'Start your streak!';
+  
+  const achievementTrendText = achievementsThisMonth > 0 
+    ? `+${achievementsThisMonth} this month` 
+    : 'Earn your first!';
+  
+  const activeSessionText = activeSessions > 0 
+    ? `${activeSessions} active now` 
+    : 'No active sessions';
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -34,52 +71,58 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
       <StatsCard
         icon={<Heart className="h-5 w-5" />}
         title="Wellness Score"
-        value={`${defaultStats.moodScore}%`}
+        value={isLoading ? '--' : `${wellnessScore}%`}
         description="Your overall mental wellness trend"
-        trend="+12% this week"
-        trendPositive={true}
+        trend={wellnessTrendText}
+        trendPositive={wellnessTrend >= 0}
+        isLoading={isLoading}
       />
       <StatsCard
         icon={<MessageCircle className="h-5 w-5" />}
         title="Chat Sessions"
-        value={defaultStats.totalMessages.toString()}
+        value={isLoading ? '--' : totalMessages.toString()}
         description="Messages exchanged with Bondhu"
-        trend="+8 today"
-        trendPositive={true}
+        trend={messageTrendText}
+        trendPositive={messagesToday >= 0}
+        isLoading={isLoading}
       />
       <StatsCard
         icon={<Gamepad2 className="h-5 w-5" />}
         title="Games Played"
-        value={defaultStats.totalGamesPlayed.toString()}
+        value={isLoading ? '--' : totalGamesPlayed.toString()}
         description="Interactive games completed"
-        trend="+2 this week"
-        trendPositive={true}
+        trend={gameTrendText}
+        trendPositive={gamesThisWeek >= 0}
+        isLoading={isLoading}
       />
       
       {/* Row 2 */}
       <StatsCard
         icon={<TrendingUp className="h-5 w-5" />}
         title="Growth Streak"
-        value={`${defaultStats.weeklyGrowth} days`}
+        value={isLoading ? '--' : `${currentStreakDays} days`}
         description="Consecutive days of engagement"
-        trend="Personal best!"
-        trendPositive={true}
+        trend={streakText}
+        trendPositive={currentStreakDays >= 3}
+        isLoading={isLoading}
       />
       <StatsCard
         icon={<Trophy className="h-5 w-5" />}
         title="Achievements"
-        value={defaultStats.achievements.toString()}
+        value={isLoading ? '--' : totalAchievements.toString()}
         description="Milestones and accomplishments"
-        trend="+2 this month"
-        trendPositive={true}
+        trend={achievementTrendText}
+        trendPositive={achievementsThisMonth >= 0}
+        isLoading={isLoading}
       />
       <StatsCard
         icon={<Activity className="h-5 w-5" />}
         title="Active Sessions"
-        value={defaultStats.activeSessions.toString()}
+        value={isLoading ? '--' : activeSessions.toString()}
         description="Current ongoing activities"
-        trend="2 new today"
-        trendPositive={true}
+        trend={activeSessionText}
+        trendPositive={activeSessions > 0}
+        isLoading={isLoading}
       />
     </div>
   );
@@ -92,9 +135,10 @@ interface StatsCardProps {
   description: string;
   trend: string;
   trendPositive: boolean;
+  isLoading?: boolean;
 }
 
-const StatsCard = ({ icon, title, value, description, trend, trendPositive }: StatsCardProps) => {
+const StatsCard = ({ icon, title, value, description, trend, trendPositive, isLoading }: StatsCardProps) => {
   return (
     <div className="min-h-[9rem] list-none">
       <div className="relative h-full rounded-[1.25rem] border-[0.75px] border-border p-2">

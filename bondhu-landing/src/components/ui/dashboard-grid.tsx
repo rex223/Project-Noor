@@ -9,9 +9,14 @@ import { useRouter } from "next/navigation";
 
 interface DashboardGridProps {
   currentPage?: string;
+  stats?: {
+    gamesPlayedCount?: number;
+    videosWatchedCount?: number;
+    songsListenedCount?: number;
+  } | null;
 }
 
-export function DashboardGrid({ currentPage = 'dashboard' }: DashboardGridProps) {
+export function DashboardGrid({ currentPage = 'dashboard', stats }: DashboardGridProps) {
   const router = useRouter()
 
   const handlePersonalityInsightsClick = () => {
@@ -56,6 +61,11 @@ export function DashboardGrid({ currentPage = 'dashboard' }: DashboardGridProps)
         buttonBorder="border-purple-400"
         showPreview={true}
         previewType="entertainment"
+        entertainmentStats={{
+          gamesPlayed: stats?.gamesPlayedCount || 0,
+          videosWatched: stats?.videosWatchedCount || 0,
+          songsListened: stats?.songsListenedCount || 0
+        }}
       />
       <GridItem
         area=""
@@ -105,9 +115,14 @@ interface GridItemProps {
   buttonBorder: string;
   showPreview?: boolean;
   previewType?: 'personality' | 'entertainment' | 'settings';
+  entertainmentStats?: {
+    gamesPlayed: number;
+    videosWatched: number;
+    songsListened: number;
+  };
 }
 
-const GridItem = ({ icon, title, description, onClick, isActive, gradient, darkGradient, buttonGradient, buttonDarkGradient, buttonBorder, showPreview, previewType }: GridItemProps) => {
+const GridItem = ({ icon, title, description, onClick, isActive, gradient, darkGradient, buttonGradient, buttonDarkGradient, buttonBorder, showPreview, previewType, entertainmentStats }: GridItemProps) => {
   const [isHovered, setIsHovered] = React.useState(false);
   
   return (
@@ -280,7 +295,7 @@ const GridItem = ({ icon, title, description, onClick, isActive, gradient, darkG
                       <span className={cn(
                         "font-medium",
                         isActive ? "text-white/90" : "text-foreground/80 dark:text-foreground/70"
-                      )}>3 games</span>
+                      )}>{entertainmentStats?.gamesPlayed || 0} games</span>
                     </div>
                     <div className="flex items-center space-x-0.5">
                       <Camera className={cn(
@@ -290,7 +305,7 @@ const GridItem = ({ icon, title, description, onClick, isActive, gradient, darkG
                       <span className={cn(
                         "font-medium",
                         isActive ? "text-white/90" : "text-foreground/80 dark:text-foreground/70"
-                      )}>5 videos</span>
+                      )}>{entertainmentStats?.videosWatched || 0} videos</span>
                     </div>
                     <div className="flex items-center space-x-0.5">
                       <Headphones className={cn(
@@ -300,7 +315,7 @@ const GridItem = ({ icon, title, description, onClick, isActive, gradient, darkG
                       <span className={cn(
                         "font-medium",
                         isActive ? "text-white/90" : "text-foreground/80 dark:text-foreground/70"
-                      )}>12 songs</span>
+                      )}>{entertainmentStats?.songsListened || 0} songs</span>
                     </div>
                   </div>
                 </div>
