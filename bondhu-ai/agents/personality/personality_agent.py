@@ -13,7 +13,7 @@ from agents.base_agent import BaseAgent
 from core.config import get_config
 from api.models.schemas import (
     DataSource, 
-    PersonalityTrait, 
+    PersonalityTraitModel as PersonalityTrait, 
     PersonalityScore,
     PersonalityProfile,
     AgentAnalysisResult,

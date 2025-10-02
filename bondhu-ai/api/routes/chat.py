@@ -1,8 +1,9 @@
 """
-Chat API endpoints for Bondhu AI
-Handles real-time chat interactions with personality-aware responses
+Chat API endpoints for Bondhu AI conversational interface.
+Integrates personality context with LLM for personalized responses.
 """
 
+import asyncio
 import logging
 import uuid
 import json
@@ -99,35 +100,66 @@ async def invalidate_user_chat_cache(user_id: str):
 @router.post("/send", response_model=ChatResponse, status_code=status.HTTP_200_OK)
 async def send_chat_message(request: ChatRequest):
     """
-    Send a chat message and receive personality-aware response.
-    
-    This endpoint:
-    1. Loads the user's personality profile
-    2. Generates context-aware system prompt
-    3. Sends message to Gemini Pro
-    4. Returns empathetic response
-    5. Optionally stores in chat history (MVP: disabled)
+    Send a chat message and get AI response with personality context.
     
     Args:
-        request: ChatRequest with message and user_id
+        request: Chat message request with user message and context
         
     Returns:
-        ChatResponse with AI's response and metadata
-        
-    Raises:
-        HTTPException: If message processing fails
+        Chat response with AI reply and personality insights
     """
+    start_time = asyncio.get_event_loop().time()
+    
     try:
-        logger.info(f"Received chat message from user {request.user_id}")
+        config = get_config()
+        personality_service = get_personality_service()
+        memory_service = get_memory_service()
+        memory_extractor = MemoryExtractor()
+
+        # --- Memory Extraction ---
+        extracted_memories = memory_extractor.extract_memories(request.message)
+        if extracted_memories:
+            memory_service.add_memories_batch(request.user_id, extracted_memories)
         
-        # Generate or use existing session ID
+        # Generate session ID if not provided
         session_id = request.session_id or str(uuid.uuid4())
         
-        # Get chat service
-        chat_service = get_chat_service()
+        # Create user message record
+        user_message = ChatMessage(
+            id=str(uuid.uuid4()),
+            user_id=request.user_id,
+            sender_type="user",
+            message_text=request.message,
+            session_id=session_id,
+            timestamp=datetime.now()
+        )
         
-        # Send message and get response
-        result = await chat_service.send_message(
+        # --- Memory Retrieval ---
+        # Generate comprehensive session context with important memories  
+        session_memory_context = memory_service.generate_session_context(request.user_id)
+        
+        # Get user's personality context for LLM
+        personality_context = await personality_service.get_llm_system_prompt(request.user_id)
+        
+        # Combine personality context with session memories
+        enriched_personality_context = personality_context
+        if session_memory_context:
+            enriched_personality_context = f"{personality_context}\n\n{session_memory_context}"
+
+        # Get recent conversation history (last 5 messages)
+        conversation_history = await _get_conversation_history(request.user_id, session_id)
+        
+        # Generate AI response using personality-aware LLM
+        ai_response_text, personality_insights = await _generate_ai_response(
+            user_message=request.message,
+            personality_context=enriched_personality_context,
+            conversation_history=conversation_history,
+            config=config
+        )
+        
+        # Create AI message record
+        ai_message = ChatMessage(
+            id=str(uuid.uuid4()),
             user_id=request.user_id,
             message=request.message,
             session_id=session_id
@@ -161,32 +193,29 @@ async def send_chat_message(request: ChatRequest):
         )
         
     except Exception as e:
-        logger.error(f"Error processing chat message: {e}", exc_info=True)
+        logger.error(f"Error processing chat message: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process message: {str(e)}"
+            detail=f"Failed to process chat message: {str(e)}"
         )
 
 
-@router.get("/history/{user_id}", response_model=ChatHistoryResponse)
+@router.get("/history/{user_id}", response_model=APIResponse)
 async def get_chat_history(
-    user_id: str,
-    limit: int = 20,
-    offset: int = 0
-):
+    user_id: str, 
+    session_id: Optional[str] = None,
+    limit: int = 50
+) -> APIResponse:
     """
     Get chat history for a user with Redis caching.
     
     Args:
-        user_id: User's unique ID
-        limit: Maximum number of messages to retrieve (default: 20)
-        offset: Number of messages to skip (default: 0)
+        user_id: User ID to get history for
+        session_id: Optional session ID to filter by
+        limit: Maximum number of messages to return
         
     Returns:
-        ChatHistoryResponse with messages and metadata
-        
-    Raises:
-        HTTPException: If history retrieval fails
+        List of chat messages
     """
     try:
         logger.info(f"Fetching chat history for user {user_id}")
@@ -283,23 +312,25 @@ async def get_chat_history(
         return result
         
     except Exception as e:
-        logger.error(f"Error fetching chat history: {e}", exc_info=True)
+        logger.error(f"Error getting chat history: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch chat history: {str(e)}"
+            detail=f"Failed to get chat history: {str(e)}"
         )
 
 
-@router.delete("/history/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def clear_chat_history(user_id: str):
+@router.post("/session/initialize", response_model=APIResponse) 
+async def initialize_chat_session(user_id: str) -> APIResponse:
     """
-    Clear all chat history for a user.
+    Initialize a new chat session with important user context.
+    This endpoint should be called when starting a new conversation
+    to ensure the AI has access to important past information.
     
     Args:
-        user_id: User's unique ID
+        user_id: User ID to initialize session for
         
-    Raises:
-        HTTPException: If deletion fails
+    Returns:
+        Session context and important memories
     """
     try:
         logger.info(f"Clearing chat history for user {user_id}")
@@ -318,7 +349,7 @@ async def clear_chat_history(user_id: str):
         logger.info(f"Chat history cleared for user {user_id}")
         
     except Exception as e:
-        logger.error(f"Error clearing chat history: {e}", exc_info=True)
+        logger.error(f"Error initializing chat session: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to clear chat history: {str(e)}"
@@ -490,9 +521,152 @@ async def chat_health_check():
             "timestamp": datetime.utcnow().isoformat()
         }
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "service": "chat",
-            "error": str(e),
-            "timestamp": datetime.utcnow().isoformat()
+        logger.error(f"Error generating AI response: {e}")
+        # Fallback response
+        fallback_responses = [
+            "I'm here to listen and support you. Tell me more about what's on your mind.",
+            "Thank you for sharing that with me. How are you feeling about this situation?",
+            "I appreciate you opening up to me. What would be most helpful for you right now?",
+            "That sounds meaningful to you. Can you help me understand more about your experience?",
+            "I'm glad you feel comfortable sharing with me. What's been weighing on your heart lately?"
+        ]
+        
+        import random
+        fallback_response = random.choice(fallback_responses)
+        
+        return fallback_response, {
+            "response_tone": "supportive",
+            "fallback_used": True,
+            "error": str(e)
         }
+
+
+async def _get_conversation_history(
+    user_id: str, 
+    session_id: Optional[str] = None, 
+    limit: int = 10
+) -> list[ChatMessage]:
+    """Get recent conversation history from database."""
+    
+    try:
+        from core.database.supabase_client import get_supabase_client
+        client = get_supabase_client()
+        
+        # Build query
+        query = client.supabase.table("chat_messages").select("*").eq("user_id", user_id)
+        
+        # Filter by session if provided
+        if session_id:
+            query = query.eq("session_id", session_id)
+        
+        # Order by timestamp and limit results
+        response = query.order("timestamp", desc=True).limit(limit).execute()
+        
+        # Convert to ChatMessage objects
+        messages = []
+        for row in reversed(response.data):  # Reverse to get chronological order
+            message = ChatMessage(
+                id=row.get("id"),
+                user_id=row.get("user_id"),
+                sender_type=row.get("sender_type"),
+                message_text=row.get("message_text"),
+                session_id=row.get("session_id"),
+                timestamp=datetime.fromisoformat(row.get("timestamp").replace('Z', '+00:00')) if row.get("timestamp") else datetime.now()
+            )
+            messages.append(message)
+        
+        return messages
+        
+    except Exception as e:
+        logger.error(f"Error retrieving conversation history: {e}")
+        return []
+
+
+async def _store_chat_messages(messages: list[ChatMessage]) -> None:
+    """Store chat messages in database."""
+    
+    try:
+        from core.database.supabase_client import get_supabase_client
+        client = get_supabase_client()
+        
+        # Prepare message data for insertion
+        message_data = []
+        for msg in messages:
+            data = {
+                "id": msg.id,
+                "user_id": msg.user_id,
+                "sender_type": msg.sender_type,
+                "message_text": msg.message_text,
+                "session_id": msg.session_id,
+                "timestamp": msg.timestamp.isoformat(),
+            }
+            
+            # Add optional fields if they exist
+            if hasattr(msg, 'mood_detected') and msg.mood_detected:
+                data["mood_detected"] = msg.mood_detected
+            if hasattr(msg, 'sentiment_score') and msg.sentiment_score:
+                data["sentiment_score"] = msg.sentiment_score
+                
+            message_data.append(data)
+        
+        # Insert messages
+        client.supabase.table("chat_messages").insert(message_data).execute()
+        logger.info(f"Successfully stored {len(messages)} chat messages to database")
+            
+    except Exception as e:
+        logger.error(f"Error storing chat messages: {e}")
+        # Don't raise exception - chat should work even if storage fails
+
+
+def _analyze_sentiment(message: str) -> str:
+    """Simple sentiment analysis of user message."""
+    
+    positive_words = ['good', 'great', 'happy', 'excited', 'love', 'wonderful', 'amazing', 'better']
+    negative_words = ['sad', 'angry', 'upset', 'worried', 'anxious', 'depressed', 'frustrated', 'terrible']
+    
+    message_lower = message.lower()
+    
+    positive_count = sum(1 for word in positive_words if word in message_lower)
+    negative_count = sum(1 for word in negative_words if word in message_lower)
+    
+    if positive_count > negative_count:
+        return "positive"
+    elif negative_count > positive_count:
+        return "negative"
+    else:
+        return "neutral"
+
+
+def _extract_conversation_context(
+    user_message: str, 
+    ai_response: str, 
+    personality_insights: Dict[str, Any]
+) -> list[str]:
+    """Extract conversation context keywords."""
+    
+    # Simple keyword extraction
+    keywords = []
+    
+    # Check for common themes
+    message_lower = user_message.lower()
+    
+    if any(word in message_lower for word in ['stress', 'anxiety', 'worried', 'anxious']):
+        keywords.append("stress management")
+    
+    if any(word in message_lower for word in ['goal', 'goals', 'achieve', 'accomplish']):
+        keywords.append("goal setting")
+    
+    if any(word in message_lower for word in ['relationship', 'friends', 'family', 'social']):
+        keywords.append("relationships")
+    
+    if any(word in message_lower for word in ['work', 'job', 'career', 'workplace']):
+        keywords.append("work life")
+    
+    if any(word in message_lower for word in ['sleep', 'tired', 'energy', 'rest']):
+        keywords.append("wellness")
+    
+    # Add default contexts if none found
+    if not keywords:
+        keywords = ["mental wellness", "personal growth"]
+    
+    return keywords[:5]  # Limit to 5 keywords

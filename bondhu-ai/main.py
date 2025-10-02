@@ -16,6 +16,8 @@ from core import get_config, PersonalityOrchestrator
 from api.routes import personality_router, agents_router
 from api.routes.personality_context import router as personality_context_router
 from api.routes.chat import router as chat_router
+from api.routes.entertainment import router as entertainment_router
+from api.routes.video_recommendations import router as video_router
 from core.database.supabase_client import cleanup_database
 
 # Configure logging
@@ -97,6 +99,8 @@ app.include_router(personality_router)
 app.include_router(agents_router)
 app.include_router(personality_context_router)
 app.include_router(chat_router)
+app.include_router(entertainment_router)
+app.include_router(video_router)
 
 @app.get("/")
 async def root() -> Dict[str, str]:

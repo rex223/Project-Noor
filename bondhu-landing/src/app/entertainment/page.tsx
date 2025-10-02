@@ -14,6 +14,7 @@ import AnimatedLoader from "@/components/ui/animated-loader"
 import type { Profile } from "@/types/auth"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
+import VideoRecommendations from "@/components/video-recommendations"
 import Link from "next/link"
 
 // Import the components that were in the dashboard
@@ -133,7 +134,7 @@ class EnhancedAILearningEngine {
         watch_time: data.watchTime,
         completion_rate: data.completionRate,
         interaction_patterns: data.interactions,
-        skip_patterns: data.skipPatterns,
+        skip_patterns: data.skipPatterns || [], // Default to empty array
         timestamp: new Date().toISOString()
       }
 
@@ -248,7 +249,7 @@ class EnhancedAILearningEngine {
       })
     }
 
-    if (data.skipPatterns.length > 3) {
+    if (data.skipPatterns && data.skipPatterns.length > 3) {
       recommendations.push({
         type: 'bite_sized_content',
         reason: 'Preference for shorter, focused content',
@@ -622,38 +623,29 @@ async function loadActivityHistory(userId: string) {
   return mockHistory
 }
 
-async function generatePersonalizedContent(userId: string, preferences: any, history: any[]) {
-  // AI-powered content generation based on user data
-  const recommendations = {
-    games: [
-      {
-        name: 'Advanced Pattern Recognition',
-        reason: 'Based on your high accuracy in puzzle games',
-        type: 'puzzle',
-        difficulty: 'hard'
-      }
-    ],
-    videos: [
-      {
-        title: 'Deep Focus Techniques',
-        reason: 'You frequently use focus music',
-        category: 'wellness',
-        duration: 600
-      }
-    ],
-    music: [
-      {
-        playlist: 'Your Evening Focus Mix',
-        reason: 'Optimized for your evening focus sessions',
-        mood: 'Focus',
-        tracks: 15
-      }
-    ]
-  }
+// This is a mock implementation. In a real app, this would call the backend API.
+const generatePersonalizedContent = async (userId: string, preferences: any, history: any) => {
+  console.log("Generating personalized content for user:", userId);
 
-  return recommendations
+  // Return mock data for now - the VideoRecommendations component handles real API calls
+  try {
+    return {
+      videos: [],
+      games: [],
+      music: [],
+    };
+  } catch (error) {
+    console.error("Error fetching video recommendations:", error);
+    // Fallback to mock data if API fails
+    return {
+      videos: [], // Return empty array on error
+      games: [],
+      music: [],
+    };
+  }
 }
 
+// Helper function to calculate user streak
 function calculateStreak(history: any[]) {
   // Calculate consecutive days of engagement
   const today = new Date()
@@ -764,34 +756,34 @@ function EntertainmentHub({
               variant="ghost"
               onClick={() => setActiveSection('games')}
               className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${activeSection === 'games'
-                  ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15'
-                  : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-green-500/10 hover:border-green-400/20 hover:shadow-md hover:shadow-green-500/10'
+                ? 'bg-green-500/20 backdrop-blur-xl border border-green-400/30 shadow-lg shadow-green-500/20 dark:shadow-green-400/15'
+                : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-green-500/10 hover:border-green-400/20 hover:shadow-md hover:shadow-green-500/10'
                 }`}
             >
               <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
 
               {/* Liquid glass morphing background */}
               <div className={`absolute inset-0 transition-all duration-700 ease-out ${activeSection === 'games'
-                  ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30'
-                  : 'bg-gradient-to-br from-white/5 via-green-500/5 to-white/10 group-hover:from-green-400/10 group-hover:via-emerald-500/10 group-hover:to-green-600/15'
+                ? 'bg-gradient-to-br from-green-400/30 via-emerald-500/20 to-green-600/30'
+                : 'bg-gradient-to-br from-white/5 via-green-500/5 to-white/10 group-hover:from-green-400/10 group-hover:via-emerald-500/10 group-hover:to-green-600/15'
                 }`} />
 
               {/* Animated liquid blob */}
               <div className={`absolute w-32 h-32 -top-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${activeSection === 'games'
-                  ? 'bg-green-400/30 blur-xl animate-pulse'
-                  : 'bg-green-500/10 blur-2xl group-hover:bg-green-400/20 group-hover:scale-110'
+                ? 'bg-green-400/30 blur-xl animate-pulse'
+                : 'bg-green-500/10 blur-2xl group-hover:bg-green-400/20 group-hover:scale-110'
                 }`} />
 
               {/* Glass reflection effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
 
               <Gamepad2 className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${activeSection === 'games'
-                  ? 'text-green-100 drop-shadow-sm filter brightness-110'
-                  : 'text-green-600 dark:text-green-400 group-hover:text-green-500 dark:group-hover:text-green-300'
+                ? 'text-green-100 drop-shadow-sm filter brightness-110'
+                : 'text-green-600 dark:text-green-400 group-hover:text-green-500 dark:group-hover:text-green-300'
                 }`} />
               <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${activeSection === 'games'
-                  ? 'text-green-50 drop-shadow-sm filter brightness-110'
-                  : 'text-green-700 dark:text-green-300 group-hover:text-green-600 dark:group-hover:text-green-200'
+                ? 'text-green-50 drop-shadow-sm filter brightness-110'
+                : 'text-green-700 dark:text-green-300 group-hover:text-green-600 dark:group-hover:text-green-200'
                 }`}>Games</span>
             </Button>
 
@@ -799,34 +791,34 @@ function EntertainmentHub({
               variant="ghost"
               onClick={() => setActiveSection('videos')}
               className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${activeSection === 'videos'
-                  ? 'bg-blue-500/20 backdrop-blur-xl border border-blue-400/30 shadow-lg shadow-blue-500/20 dark:shadow-blue-400/15'
-                  : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-blue-500/10 hover:border-blue-400/20 hover:shadow-md hover:shadow-blue-500/10'
+                ? 'bg-blue-500/20 backdrop-blur-xl border border-blue-400/30 shadow-lg shadow-blue-500/20 dark:shadow-blue-400/15'
+                : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-blue-500/10 hover:border-blue-400/20 hover:shadow-md hover:shadow-blue-500/10'
                 }`}
             >
               <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
 
               {/* Liquid glass morphing background */}
               <div className={`absolute inset-0 transition-all duration-700 ease-out ${activeSection === 'videos'
-                  ? 'bg-gradient-to-br from-blue-400/30 via-cyan-500/20 to-blue-600/30'
-                  : 'bg-gradient-to-br from-white/5 via-blue-500/5 to-white/10 group-hover:from-blue-400/10 group-hover:via-cyan-500/10 group-hover:to-blue-600/15'
+                ? 'bg-gradient-to-br from-blue-400/30 via-cyan-500/20 to-blue-600/30'
+                : 'bg-gradient-to-br from-white/5 via-blue-500/5 to-white/10 group-hover:from-blue-400/10 group-hover:via-cyan-500/10 group-hover:to-blue-600/15'
                 }`} />
 
               {/* Animated liquid blob */}
               <div className={`absolute w-32 h-32 -top-8 -right-8 rounded-full transition-all duration-1000 ease-in-out ${activeSection === 'videos'
-                  ? 'bg-blue-400/30 blur-xl animate-pulse'
-                  : 'bg-blue-500/10 blur-2xl group-hover:bg-blue-400/20 group-hover:scale-110'
+                ? 'bg-blue-400/30 blur-xl animate-pulse'
+                : 'bg-blue-500/10 blur-2xl group-hover:bg-blue-400/20 group-hover:scale-110'
                 }`} />
 
               {/* Glass reflection effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
 
               <Camera className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${activeSection === 'videos'
-                  ? 'text-blue-100 drop-shadow-sm filter brightness-110'
-                  : 'text-blue-600 dark:text-blue-400 group-hover:text-blue-500 dark:group-hover:text-blue-300'
+                ? 'text-blue-100 drop-shadow-sm filter brightness-110'
+                : 'text-blue-600 dark:text-blue-400 group-hover:text-blue-500 dark:group-hover:text-blue-300'
                 }`} />
               <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${activeSection === 'videos'
-                  ? 'text-blue-50 drop-shadow-sm filter brightness-110'
-                  : 'text-blue-700 dark:text-blue-300 group-hover:text-blue-600 dark:group-hover:text-blue-200'
+                ? 'text-blue-50 drop-shadow-sm filter brightness-110'
+                : 'text-blue-700 dark:text-blue-300 group-hover:text-blue-600 dark:group-hover:text-blue-200'
                 }`}>Videos</span>
             </Button>
 
@@ -834,34 +826,34 @@ function EntertainmentHub({
               variant="ghost"
               onClick={() => setActiveSection('music')}
               className={`h-16 flex flex-col justify-center items-center space-y-1.5 relative overflow-hidden transition-all duration-500 group border-0 ${activeSection === 'music'
-                  ? 'bg-purple-500/20 backdrop-blur-xl border border-purple-400/30 shadow-lg shadow-purple-500/20 dark:shadow-purple-400/15'
-                  : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-purple-500/10 hover:border-purple-400/20 hover:shadow-md hover:shadow-purple-500/10'
+                ? 'bg-purple-500/20 backdrop-blur-xl border border-purple-400/30 shadow-lg shadow-purple-500/20 dark:shadow-purple-400/15'
+                : 'bg-white/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-purple-500/10 hover:border-purple-400/20 hover:shadow-md hover:shadow-purple-500/10'
                 }`}
             >
               <GlowingEffect disabled={false} proximity={120} spread={35} blur={1.5} />
 
               {/* Liquid glass morphing background */}
               <div className={`absolute inset-0 transition-all duration-700 ease-out ${activeSection === 'music'
-                  ? 'bg-gradient-to-br from-purple-400/30 via-pink-500/20 to-purple-600/30'
-                  : 'bg-gradient-to-br from-white/5 via-purple-500/5 to-white/10 group-hover:from-purple-400/10 group-hover:via-pink-500/10 group-hover:to-purple-600/15'
+                ? 'bg-gradient-to-br from-purple-400/30 via-pink-500/20 to-purple-600/30'
+                : 'bg-gradient-to-br from-white/5 via-purple-500/5 to-white/10 group-hover:from-purple-400/10 group-hover:via-pink-500/10 group-hover:to-purple-600/15'
                 }`} />
 
               {/* Animated liquid blob */}
               <div className={`absolute w-32 h-32 -bottom-8 -left-8 rounded-full transition-all duration-1000 ease-in-out ${activeSection === 'music'
-                  ? 'bg-purple-400/30 blur-xl animate-pulse'
-                  : 'bg-purple-500/10 blur-2xl group-hover:bg-purple-400/20 group-hover:scale-110'
+                ? 'bg-purple-400/30 blur-xl animate-pulse'
+                : 'bg-purple-500/10 blur-2xl group-hover:bg-purple-400/20 group-hover:scale-110'
                 }`} />
 
               {/* Glass reflection effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50" />
 
               <Headphones className={`h-5 w-5 transition-all duration-300 group-hover:scale-110 relative z-10 ${activeSection === 'music'
-                  ? 'text-purple-100 drop-shadow-sm filter brightness-110'
-                  : 'text-purple-600 dark:text-purple-400 group-hover:text-purple-500 dark:group-hover:text-purple-300'
+                ? 'text-purple-100 drop-shadow-sm filter brightness-110'
+                : 'text-purple-600 dark:text-purple-400 group-hover:text-purple-500 dark:group-hover:text-purple-300'
                 }`} />
               <span className={`text-xs font-semibold transition-all duration-300 relative z-10 ${activeSection === 'music'
-                  ? 'text-purple-50 drop-shadow-sm filter brightness-110'
-                  : 'text-purple-700 dark:text-purple-300 group-hover:text-purple-600 dark:group-hover:text-purple-200'
+                ? 'text-purple-50 drop-shadow-sm filter brightness-110'
+                : 'text-purple-700 dark:text-purple-300 group-hover:text-purple-600 dark:group-hover:text-purple-200'
                 }`}>Music</span>
             </Button>
           </div>
@@ -932,47 +924,7 @@ function GamingSection({
 
   // Dynamic game library based on user preferences and skill level
   const availableGames = useMemo(() => {
-    const baseGames = [
-      {
-        id: 'puzzle_master',
-        name: 'Puzzle Master',
-        category: 'Puzzle',
-        description: 'Test your spatial reasoning and pattern recognition',
-        icon: '🧩',
-        difficulty: 'Medium',
-        insights: ['Problem-solving approach', 'Spatial reasoning', 'Persistence patterns'],
-        duration: '10-15 min',
-        component: PuzzleMaster,
-        popularity: 85,
-        recentPlays: 12
-      },
-      {
-        id: 'memory_palace',
-        name: 'Memory Palace',
-        category: 'Strategy',
-        description: 'Enhance memory and strategic thinking',
-        icon: '🧠',
-        difficulty: 'Easy',
-        insights: ['Memory patterns', 'Strategic planning', 'Attention to detail'],
-        duration: '5-10 min',
-        component: MemoryPalace,
-        popularity: 92,
-        recentPlays: 8
-      },
-      {
-        id: 'color_symphony',
-        name: 'Color Symphony',
-        category: 'Creative',
-        description: 'Express creativity through color and pattern',
-        icon: '🎨',
-        difficulty: 'Easy',
-        insights: ['Creative expression', 'Aesthetic preferences', 'Emotional associations'],
-        duration: '15-20 min',
-        component: ColorSymphony,
-        popularity: 78,
-        recentPlays: 15
-      }
-    ]
+    const baseGames = recommendations || []
 
     // Filter and sort based on user preferences
     return baseGames
@@ -1152,7 +1104,7 @@ function GamingSection({
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">{game.description}</p>
                     <div className="flex flex-wrap gap-1 mb-2">
-                      {game.insights.map((insight, index) => (
+                      {game.insights.map((insight: any, index: any) => (
                         <Badge key={index} variant="secondary" className="text-xs">
                           {insight}
                         </Badge>
@@ -1199,285 +1151,133 @@ function VideoSection({
   recommendations?: any[]
   addActivityToHistory: (activity: any) => void
 }) {
-  const [selectedCategory, setSelectedCategory] = useState(() => {
-    // Dynamic default category based on user preferences or time
-    return userPreferences?.preferredVideoCategory || 'mental_health'
-  })
-  const [selectedVideo, setSelectedVideo] = useState<any | null>(null)
-  const [watchHistory, setWatchHistory] = useState<any[]>([])
+  const [personalityProfile, setPersonalityProfile] = useState<any>(null)
+  const [videoInteractions, setVideoInteractions] = useState<any[]>([])
+  const [selectedCategory, setSelectedCategory] = useState('educational')
+  const [selectedVideo, setSelectedVideo] = useState<any>(null)
   const [videoProgress, setVideoProgress] = useState<{ [key: string]: number }>({})
+  const [watchHistory, setWatchHistory] = useState<any[]>([])
 
-  const categories = [
-    { id: 'mental_health', name: 'Wellness', icon: '🧘', color: 'bg-green-100 text-green-800' },
-    { id: 'educational', name: 'Learning', icon: '📚', color: 'bg-blue-100 text-blue-800' },
-    { id: 'entertainment', name: 'Fun', icon: '🎭', color: 'bg-purple-100 text-purple-800' }
-  ]
+  const availableVideos = recommendations || [];
 
-  // Dynamic video library with personalization
-  const availableVideos = useMemo(() => {
-    const baseVideos = [
-      {
-        id: '1',
-        title: '5-Minute Breathing Exercise',
-        description: 'Learn powerful breathing techniques to manage stress and anxiety.',
-        category: 'mental_health',
-        duration: 323,
-        thumbnail: '🌿',
-        tags: ['breathing', 'anxiety', 'mindfulness'],
-        insights: ['Stress response', 'Mindfulness engagement', 'Focus duration'],
-        difficulty: 'beginner',
-        views: 1250,
-        rating: 4.8,
-        instructor: 'Dr. Sarah Chen'
-      },
-      {
-        id: '2',
-        title: 'Understanding Emotions',
-        description: 'Explore the science behind emotions and healthy processing.',
-        category: 'educational',
-        duration: 765,
-        thumbnail: '🧠',
-        tags: ['emotions', 'psychology', 'self-awareness'],
-        insights: ['Learning style', 'Attention span', 'Concept retention'],
-        difficulty: 'intermediate',
-        views: 892,
-        rating: 4.6,
-        instructor: 'Prof. Michael Torres'
-      },
-      {
-        id: '3',
-        title: 'Quick Stress Relief',
-        description: 'Instant techniques for managing overwhelming moments.',
-        category: 'mental_health',
-        duration: 180,
-        thumbnail: '⚡',
-        tags: ['stress', 'quick-relief', 'workplace'],
-        insights: ['Stress management', 'Coping strategies', 'Emotional regulation'],
-        difficulty: 'beginner',
-        views: 2100,
-        rating: 4.9,
-        instructor: 'Lisa Rodriguez'
+  // Video categories
+  const categories = useMemo(() => {
+    if (!availableVideos) return [];
+    const allCategories = availableVideos.map(v => v.category_name);
+    const uniqueCategories = [...new Set(allCategories)];
+    return uniqueCategories.map(c => ({ id: c, name: c, icon: '🎬' }));
+  }, [availableVideos]);
+
+  // Format duration helper
+  const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+  }
+
+  // Get personality profile on component mount
+  useEffect(() => {
+    const fetchPersonalityProfile = async () => {
+      try {
+        // This would typically come from your personality assessment
+        // For now, using default values
+        const defaultProfile = {
+          openness: 0.7,
+          conscientiousness: 0.6,
+          extraversion: 0.5,
+          agreeableness: 0.8,
+          neuroticism: 0.3
+        }
+        setPersonalityProfile(defaultProfile)
+      } catch (error) {
+        console.error('Error fetching personality profile:', error)
       }
-    ]
-
-    // Filter based on preferences and sort by relevance
-    return baseVideos
-      .filter(video => {
-        if (userPreferences?.preferredVideoLength === 'short' && video.duration > 600) return false
-        if (userPreferences?.preferredVideoLength === 'long' && video.duration < 600) return false
-        return true
-      })
-      .sort((a, b) => {
-        // Prioritize recommended content
-        const aRecommended = recommendations?.some(r => r.contentId === a.id)
-        const bRecommended = recommendations?.some(r => r.contentId === b.id)
-        if (aRecommended && !bRecommended) return -1
-        if (!aRecommended && bRecommended) return 1
-
-        // Then by rating and views
-        return (b.rating * Math.log(b.views)) - (a.rating * Math.log(a.views))
-      })
-  }, [userPreferences, recommendations])
-
-  const handleVideoComplete = useCallback(async (watchData: any) => {
-    const enhancedData = {
-      ...watchData,
-      userId: profile.id,
-      timestamp: new Date().toISOString(),
-      category: selectedCategory
     }
 
-    setSelectedVideo(null)
-    setWatchHistory(prev => [...prev, enhancedData])
+    fetchPersonalityProfile()
+  }, [profile.id])
+
+  const handleVideoInteraction = useCallback(async (video: any, interaction: string) => {
+    const interactionData = {
+      video_id: video.id,
+      interaction_type: interaction,
+      video_title: video.title,
+      category: video.category_name,
+      timestamp: new Date().toISOString(),
+      personality_score: video.personality_score,
+      rl_score: video.rl_score
+    }
+
+    setVideoInteractions(prev => [...prev, interactionData])
 
     // Add to main activity history for stats dashboard
     const activityData = {
       type: 'video',
-      name: watchData.contentId,
-      duration: watchData.watchTime, // Watch time in seconds
-      timestamp: enhancedData.timestamp,
-      category: selectedCategory,
-      completionRate: watchData.completionRate
+      name: video.title,
+      duration: interaction === 'watch' ? video.duration_seconds : 0,
+      timestamp: interactionData.timestamp,
+      category: video.category_name,
+      interaction: interaction
     }
     addActivityToHistory(activityData)
 
-    // Update progress
-    setVideoProgress(prev => ({
-      ...prev,
-      [watchData.contentId]: 100
-    }))
-
+    // Send to AI engine for learning
     if (aiEngine) {
-      await aiEngine.addVideoData(enhancedData)
+      await aiEngine.addVideoData({
+        contentId: video.id,
+        watchTime: interaction === 'watch' ? video.duration_seconds * 0.8 : 0,
+        completionRate: interaction === 'watch' ? 80 : interaction === 'like' ? 100 : 0,
+        interactions: [interaction],
+        category: video.category_name
+      })
     }
-  }, [profile.id, selectedCategory, aiEngine, addActivityToHistory])
-
-  const handleVideoProgress = useCallback((videoId: string, progress: number) => {
-    setVideoProgress(prev => ({
-      ...prev,
-      [videoId]: progress
-    }))
-  }, [])
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
-
-  if (selectedVideo) {
-    return (
-      <VideoPlayer
-        video={selectedVideo}
-        onWatchComplete={handleVideoComplete}
-        onClose={() => setSelectedVideo(null)}
-      />
-    )
-  }
+  }, [aiEngine, addActivityToHistory])
 
   return (
     <div className="space-y-4">
-      {/* Watch Progress Summary */}
-      {watchHistory.length > 0 && (
+      {/* Video Interaction Summary */}
+      {videoInteractions.length > 0 && (
         <Card className="mb-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20">
           <CardHeader>
-            <CardTitle className="text-lg">Your Learning Journey</CardTitle>
+            <CardTitle className="text-lg">Your Video Journey</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {watchHistory.length}
+                  {videoInteractions.filter(i => i.interaction_type === 'watch').length}
                 </div>
                 <div className="text-sm text-muted-foreground">Videos Watched</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
-                  {Math.round(watchHistory.reduce((acc, w) => acc + w.watchTime, 0) / 60)}m
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {videoInteractions.filter(i => i.interaction_type === 'like').length}
                 </div>
-                <div className="text-sm text-muted-foreground">Learning Time</div>
+                <div className="text-sm text-muted-foreground">Videos Liked</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {Math.round(watchHistory.reduce((acc, w) => acc + w.completionRate, 0) / watchHistory.length)}%
+                  {Math.round(videoInteractions.reduce((acc, i) => acc + (i.personality_score || 0), 0) / Math.max(videoInteractions.length, 1) * 100)}%
                 </div>
-                <div className="text-sm text-muted-foreground">Avg Completion</div>
+                <div className="text-sm text-muted-foreground">Avg Match Score</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {new Set(watchHistory.map(w => w.category)).size}
+                <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
+                  {new Set(videoInteractions.map(i => i.category)).size}
                 </div>
-                <div className="text-sm text-muted-foreground">Topics Explored</div>
+                <div className="text-sm text-muted-foreground">Categories Explored</div>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      <div className="flex flex-wrap gap-2 mb-4">
-        {categories.map((category) => {
-          const categoryVideos = availableVideos.filter(v => v.category === category.id)
-          const watchedCount = watchHistory.filter(w => w.category === category.id).length
-
-          return (
-            <Button
-              key={category.id}
-              variant={selectedCategory === category.id ? 'default' : 'outline'}
-              onClick={() => setSelectedCategory(category.id)}
-              size="sm"
-              className="relative"
-            >
-              <span className="mr-2">{category.icon}</span>
-              {category.name}
-              {watchedCount > 0 && (
-                <Badge variant="secondary" className="ml-2 text-xs">
-                  {watchedCount}
-                </Badge>
-              )}
-            </Button>
-          )
-        })}
-      </div>
-
-      <div className="grid gap-4">
-        {availableVideos.filter(v => v.category === selectedCategory).map((video) => {
-          const progress = videoProgress[video.id] || 0
-          const isRecommended = recommendations?.some(r => r.contentId === video.id)
-          const hasWatched = watchHistory.some(w => w.contentId === video.id)
-
-          return (
-            <Card key={video.id} className={`p-4 hover:shadow-md transition-shadow cursor-pointer relative ${isRecommended ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-950/10' : ''
-              }`}>
-              <GlowingEffect disabled={false} proximity={150} spread={40} blur={2} />
-
-              {/* Recommendation Badge */}
-              {isRecommended && (
-                <div className="absolute -top-2 -right-2 z-20">
-                  <Badge className="bg-blue-500 text-white">
-                    <Star className="h-3 w-3 mr-1" />
-                    For You
-                  </Badge>
-                </div>
-              )}
-
-              {/* Progress Bar */}
-              {progress > 0 && (
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 rounded-t-lg overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              )}
-
-              <div className="flex items-center space-x-4 relative z-10">
-                <div className="w-20 h-16 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg flex items-center justify-center text-3xl flex-shrink-0 relative">
-                  {video.thumbnail}
-                  {hasWatched && (
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs">✓</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <h4 className="font-medium text-lg">{video.title}</h4>
-                    {video.rating && (
-                      <div className="flex items-center space-x-1">
-                        <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                        <span className="text-xs text-muted-foreground">{video.rating}</span>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-2">{video.description}</p>
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-2">
-                    <span className="flex items-center">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {formatDuration(video.duration)}
-                    </span>
-                    <span className="flex items-center">
-                      <Users className="h-3 w-3 mr-1" />
-                      {video.views}
-                    </span>
-                    <span>By {video.instructor}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {video.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <Button onClick={() => setSelectedVideo(video)} className="flex-shrink-0">
-                  <Play className="h-4 w-4 mr-2" />
-                  {hasWatched ? 'Rewatch' : 'Watch'}
-                </Button>
-              </div>
-            </Card>
-          )
-        })}
-      </div>
+      {/* Render VideoRecommendations component here */}
+      <VideoRecommendations
+        userId={profile.id}
+        personalityProfile={personalityProfile}
+        onVideoInteraction={handleVideoInteraction}
+      />
     </div>
   )
 }
