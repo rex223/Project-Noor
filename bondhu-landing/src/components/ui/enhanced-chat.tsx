@@ -30,14 +30,7 @@ interface EnhancedChatProps {
 }
 
 export function EnhancedChat({ profile }: EnhancedChatProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      sender: 'bondhu',
-      message: `Hello ${profile.full_name?.split(' ')[0] || 'Friend'}! 🌟 I'm Bondhu, your AI companion. I've been looking forward to continuing our conversation. How are you feeling today?`,
-      timestamp: new Date().toLocaleTimeString(),
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
@@ -47,6 +40,7 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
   const [error, setError] = useState<string | null>(null);
   const [hasPersonalityContext, setHasPersonalityContext] = useState<boolean>(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -69,6 +63,60 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
     };
     getUserId();
   }, []);
+
+  // Load chat history when userId is available
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (!userId) return;
+
+      try {
+        setIsLoadingHistory(true);
+        const history = await chatApi.getChatHistory(userId, 50, 0);
+        
+        if (history.messages && history.messages.length > 0) {
+          // Convert history to Message format (already in chronological order from backend)
+          const historyMessages: Message[] = history.messages.map((item, index) => [
+            {
+              id: Date.now() - (history.messages.length * 2) + (index * 2),
+              sender: 'user' as const,
+              message: item.message,
+              timestamp: new Date(item.created_at).toLocaleTimeString(),
+            },
+            {
+              id: Date.now() - (history.messages.length * 2) + (index * 2) + 1,
+              sender: 'bondhu' as const,
+              message: item.response,
+              timestamp: new Date(item.created_at).toLocaleTimeString(),
+              hasPersonalityContext: item.has_personality_context,
+            }
+          ]).flat();
+          
+          setMessages(historyMessages);
+        } else {
+          // No history, show greeting
+          setMessages([{
+            id: 1,
+            sender: 'bondhu',
+            message: `Hello ${profile.full_name?.split(' ')[0] || 'Friend'}! 🌟 I'm Bondhu, your AI companion. I've been looking forward to continuing our conversation. How are you feeling today?`,
+            timestamp: new Date().toLocaleTimeString(),
+          }]);
+        }
+      } catch (err) {
+        console.error('Failed to load chat history:', err);
+        // Show greeting on error
+        setMessages([{
+          id: 1,
+          sender: 'bondhu',
+          message: `Hello ${profile.full_name?.split(' ')[0] || 'Friend'}! 🌟 I'm Bondhu, your AI companion. How are you feeling today?`,
+          timestamp: new Date().toLocaleTimeString(),
+        }]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    loadChatHistory();
+  }, [userId, profile.full_name]);
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -272,28 +320,39 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
           {/* Messages Area */}
           <CardContent className="p-0">
             <div className="h-[50vh] max-h-[500px] min-h-[400px] overflow-y-auto p-6 space-y-6 scroll-smooth">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} group`}
-                >
+              {isLoadingHistory ? (
+                <div className="flex flex-col items-center justify-center h-full space-y-3">
+                  <BondhuAvatar 
+                    size="md" 
+                    isTyping={true}
+                    mood="thinking"
+                    showAnimation={true}
+                  />
+                  <p className="text-sm text-muted-foreground">Loading your conversation history...</p>
+                </div>
+              ) : (
+                messages.map((msg) => (
                   <div
-                    className={cn(
-                      "max-w-xs lg:max-w-md relative",
-                      msg.sender === 'user' ? 'order-2' : 'order-1'
-                    )}
+                    key={msg.id}
+                    className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} group`}
                   >
-                    {msg.sender === 'bondhu' && (
-                      <div className="flex items-center space-x-2 mb-3">
-                        <BondhuAvatar 
-                          size="sm" 
-                          isTyping={false}
-                          mood="happy"
-                          showAnimation={false}
-                        />
-                        <span className="text-xs text-muted-foreground font-medium">Bondhu</span>
-                      </div>
-                    )}
+                    <div
+                      className={cn(
+                        "max-w-xs lg:max-w-md relative",
+                        msg.sender === 'user' ? 'order-2' : 'order-1'
+                      )}
+                    >
+                      {msg.sender === 'bondhu' && (
+                        <div className="flex items-center space-x-2 mb-3">
+                          <BondhuAvatar 
+                            size="sm" 
+                            isTyping={false}
+                            mood="happy"
+                            showAnimation={false}
+                          />
+                          <span className="text-xs text-muted-foreground font-medium">Bondhu</span>
+                        </div>
+                      )}
                     
                     <div
                       className={cn(
@@ -359,7 +418,7 @@ export function EnhancedChat({ profile }: EnhancedChatProps) {
                     </div>
                   </div>
                 </div>
-              ))}
+              )))}
 
               {isTyping && (
                 <div className="flex justify-start group animate-fade-in">

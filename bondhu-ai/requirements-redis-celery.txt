@@ -1,0 +1,14 @@
+# Redis and Celery Dependencies
+# Install with: pip install -r requirements-redis-celery.txt
+
+# Redis
+redis==5.0.1
+hiredis==2.3.2  # Optional but recommended for better performance
+
+# Celery
+celery[redis]==5.3.4
+flower==2.0.1  # Optional: Web-based monitoring for Celery
+
+# Additional utilities
+kombu==5.3.4  # Celery messaging library
+vine==5.1.0   # Celery promises/callbacks

@@ -115,6 +115,26 @@ class PersonalityConfig:
     cross_modal_weight: float = field(default_factory=lambda: float(os.getenv("CROSS_MODAL_WEIGHT", "0.3")))
 
 @dataclass
+class RedisConfig:
+    """Redis cache configuration."""
+    url: str = field(default_factory=lambda: os.getenv("REDIS_URL", "redis://localhost:6379"))
+    upstash_url: str = field(default_factory=lambda: os.getenv("UPSTASH_REDIS_REST_URL", ""))
+    upstash_token: str = field(default_factory=lambda: os.getenv("UPSTASH_REDIS_REST_TOKEN", ""))
+    default_ttl: int = field(default_factory=lambda: int(os.getenv("REDIS_DEFAULT_TTL", "3600")))  # 1 hour
+    max_connections: int = field(default_factory=lambda: int(os.getenv("REDIS_MAX_CONNECTIONS", "50")))
+    socket_timeout: int = field(default_factory=lambda: int(os.getenv("REDIS_SOCKET_TIMEOUT", "5")))
+
+@dataclass
+class CeleryConfig:
+    """Celery task queue configuration."""
+    broker_url: str = field(default_factory=lambda: os.getenv("CELERY_BROKER_URL", os.getenv("REDIS_URL", "redis://localhost:6379")))
+    result_backend: str = field(default_factory=lambda: os.getenv("CELERY_RESULT_BACKEND", os.getenv("REDIS_URL", "redis://localhost:6379")))
+    task_serializer: str = field(default_factory=lambda: os.getenv("CELERY_TASK_SERIALIZER", "json"))
+    result_serializer: str = field(default_factory=lambda: os.getenv("CELERY_RESULT_SERIALIZER", "json"))
+    timezone: str = field(default_factory=lambda: os.getenv("CELERY_TIMEZONE", "UTC"))
+    enable_utc: bool = field(default_factory=lambda: os.getenv("CELERY_ENABLE_UTC", "true").lower() == "true")
+
+@dataclass
 class BondhuConfig:
     """Main configuration class that aggregates all settings."""
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
@@ -128,6 +148,8 @@ class BondhuConfig:
     rate_limits: RateLimitConfig = field(default_factory=RateLimitConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     personality: PersonalityConfig = field(default_factory=PersonalityConfig)
+    redis: RedisConfig = field(default_factory=RedisConfig)
+    celery: CeleryConfig = field(default_factory=CeleryConfig)
     
     # API Configuration
     api_host: str = field(default_factory=lambda: os.getenv("API_HOST", "localhost"))

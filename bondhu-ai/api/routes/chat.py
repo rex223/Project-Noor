@@ -5,16 +5,22 @@ Handles real-time chat interactions with personality-aware responses
 
 import logging
 import uuid
-from typing import Optional
+import json
+from typing import Optional, List
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Query
 from pydantic import BaseModel, Field
 
 from core.chat.gemini_service import get_chat_service
 from core.database.supabase_client import get_supabase_client
+from core.cache.redis_client import get_redis
 
 logger = logging.getLogger("bondhu.api.chat")
+
+# Cache TTLs (in seconds)
+CHAT_HISTORY_CACHE_TTL = 86400  # 24 hours
+CHAT_SEARCH_CACHE_TTL = 3600    # 1 hour
 
 router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
 
@@ -49,6 +55,44 @@ class ChatHistoryResponse(BaseModel):
     messages: list[ChatHistoryItem]
     total: int
     user_id: str
+
+
+class ChatSearchRequest(BaseModel):
+    """Request model for searching chat history."""
+    query: str = Field(..., min_length=1, max_length=500, description="Search query")
+    limit: int = Field(default=20, ge=1, le=100, description="Max results to return")
+
+
+# Cache Helper Functions
+def get_chat_history_cache_key(user_id: str, limit: int, offset: int) -> str:
+    """Generate cache key for chat history."""
+    return f"chat:history:{user_id}:{limit}:{offset}"
+
+
+def get_chat_search_cache_key(user_id: str, query: str, limit: int) -> str:
+    """Generate cache key for chat search."""
+    return f"chat:search:{user_id}:{query}:{limit}"
+
+
+async def invalidate_user_chat_cache(user_id: str):
+    """Invalidate all chat caches for a user."""
+    try:
+        redis = get_redis()
+        # Delete all keys matching pattern
+        pattern = f"chat:*:{user_id}:*"
+        cursor = 0
+        deleted = 0
+        
+        while True:
+            cursor, keys = redis.scan(cursor, match=pattern, count=100)
+            if keys:
+                deleted += redis.delete(*keys)
+            if cursor == 0:
+                break
+                
+        logger.info(f"Invalidated {deleted} cache keys for user {user_id}")
+    except Exception as e:
+        logger.warning(f"Failed to invalidate cache for user {user_id}: {e}")
 
 
 # Endpoints
@@ -101,6 +145,10 @@ async def send_chat_message(request: ChatRequest):
                 session_id=result.get('session_id')
             )
             logger.info(f"Chat message stored with ID: {message_id}")
+            
+            # Invalidate cache after storing new message
+            await invalidate_user_chat_cache(request.user_id)
+            
         except Exception as e:
             logger.warning(f"Failed to store chat message: {e}")
             # Continue even if storage fails
@@ -127,7 +175,7 @@ async def get_chat_history(
     offset: int = 0
 ):
     """
-    Get chat history for a user.
+    Get chat history for a user with Redis caching.
     
     Args:
         user_id: User's unique ID
@@ -143,32 +191,96 @@ async def get_chat_history(
     try:
         logger.info(f"Fetching chat history for user {user_id}")
         
-        supabase = await get_supabase_client()
+        # Try cache first
+        redis = get_redis()
+        cache_key = get_chat_history_cache_key(user_id, limit, offset)
         
-        # Query chat history
-        response = supabase.table('chat_history') \
-            .select('*') \
-            .eq('user_id', user_id) \
-            .order('created_at', desc=True) \
-            .range(offset, offset + limit - 1) \
-            .execute()
-        
-        messages = [
-            ChatHistoryItem(
-                id=msg['id'],
-                message=msg['message'],
-                response=msg['response'],
-                has_personality_context=msg.get('has_personality_context', False),
-                created_at=msg['created_at']
+        cached_data = redis.get(cache_key)
+        if cached_data:
+            logger.info(f"Cache HIT for chat history: {cache_key}")
+            data = json.loads(cached_data)
+            return ChatHistoryResponse(
+                messages=[ChatHistoryItem(**msg) for msg in data['messages']],
+                total=data['total'],
+                user_id=user_id
             )
-            for msg in response.data
-        ]
         
-        return ChatHistoryResponse(
+        logger.info(f"Cache MISS for chat history: {cache_key}")
+        
+        # Query database
+        supabase = get_supabase_client()
+        
+        # Query chat history from chat_messages table
+        try:
+            response = supabase.supabase.table('chat_messages') \
+                .select('*') \
+                .eq('user_id', user_id) \
+                .order('timestamp', desc=True) \
+                .range(offset, offset + limit * 2 - 1) \
+                .execute()
+            
+            logger.info(f"Supabase query returned {len(response.data) if response.data else 0} messages")
+        except Exception as db_error:
+            logger.error(f"Supabase query failed: {db_error}")
+            # Return empty result if query fails
+            return ChatHistoryResponse(
+                messages=[],
+                total=0,
+                user_id=user_id
+            )
+        
+        # Group messages into conversation pairs (user message + AI response)
+        # First pass: collect all messages by session_id
+        sessions = {}
+        for msg in (response.data if response.data else []):
+            session_id = msg.get('session_id', msg['id'])
+            if session_id not in sessions:
+                sessions[session_id] = {'user': None, 'ai': None}
+            
+            if msg['sender_type'] == 'user':
+                sessions[session_id]['user'] = msg
+            elif msg['sender_type'] == 'ai':
+                sessions[session_id]['ai'] = msg
+        
+        # Second pass: create ChatHistoryItem for complete pairs
+        messages = []
+        for session_id, pair in sessions.items():
+            if pair['user'] and pair['ai']:
+                # Use user message timestamp as the conversation timestamp
+                messages.append(ChatHistoryItem(
+                    id=pair['ai']['id'],
+                    message=pair['user']['message_text'],
+                    response=pair['ai']['message_text'],
+                    has_personality_context=pair['user'].get('mood_detected') is not None,
+                    created_at=pair['user']['timestamp']  # Always use user timestamp
+                ))
+        
+        logger.info(f"Created {len(messages)} conversation pairs from {len(sessions)} sessions")
+        
+        # Sort by timestamp (oldest first for chronological display - oldest at top, newest at bottom)
+        messages.sort(key=lambda x: x.created_at, reverse=False)
+        
+        logger.info(f"Returning {len(messages)} messages in chronological order")
+        
+        # Cache the result
+        result = ChatHistoryResponse(
             messages=messages,
             total=len(messages),  # TODO: Get actual total count
             user_id=user_id
         )
+        
+        try:
+            cache_data = {
+                'messages': [msg.model_dump() for msg in messages],
+                'total': len(messages),
+                'user_id': user_id
+            }
+            redis.setex(cache_key, CHAT_HISTORY_CACHE_TTL, json.dumps(cache_data))
+            logger.info(f"Cached chat history for {CHAT_HISTORY_CACHE_TTL}s: {cache_key}")
+        except Exception as cache_err:
+            logger.warning(f"Failed to cache chat history: {cache_err}")
+        
+        return result
         
     except Exception as e:
         logger.error(f"Error fetching chat history: {e}", exc_info=True)
@@ -192,13 +304,16 @@ async def clear_chat_history(user_id: str):
     try:
         logger.info(f"Clearing chat history for user {user_id}")
         
-        supabase = await get_supabase_client()
+        supabase = get_supabase_client()
         
-        # Delete all chat history
-        supabase.table('chat_history') \
+        # Delete all chat messages
+        supabase.supabase.table('chat_messages') \
             .delete() \
             .eq('user_id', user_id) \
             .execute()
+        
+        # Invalidate cache
+        await invalidate_user_chat_cache(user_id)
         
         logger.info(f"Chat history cleared for user {user_id}")
         
@@ -207,6 +322,107 @@ async def clear_chat_history(user_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to clear chat history: {str(e)}"
+        )
+
+
+@router.get("/search/{user_id}", response_model=ChatHistoryResponse)
+async def search_chat_history(
+    user_id: str,
+    q: str = Query(..., min_length=1, max_length=500, description="Search query"),
+    limit: int = Query(default=20, ge=1, le=100)
+):
+    """
+    Search chat history for a user with Redis caching.
+    
+    Performs case-insensitive search across message and response text.
+    
+    Args:
+        user_id: User's unique ID
+        q: Search query string
+        limit: Maximum number of results (default: 20, max: 100)
+        
+    Returns:
+        ChatHistoryResponse with matching messages
+        
+    Raises:
+        HTTPException: If search fails
+    """
+    try:
+        logger.info(f"Searching chat history for user {user_id} with query: '{q}'")
+        
+        # Try cache first
+        redis = get_redis()
+        cache_key = get_chat_search_cache_key(user_id, q, limit)
+        
+        cached_data = redis.get(cache_key)
+        if cached_data:
+            logger.info(f"Cache HIT for chat search: {cache_key}")
+            data = json.loads(cached_data)
+            return ChatHistoryResponse(
+                messages=[ChatHistoryItem(**msg) for msg in data['messages']],
+                total=data['total'],
+                user_id=user_id
+            )
+        
+        logger.info(f"Cache MISS for chat search: {cache_key}")
+        
+        # Query database with text search
+        supabase = get_supabase_client()
+        
+        # Search in message_text field (case-insensitive)
+        search_term = f"%{q.lower()}%"
+        response = supabase.supabase.table('chat_messages') \
+            .select('*') \
+            .eq('user_id', user_id) \
+            .ilike('message_text', search_term) \
+            .order('timestamp', desc=True) \
+            .limit(limit) \
+            .execute()
+        
+        # Group messages into conversation pairs
+        messages = []
+        user_messages = {}
+        
+        for msg in response.data:
+            if msg['sender_type'] == 'user':
+                user_messages[msg.get('session_id', msg['id'])] = msg
+            elif msg['sender_type'] == 'ai':
+                session_id = msg.get('session_id', '')
+                user_msg = user_messages.get(session_id)
+                if user_msg:
+                    messages.append(ChatHistoryItem(
+                        id=msg['id'],
+                        message=user_msg['message_text'],
+                        response=msg['message_text'],
+                        has_personality_context=user_msg.get('mood_detected') is not None,
+                        created_at=user_msg['timestamp']
+                    ))
+        
+        # Cache the result
+        result = ChatHistoryResponse(
+            messages=messages,
+            total=len(messages),
+            user_id=user_id
+        )
+        
+        try:
+            cache_data = {
+                'messages': [msg.model_dump() for msg in messages],
+                'total': len(messages),
+                'user_id': user_id
+            }
+            redis.setex(cache_key, CHAT_SEARCH_CACHE_TTL, json.dumps(cache_data))
+            logger.info(f"Cached search results for {CHAT_SEARCH_CACHE_TTL}s: {cache_key}")
+        except Exception as cache_err:
+            logger.warning(f"Failed to cache search results: {cache_err}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error searching chat history: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to search chat history: {str(e)}"
         )
 
 
@@ -235,7 +451,7 @@ async def _store_chat_message(
     """
     supabase = get_supabase_client()
     
-    # Insert user message
+    # Insert user message (timestamp auto-generated by DB)
     user_message = supabase.supabase.table('chat_messages').insert({
         'user_id': user_id,
         'message_text': message,
@@ -245,7 +461,9 @@ async def _store_chat_message(
         'session_id': session_id
     }).execute()
     
-    # Insert AI response
+    logger.info(f"User message stored: {user_message.data[0]['id']}")
+    
+    # Insert AI response immediately (timestamp auto-generated by DB)
     ai_message = supabase.supabase.table('chat_messages').insert({
         'user_id': user_id,
         'message_text': response,
@@ -254,6 +472,8 @@ async def _store_chat_message(
         'sentiment_score': None,
         'session_id': session_id
     }).execute()
+    
+    logger.info(f"AI message stored: {ai_message.data[0]['id']}, session: {session_id}")
     
     return ai_message.data[0]['id']
 

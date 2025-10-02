@@ -124,6 +124,37 @@ export const chatApi = {
   },
 
   /**
+   * Search chat history for a user
+   */
+  searchChatHistory: async (
+    userId: string,
+    query: string,
+    limit: number = 20
+  ): Promise<ChatHistoryResponse> => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/chat/search/${userId}?q=${encodeURIComponent(query)}&limit=${limit}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to search chat history: ${response.statusText}`);
+      }
+
+      const data: ChatHistoryResponse = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Search Chat History API Error:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Check chat service health
    */
   healthCheck: async (): Promise<{ status: string; service: string; model: string }> => {
