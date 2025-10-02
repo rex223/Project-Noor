@@ -2,7 +2,8 @@
 # Install with: pip install -r requirements-redis-celery.txt
 
 # Redis
-redis==5.0.1
+# celery[redis]==5.3.4 requires redis>=4.5.2,<5.0.0, so pin a compatible range instead
+redis>=4.5.2,<5.0.0
 hiredis==2.3.2  # Optional but recommended for better performance
 
 # Celery
