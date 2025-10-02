@@ -28,7 +28,7 @@ class LLMContextRequest(BaseModel):
     user_id: str = Field(..., description="User's UUID")
 
 
-@router.post("/user-context", response_model=APIResponse[PersonalityContextResponse])
+@router.post("/user-context", response_model=APIResponse)
 async def get_user_personality_context(
     request: PersonalityContextRequest,
     personality_service = Depends(get_personality_service)
@@ -51,7 +51,7 @@ async def get_user_personality_context(
             request.include_analysis_history
         )
         
-        return APIResponse[PersonalityContextResponse](
+        return APIResponse(
             success=True,
             data=context,
             message="Personality context retrieved successfully"
@@ -64,7 +64,7 @@ async def get_user_personality_context(
         )
 
 
-@router.get("/user-context/{user_id}", response_model=APIResponse[PersonalityContextResponse])
+@router.get("/user-context/{user_id}", response_model=APIResponse)
 async def get_user_context_by_id(
     user_id: str,
     include_history: bool = Query(default=False, description="Include analysis history"),
@@ -86,7 +86,7 @@ async def get_user_context_by_id(
             include_history
         )
         
-        return APIResponse[PersonalityContextResponse](
+        return APIResponse(
             success=True,
             data=context,
             message="Personality context retrieved successfully"
@@ -99,7 +99,7 @@ async def get_user_context_by_id(
         )
 
 
-@router.post("/llm-context", response_model=APIResponse[Optional[str]])
+@router.post("/llm-context", response_model=APIResponse)
 async def get_llm_system_prompt(
     request: LLMContextRequest,
     personality_service = Depends(get_personality_service)
@@ -132,7 +132,7 @@ async def get_llm_system_prompt(
         )
 
 
-@router.get("/llm-context/{user_id}", response_model=APIResponse[Optional[str]])
+@router.get("/llm-context/{user_id}", response_model=APIResponse)
 async def get_llm_prompt_by_id(
     user_id: str,
     personality_service = Depends(get_personality_service)
@@ -162,7 +162,7 @@ async def get_llm_prompt_by_id(
         )
 
 
-@router.get("/onboarding-status/{user_id}", response_model=APIResponse[OnboardingStatus])
+@router.get("/onboarding-status/{user_id}", response_model=APIResponse)
 async def check_onboarding_status(
     user_id: str,
     personality_service = Depends(get_personality_service)
@@ -185,7 +185,7 @@ async def check_onboarding_status(
         status_data = await db_client.check_user_onboarding_status(user_id)
         status = OnboardingStatus(**status_data)
         
-        return APIResponse[OnboardingStatus](
+        return APIResponse(
             success=True,
             data=status,
             message="Onboarding status retrieved successfully"
@@ -206,7 +206,7 @@ class PersonalityGuidelinesResponse(BaseModel):
     trait_insights: Optional[dict] = None
 
 
-@router.get("/guidelines/{user_id}", response_model=APIResponse[PersonalityGuidelinesResponse])
+@router.get("/guidelines/{user_id}", response_model=APIResponse)
 async def get_personality_guidelines(
     user_id: str,
     personality_service = Depends(get_personality_service)
@@ -242,7 +242,7 @@ async def get_personality_guidelines(
                 has_assessment=False
             )
         
-        return APIResponse[PersonalityGuidelinesResponse](
+        return APIResponse(
             success=True,
             data=response_data,
             message="Personality guidelines retrieved successfully"

@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 from agents.base_agent import BaseAgent
 from core.config import get_config
-from api.models.schemas import DataSource, PersonalityTrait, GamingPreferences
+from api.models.schemas import DataSource, PersonalityTraitModel as PersonalityTrait, GamingPreferences
 
 # For Steam API integration (would need python-steam-api)
 # from steam import Steam

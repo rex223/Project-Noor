@@ -1,0 +1,182 @@
+{
+  "test_timestamp": "2025-10-01T22:10:23.632727",
+  "user_id": "test_user_12345",
+  "components_tested": [
+    "chat_analysis",
+    "realtime_updates",
+    "background_processing",
+    "cross_modal_fusion",
+    "end_to_end_pipeline"
+  ],
+  "test_results": {
+    "chat_analysis": {
+      "chat_analysis_service": {
+        "status": "mocked",
+        "personality_scores": {
+          "OPENNESS": 78.0,
+          "EXTRAVERSION": 71.0,
+          "CONSCIENTIOUSNESS": 62.0
+        },
+        "message_count": 6,
+        "confidence_scores": {
+          "OPENNESS_confidence": 0.8,
+          "EXTRAVERSION_confidence": 0.7
+        },
+        "communication_patterns": true,
+        "emotional_analysis": true
+      },
+      "advanced_nlp_service": {
+        "status": "mocked",
+        "topic_modeling": true,
+        "emotional_intelligence": true,
+        "cognitive_styles": true,
+        "personality_indicators": 5,
+        "confidence_metrics": {
+          "overall_confidence": 0.75
+        }
+      },
+      "integration": {
+        "chat_nlp_alignment": {
+          "consistency_score": 0.85
+        },
+        "data_consistency": true
+      }
+    },
+    "realtime_updates": {
+      "realtime_processing": {
+        "update_triggered": true,
+        "update_type": "incremental",
+        "personality_changes": true,
+        "analysis_summary": {
+          "traits_updated": 3,
+          "confidence_improved": true
+        },
+        "buffer_management": {
+          "buffer_size": 5,
+          "ready_for_update": true
+        }
+      },
+      "personality_integration": {
+        "insights_generated": 3,
+        "insight_types": [
+          "communication_style",
+          "emotional_pattern",
+          "social_preference"
+        ],
+        "message_count": 5
+      },
+      "performance": {
+        "processing_time_ms": 150,
+        "memory_usage_mb": 25,
+        "update_success_rate": 0.95
+      }
+    },
+    "background_processing": {
+      "pipeline_initialization": {
+        "initialized": true,
+        "config": {
+          "batch_size": 10,
+          "processing_interval": 300
+        },
+        "processing_stats": {
+          "total_processed": 0,
+          "errors": 0,
+          "success_rate": 1.0
+        }
+      },
+      "task_processing": {
+        "task_structure_valid": true,
+        "pipeline_status": "healthy",
+        "queue_functionality": true
+      },
+      "error_handling": {
+        "recovery_strategies": true,
+        "error_tracking": true,
+        "health_monitoring": true
+      }
+    },
+    "end_to_end": {
+      "pipeline_execution": {
+        "analysis_completed": true,
+        "profile_created": true,
+        "data_sources_processed": 5
+      },
+      "final_profile": {
+        "personality_scores": {
+          "OPENNESS": 76.5,
+          "CONSCIENTIOUSNESS": 63.2,
+          "EXTRAVERSION": 69.8,
+          "AGREEABLENESS": 67.4,
+          "NEUROTICISM": 41.3
+        },
+        "profile_metadata": {
+          "user_id": "test_user_12345",
+          "data_sources": [
+            "music",
+            "video",
+            "gaming",
+            "survey",
+            "conversation"
+          ],
+          "overall_confidence": 0.78
+        },
+        "validation_passed": true
+      },
+      "validation": {
+        "scores_in_valid_range": true,
+        "expected_trait_patterns": true,
+        "cross_modal_consistency": true,
+        "chat_integration_success": true
+      }
+    }
+  },
+  "integration_results": {
+    "agent_integration": {
+      "data_collection_success": true,
+      "chat_analysis_integrated": true,
+      "nlp_analysis_integrated": true,
+      "data_sources_count": 5
+    },
+    "fusion_weights": {
+      "music_weight": 0.22,
+      "video_weight": 0.22,
+      "gaming_weight": 0.22,
+      "survey_weight": 0.22,
+      "conversation_weight": 0.12,
+      "total_weight": 1.0
+    },
+    "trait_correlations": {
+      "correlation_matrix_size": 5,
+      "traits_with_correlations": [
+        "openness",
+        "conscientiousness",
+        "extraversion",
+        "agreeableness",
+        "neuroticism"
+      ],
+      "correlation_structure_valid": true
+    }
+  },
+  "final_personality_profile": {
+    "personality_scores": {
+      "OPENNESS": 76.5,
+      "CONSCIENTIOUSNESS": 63.2,
+      "EXTRAVERSION": 69.8,
+      "AGREEABLENESS": 67.4,
+      "NEUROTICISM": 41.3
+    },
+    "profile_metadata": {
+      "user_id": "test_user_12345",
+      "data_sources": [
+        "music",
+        "video",
+        "gaming",
+        "survey",
+        "conversation"
+      ],
+      "overall_confidence": 0.78
+    },
+    "validation_passed": true
+  },
+  "errors": []
+}

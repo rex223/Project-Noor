@@ -43,7 +43,7 @@ class AnthropicConfig:
 class GeminiConfig:
     """Google Gemini API configuration."""
     api_key: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
-    model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
+    model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-pro"))
     temperature: float = field(default_factory=lambda: float(os.getenv("GEMINI_TEMPERATURE", "0.7")))
     
     def __post_init__(self):

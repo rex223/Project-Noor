@@ -1,20 +1,19 @@
 """
-Video Intelligence Agent for analyzing user video consumption patterns and personality insights.
-Integrates with YouTube Data API to gather viewing data and preferences.
+Enhanced Video Intelligence Agent for analyzing user video consumption patterns and personality insights.
+Integrates with YouTube Data API to gather viewing data, provide recommendations, and analyze personality traits.
 """
 
 import asyncio
 import re
+from collections import Counter, defaultdict
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, parse_qs
 
 from agents.base_agent import BaseAgent
 from core.config import get_config
-from api.models.schemas import DataSource, PersonalityTrait, VideoPreferences
-
-# For YouTube API integration (would need google-api-python-client)
-# from googleapiclient.discovery import build
+from core.services.youtube_service import YouTubeService
+from api.models.schemas import DataSource, PersonalityTraitModel as PersonalityTrait, VideoPreferences
 
 class VideoIntelligenceAgent(BaseAgent):
     """
@@ -24,7 +23,7 @@ class VideoIntelligenceAgent(BaseAgent):
     
     def __init__(self, user_id: str, youtube_api_key: Optional[str] = None, **kwargs):
         """
-        Initialize Video Intelligence Agent.
+        Initialize Enhanced Video Intelligence Agent.
         
         Args:
             user_id: User ID for this agent session
@@ -38,8 +37,13 @@ class VideoIntelligenceAgent(BaseAgent):
         )
         
         self.youtube_api_key = youtube_api_key or self.config.youtube.api_key
-        self.youtube_service = None
-        self._initialize_youtube_service()
+        self.youtube_service = YouTubeService(self.youtube_api_key)
+        
+        # Initialize recommendation engine state
+        self.user_feedback_history = []
+        self.recommendation_cache = {}
+        self.genre_analysis_cache = {}
+        self.last_refresh_time = None
         
         # Video category to personality mappings based on research
         self.category_personality_map = {
@@ -94,9 +98,559 @@ class VideoIntelligenceAgent(BaseAgent):
             "short_videos": {"extraversion": 0.4, "neuroticism": 0.3},
             "long_form": {"conscientiousness": 0.6, "openness": 0.5}
         }
-    
+
+    async def get_personalized_recommendations(self, personality_profile: Dict[PersonalityTrait, float], 
+                                             watch_history: List[Dict[str, Any]], 
+                                             max_results: int = 20, 
+                                             force_refresh: bool = False) -> List[Dict[str, Any]]:
+        """
+        Get personalized video recommendations based on user's personality and viewing history.
+        
+        Args:
+            personality_profile: User's Big Five personality scores
+            watch_history: User's video viewing history
+            max_results: Maximum number of recommendations to return
+            force_refresh: Whether to force refresh recommendations
+            
+        Returns:
+            List of recommended videos with metadata and personality scores
+        """
+        try:
+            # Check if we need to refresh recommendations
+            should_refresh = (
+                force_refresh or 
+                not self.recommendation_cache or 
+                self._should_refresh_recommendations()
+            )
+            
+            if should_refresh:
+                # Get fresh recommendations from YouTube service
+                recommendations = await self.youtube_service.get_personalized_recommendations(
+                    personality_profile=personality_profile,
+                    user_history=watch_history,
+                    max_results=max_results
+                )
+                
+                # Apply user feedback filtering
+                filtered_recommendations = self._apply_feedback_filtering(recommendations)
+                
+                # Cache recommendations
+                self.recommendation_cache = {
+                    'recommendations': filtered_recommendations,
+                    'timestamp': datetime.now(),
+                    'personality_profile': personality_profile.copy()
+                }
+                
+                self.last_refresh_time = datetime.now()
+                
+                self.logger.info(f"Generated {len(filtered_recommendations)} personalized video recommendations")
+                return filtered_recommendations
+            else:
+                # Return cached recommendations
+                return self.recommendation_cache.get('recommendations', [])
+                
+        except Exception as e:
+            self.logger.error(f"Error generating personalized recommendations: {e}")
+            return []
+
+    async def get_genre_recommendation_clusters(
+        self,
+        personality_profile: Dict[PersonalityTrait, float],
+        watch_history: List[Dict[str, Any]],
+        max_genres: int = 6,
+        videos_per_genre: int = 3
+    ) -> List[Dict[str, Any]]:
+        """Build genre-based clusters of recommendations with persona alignment."""
+        ranked_genres = self._rank_genres_by_persona_and_history(
+            personality_profile,
+            watch_history
+        )
+
+        clusters: List[Dict[str, Any]] = []
+        seen_video_ids: set[str] = set()
+
+        for genre_entry in ranked_genres:
+            if len(clusters) >= max_genres:
+                break
+
+            genre_name = genre_entry['genre']
+            cluster_position = len(clusters) + 1
+            genre_videos = await self.youtube_service.get_genre_recommendations(
+                genre_name=genre_name,
+                personality_profile=personality_profile,
+                user_history=watch_history,
+                max_results=videos_per_genre * 2
+            )
+
+            curated_videos: List[Dict[str, Any]] = []
+
+            for video in genre_videos:
+                if len(curated_videos) >= videos_per_genre:
+                    break
+                video_id = video.get('id')
+                if not video_id or video_id in seen_video_ids:
+                    continue
+
+                seen_video_ids.add(video_id)
+
+                curated_videos.append({
+                    **video,
+                    "genre": genre_name,
+                    "watch_url": f"https://www.youtube.com/watch?v={video_id}",
+                    "embed_url": f"https://www.youtube.com/embed/{video_id}",
+                    "personality_match": round(video.get('personality_score', 0.0) * 100, 1),
+                    "combined_score": max(video.get('personality_score', 0.0), genre_entry['combined_score']),
+                    "genre_rank": cluster_position,
+                    "source": "genre_personalized",
+                    "genre_combined_score": round(genre_entry['combined_score'], 3),
+                    "thumbnail_urls": {
+                        "default": video.get('thumbnail_url', ''),
+                        "medium": video.get('thumbnail_url', '').replace('maxresdefault', 'mqdefault'),
+                        "high": video.get('thumbnail_url', '').replace('maxresdefault', 'hqdefault')
+                    }
+                })
+
+            if not curated_videos:
+                continue
+
+            clusters.append({
+                "genre": genre_name,
+                "cluster_rank": cluster_position,
+                "history_score": round(genre_entry['history_score'], 3),
+                "personality_score": round(genre_entry['personality_score'], 3),
+                "combined_score": round(genre_entry['combined_score'], 3),
+                "reason": self._generate_genre_reason(
+                    genre_name,
+                    genre_entry['history_score'],
+                    genre_entry['personality_score'],
+                    personality_profile
+                ),
+                "videos": curated_videos
+            })
+
+        return clusters
+
+    def _rank_genres_by_persona_and_history(
+        self,
+        personality_profile: Dict[PersonalityTrait, float],
+        watch_history: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Rank genres by combining viewing history and personality alignment."""
+
+        history_counter: Counter[str] = Counter()
+        watch_time_totals = defaultdict(float)
+
+        for entry in watch_history:
+            genre = (
+                entry.get('category_name')
+                or entry.get('category')
+                or self.youtube_service._get_category_name(str(entry.get('category_id', '')))
+            )
+
+            if not genre or genre == 'Unknown':
+                continue
+
+            history_counter[genre] += 1
+            try:
+                watch_time_totals[genre] += float(entry.get('watch_time', 0))
+            except (TypeError, ValueError):
+                continue
+
+        max_count = max(history_counter.values()) if history_counter else 0
+        max_watch_time = max(watch_time_totals.values()) if watch_time_totals else 0.0
+
+        history_scores: Dict[str, float] = {}
+
+        for genre in set(list(history_counter.keys()) + list(watch_time_totals.keys())):
+            if genre == 'Unknown':
+                continue
+
+            count_component = (history_counter[genre] / max_count) if max_count else 0.0
+            time_component = (watch_time_totals[genre] / max_watch_time) if max_watch_time else 0.0
+
+            # Weighted combination prioritizing consistency of viewing
+            history_scores[genre] = 0.7 * count_component + 0.3 * time_component
+
+        personality_preferences = self.youtube_service._get_preferred_categories(personality_profile)
+        personality_scores: Dict[str, float] = {}
+        personality_max = max((score for _, score in personality_preferences), default=0.0)
+        if personality_max == 0:
+            personality_max = 1.0
+
+        for genre, score in personality_preferences:
+            if genre == 'Unknown':
+                continue
+            personality_scores[genre] = score / personality_max
+
+        candidate_genres = set(history_scores.keys()) | set(personality_scores.keys())
+
+        ranked: List[Dict[str, Any]] = []
+        for genre in candidate_genres:
+            history_score = history_scores.get(genre, 0.0)
+            personality_score = personality_scores.get(genre, 0.0)
+            combined_score = 0.6 * history_score + 0.4 * personality_score
+
+            ranked.append({
+                "genre": genre,
+                "history_score": history_score,
+                "personality_score": personality_score,
+                "combined_score": combined_score
+            })
+
+        if not ranked and personality_preferences:
+            # As a fallback, surface top personality genres directly
+            for genre, score in personality_preferences[:6]:
+                ranked.append({
+                    "genre": genre,
+                    "history_score": 0.0,
+                    "personality_score": score / personality_max,
+                    "combined_score": score / personality_max
+                })
+
+        ranked.sort(key=lambda item: item['combined_score'], reverse=True)
+
+        return ranked
+
+    def _generate_genre_reason(
+        self,
+        genre: str,
+        history_score: float,
+        personality_score: float,
+        personality_profile: Dict[PersonalityTrait, float]
+    ) -> str:
+        """Create a human-readable explanation for a genre recommendation."""
+
+        reason_clauses: List[str] = []
+
+        if history_score >= 0.25:
+            reason_clauses.append("You've been engaging with this genre recently")
+
+        if personality_score >= 0.2:
+            dominant_trait = max(personality_profile.items(), key=lambda item: item[1])[0]
+            trait_label = dominant_trait.value.replace('_', ' ').title()
+            reason_clauses.append(f"It aligns with your {trait_label.lower()} strengths")
+
+        if not reason_clauses:
+            reason_clauses.append("Curated to expand your interests while staying personality-aware")
+
+        return " • ".join(reason_clauses)
+
+    async def analyze_user_video_genres(self, watch_history: List[Dict[str, Any]], 
+                                      force_refresh: bool = False) -> Dict[str, Any]:
+        """
+        Analyze user's video genre preferences and extract personality insights.
+        
+        Args:
+            watch_history: User's video viewing history
+            force_refresh: Whether to force refresh analysis
+            
+        Returns:
+            Dictionary containing genre analysis and personality insights
+        """
+        try:
+            cache_key = f"genre_analysis_{self.user_id}"
+            
+            # Check cache
+            if not force_refresh and cache_key in self.genre_analysis_cache:
+                cached_data = self.genre_analysis_cache[cache_key]
+                if (datetime.now() - cached_data['timestamp']).hours < 6:  # Cache for 6 hours
+                    return cached_data['analysis']
+            
+            # Perform fresh analysis
+            analysis = await self.youtube_service.analyze_user_genres(watch_history)
+            
+            # Enhance analysis with behavioral patterns
+            enhanced_analysis = await self._enhance_genre_analysis(analysis, watch_history)
+            
+            # Cache results
+            self.genre_analysis_cache[cache_key] = {
+                'analysis': enhanced_analysis,
+                'timestamp': datetime.now()
+            }
+            
+            self.logger.info(f"Analyzed {len(watch_history)} videos for genre preferences")
+            return enhanced_analysis
+            
+        except Exception as e:
+            self.logger.error(f"Error analyzing user video genres: {e}")
+            return {}
+
+    async def process_user_feedback(self, video_id: str, feedback_type: str, 
+                                  additional_data: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Process user feedback (like/dislike) for reinforcement learning.
+        
+        Args:
+            video_id: ID of the video being rated
+            feedback_type: 'like', 'dislike', 'watch', 'skip'
+            additional_data: Additional feedback data (watch time, etc.)
+            
+        Returns:
+            True if feedback was processed successfully
+        """
+        try:
+            feedback_entry = {
+                'video_id': video_id,
+                'feedback_type': feedback_type,
+                'timestamp': datetime.now(),
+                'user_id': self.user_id,
+                'additional_data': additional_data or {}
+            }
+            
+            # Add to feedback history
+            self.user_feedback_history.append(feedback_entry)
+            
+            # Limit history size to prevent memory issues
+            if len(self.user_feedback_history) > 1000:
+                self.user_feedback_history = self.user_feedback_history[-800:]  # Keep recent 800
+            
+            # Update recommendation weights based on feedback
+            await self._update_recommendation_weights(feedback_entry)
+            
+            # Log feedback for analysis
+            self.logger.info(f"Processed {feedback_type} feedback for video {video_id}")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error processing user feedback: {e}")
+            return False
+
+    async def get_trending_videos_by_personality(self, personality_profile: Dict[PersonalityTrait, float], 
+                                               region_code: str = "US", 
+                                               max_results: int = 25) -> List[Dict[str, Any]]:
+        """
+        Get trending videos filtered and scored by personality compatibility.
+        
+        Args:
+            personality_profile: User's personality profile
+            region_code: Regional code for trending videos
+            max_results: Maximum number of videos to return
+            
+        Returns:
+            List of trending videos scored for personality compatibility
+        """
+        try:
+            # Get trending videos
+            trending_videos = await self.youtube_service.get_trending_videos(
+                region_code=region_code,
+                max_results=max_results * 2  # Get more to filter from
+            )
+            
+            # Score videos for personality compatibility
+            scored_videos = []
+            for video in trending_videos:
+                score = self.youtube_service._calculate_video_score(
+                    video, personality_profile, []
+                )
+                video['personality_score'] = score
+                scored_videos.append(video)
+            
+            # Sort by personality score and return top results
+            scored_videos.sort(key=lambda x: x['personality_score'], reverse=True)
+            
+            self.logger.info(f"Retrieved {len(scored_videos[:max_results])} personality-matched trending videos")
+            return scored_videos[:max_results]
+            
+        except Exception as e:
+            self.logger.error(f"Error getting trending videos by personality: {e}")
+            return []
+
+    def should_refresh_recommendations(self) -> bool:
+        """Check if recommendations should be refreshed (3x daily schedule)."""
+        return self._should_refresh_recommendations()
+
+    def _should_refresh_recommendations(self) -> bool:
+        """Determine if recommendations should be refreshed based on schedule."""
+        if not self.last_refresh_time:
+            return True
+        
+        # Refresh 3 times daily (every 8 hours)
+        hours_since_refresh = (datetime.now() - self.last_refresh_time).total_seconds() / 3600
+        return hours_since_refresh >= 8
+
+    def _apply_feedback_filtering(self, recommendations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Filter recommendations based on user feedback history."""
+        if not self.user_feedback_history:
+            return recommendations
+        
+        # Get disliked video IDs and categories
+        disliked_videos = set()
+        disliked_categories = {}
+        liked_categories = {}
+        
+        for feedback in self.user_feedback_history[-100:]:  # Consider recent feedback
+            video_id = feedback['video_id']
+            feedback_type = feedback['feedback_type']
+            
+            if feedback_type == 'dislike':
+                disliked_videos.add(video_id)
+                # Track disliked categories (would need video metadata)
+            elif feedback_type == 'like':
+                # Track liked categories (would need video metadata)
+                pass
+        
+        # Filter out disliked videos
+        filtered_recommendations = []
+        for video in recommendations:
+            if video['id'] not in disliked_videos:
+                # Apply category-based filtering here if needed
+                filtered_recommendations.append(video)
+        
+        return filtered_recommendations
+
+    async def _enhance_genre_analysis(self, base_analysis: Dict[str, Any], 
+                                    watch_history: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Enhance genre analysis with additional behavioral insights."""
+        enhanced = base_analysis.copy()
+        
+        # Add viewing behavior patterns
+        viewing_patterns = await self._analyze_viewing_patterns(watch_history)
+        enhanced['viewing_patterns'] = viewing_patterns
+        
+        # Add content engagement analysis
+        engagement_analysis = self._analyze_content_engagement(watch_history)
+        enhanced['engagement_patterns'] = engagement_analysis
+        
+        # Add personality evolution tracking
+        if 'personality_insights' in enhanced:
+            evolution = self._track_personality_evolution(enhanced['personality_insights'])
+            enhanced['personality_evolution'] = evolution
+        
+        return enhanced
+
+    async def _analyze_viewing_patterns(self, watch_history: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze detailed viewing behavior patterns."""
+        patterns = {
+            'total_watch_time': 0,
+            'average_session_length': 0,
+            'preferred_times': [],
+            'binge_watching_score': 0.0,
+            'content_diversity_score': 0.0,
+            'completion_rate': 0.0
+        }
+        
+        if not watch_history:
+            return patterns
+        
+        # Calculate total watch time
+        total_watch_time = sum(video.get('watch_time', 0) for video in watch_history)
+        patterns['total_watch_time'] = total_watch_time
+        
+        # Calculate average session length
+        if watch_history:
+            patterns['average_session_length'] = total_watch_time / len(watch_history)
+        
+        # Analyze viewing times
+        viewing_hours = []
+        for video in watch_history:
+            timestamp = video.get('timestamp')
+            if timestamp:
+                try:
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                    viewing_hours.append(dt.hour)
+                except:
+                    pass
+        
+        if viewing_hours:
+            # Group by time periods
+            morning = sum(1 for h in viewing_hours if 6 <= h < 12)
+            afternoon = sum(1 for h in viewing_hours if 12 <= h < 18)
+            evening = sum(1 for h in viewing_hours if 18 <= h < 24)
+            night = sum(1 for h in viewing_hours if 0 <= h < 6)
+            
+            patterns['preferred_times'] = {
+                'morning': morning / len(viewing_hours),
+                'afternoon': afternoon / len(viewing_hours),
+                'evening': evening / len(viewing_hours),
+                'night': night / len(viewing_hours)
+            }
+        
+        # Calculate content diversity
+        categories = [video.get('category', 'Unknown') for video in watch_history]
+        unique_categories = len(set(categories))
+        patterns['content_diversity_score'] = unique_categories / len(categories) if categories else 0
+        
+        # Calculate completion rate
+        completed_videos = sum(1 for video in watch_history 
+                             if video.get('completion_rate', 0) > 0.8)
+        patterns['completion_rate'] = completed_videos / len(watch_history) if watch_history else 0
+        
+        return patterns
+
+    def _analyze_content_engagement(self, watch_history: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze user engagement with different types of content."""
+        engagement = {
+            'high_engagement_categories': [],
+            'low_engagement_categories': [],
+            'skip_patterns': [],
+            'replay_patterns': []
+        }
+        
+        category_engagement = {}
+        
+        for video in watch_history:
+            category = video.get('category', 'Unknown')
+            completion_rate = video.get('completion_rate', 0)
+            
+            if category not in category_engagement:
+                category_engagement[category] = []
+            
+            category_engagement[category].append(completion_rate)
+        
+        # Calculate average engagement per category
+        for category, rates in category_engagement.items():
+            avg_rate = sum(rates) / len(rates)
+            
+            if avg_rate > 0.7:
+                engagement['high_engagement_categories'].append((category, avg_rate))
+            elif avg_rate < 0.3:
+                engagement['low_engagement_categories'].append((category, avg_rate))
+        
+        # Sort by engagement level
+        engagement['high_engagement_categories'].sort(key=lambda x: x[1], reverse=True)
+        engagement['low_engagement_categories'].sort(key=lambda x: x[1])
+        
+        return engagement
+
+    def _track_personality_evolution(self, personality_insights: Dict[str, Any]) -> Dict[str, Any]:
+        """Track how personality insights evolve over time."""
+        evolution = {
+            'stable_traits': [],
+            'evolving_traits': [],
+            'confidence_trends': {}
+        }
+        
+        # This would compare with historical personality data
+        # For now, return basic structure
+        for trait, data in personality_insights.items():
+            confidence = data.get('confidence', 0)
+            evolution['confidence_trends'][trait] = confidence
+            
+            if confidence > 0.7:
+                evolution['stable_traits'].append(trait)
+            elif confidence < 0.4:
+                evolution['evolving_traits'].append(trait)
+        
+        return evolution
+
+    async def _update_recommendation_weights(self, feedback_entry: Dict[str, Any]) -> None:
+        """Update recommendation algorithm weights based on user feedback."""
+        # This would implement reinforcement learning logic
+        # For now, just log the feedback for future processing
+        feedback_type = feedback_entry['feedback_type']
+        video_id = feedback_entry['video_id']
+        
+        # In a full implementation, this would:
+        # 1. Update neural network weights
+        # 2. Adjust category preferences
+        # 3. Update personality-content mappings
+        # 4. Store feedback for batch learning
+        
+        self.logger.debug(f"Updated recommendation weights based on {feedback_type} for {video_id}")
+
     def _initialize_youtube_service(self):
-        """Initialize YouTube Data API service."""
+        """Initialize YouTube Data API service (legacy method for compatibility)."""
         if self.youtube_api_key:
             try:
                 # Note: This would require google-api-python-client
