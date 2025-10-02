@@ -23,7 +23,7 @@ from api.models.schemas import (
     DataSource, 
     AgentAnalysisResult, 
     AnalysisStatus, 
-    PersonalityTraitModel as PersonalityTrait,
+    PersonalityTrait,
     AgentMemory,
     MemoryItem
 )

@@ -7,7 +7,7 @@ import asyncio
 import logging
 import uuid
 import json
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, status, Depends, Query
@@ -16,6 +16,11 @@ from pydantic import BaseModel, Field
 from core.chat.gemini_service import get_chat_service
 from core.database.supabase_client import get_supabase_client
 from core.cache.redis_client import get_redis
+from core.config import get_config
+from core.database.personality_service import get_personality_service
+from core.database.memory_service import get_memory_service
+from core.memory_extractor import MemoryExtractor
+from api.models.schemas import APIResponse
 
 logger = logging.getLogger("bondhu.api.chat")
 
@@ -64,6 +69,17 @@ class ChatSearchRequest(BaseModel):
     limit: int = Field(default=20, ge=1, le=100, description="Max results to return")
 
 
+class ChatMessage(BaseModel):
+    """Internal model for chat messages."""
+    id: str
+    user_id: str
+    sender_type: str = Field(default="user", description="Either 'user' or 'assistant'")
+    message_text: str
+    session_id: str
+    timestamp: datetime
+    message: Optional[str] = None  # Alias for message_text
+    
+
 # Cache Helper Functions
 def get_chat_history_cache_key(user_id: str, limit: int, offset: int) -> str:
     """Generate cache key for chat history."""
@@ -75,7 +91,7 @@ def get_chat_search_cache_key(user_id: str, query: str, limit: int) -> str:
     return f"chat:search:{user_id}:{query}:{limit}"
 
 
-async def invalidate_user_chat_cache(user_id: str):
+def invalidate_user_chat_cache(user_id: str):
     """Invalidate all chat caches for a user."""
     try:
         redis = get_redis()
@@ -150,45 +166,41 @@ async def send_chat_message(request: ChatRequest):
         conversation_history = await _get_conversation_history(request.user_id, session_id)
         
         # Generate AI response using personality-aware LLM
-        ai_response_text, personality_insights = await _generate_ai_response(
-            user_message=request.message,
-            personality_context=enriched_personality_context,
-            conversation_history=conversation_history,
-            config=config
-        )
-        
-        # Create AI message record
-        ai_message = ChatMessage(
-            id=str(uuid.uuid4()),
+        chat_service = get_chat_service()
+        result = await chat_service.send_message(
             user_id=request.user_id,
             message=request.message,
+            include_history=False,
             session_id=session_id
         )
         
-        # Store in database (optional for MVP)
+        # Extract response text from result
+        ai_response_text = result.get('response', result.get('content', 'Sorry, I could not generate a response.'))
+        
+        # Store in database
         message_id = None
         try:
-            message_id = await _store_chat_message(
+            message_id = _store_chat_message(
                 user_id=request.user_id,
                 message=request.message,
-                response=result['response'],
+                response=ai_response_text,
                 mood_detected=result.get('mood_detected'),
                 sentiment_score=result.get('sentiment_score'),
-                session_id=result.get('session_id')
+                session_id=session_id
             )
             logger.info(f"Chat message stored with ID: {message_id}")
             
             # Invalidate cache after storing new message
-            await invalidate_user_chat_cache(request.user_id)
+            invalidate_user_chat_cache(request.user_id)
             
         except Exception as e:
             logger.warning(f"Failed to store chat message: {e}")
             # Continue even if storage fails
         
         return ChatResponse(
-            response=result['response'],
-            has_personality_context=result['has_personality_context'],
-            timestamp=result['timestamp'],
+            response=ai_response_text,
+            has_personality_context=result.get('has_personality_context', False),
+            timestamp=datetime.now().isoformat(),
             message_id=message_id
         )
         
@@ -200,12 +212,13 @@ async def send_chat_message(request: ChatRequest):
         )
 
 
-@router.get("/history/{user_id}", response_model=APIResponse)
+@router.get("/history/{user_id}", response_model=ChatHistoryResponse)
 async def get_chat_history(
     user_id: str, 
     session_id: Optional[str] = None,
-    limit: int = 50
-) -> APIResponse:
+    limit: int = 50,
+    offset: int = 0
+) -> ChatHistoryResponse:
     """
     Get chat history for a user with Redis caching.
     
@@ -458,7 +471,7 @@ async def search_chat_history(
 
 
 # Helper Functions
-async def _store_chat_message(
+def _store_chat_message(
     user_id: str,
     message: str,
     response: str,

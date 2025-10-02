@@ -47,7 +47,7 @@ export const chatApi = {
    */
   sendMessage: async (userId: string, message: string): Promise<ChatResponse> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/chat/message`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/chat/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

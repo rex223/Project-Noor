@@ -13,7 +13,7 @@ from urllib.parse import urlparse, parse_qs
 from agents.base_agent import BaseAgent
 from core.config import get_config
 from core.services.youtube_service import YouTubeService
-from api.models.schemas import DataSource, PersonalityTraitModel as PersonalityTrait, VideoPreferences
+from api.models.schemas import DataSource, PersonalityTrait, VideoPreferences
 
 class VideoIntelligenceAgent(BaseAgent):
     """

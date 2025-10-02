@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 from agents.base_agent import BaseAgent
 from core.config import get_config
-from api.models.schemas import DataSource, PersonalityTraitModel as PersonalityTrait, MusicPreferences
+from api.models.schemas import DataSource, PersonalityTrait, MusicPreferences
 
 class MusicIntelligenceAgent(BaseAgent):
     """
