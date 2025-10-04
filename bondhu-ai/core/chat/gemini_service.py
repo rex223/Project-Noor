@@ -7,7 +7,10 @@ import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+try:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+except Exception:
+    ChatGoogleGenerativeAI = None
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from core.config import get_config
@@ -25,11 +28,23 @@ class GeminiChatService:
     def __init__(self):
         """Initialize Gemini chat service with configuration."""
         self.config = get_config()
-        self.llm = ChatGoogleGenerativeAI(
-            model=self.config.gemini.model,
-            temperature=self.config.gemini.temperature,
-            google_api_key=self.config.gemini.api_key
-        )
+        # Provide a development fallback when the external Gemini LLM isn't
+        # installed. This avoids import-time failures while you iterate locally.
+        if ChatGoogleGenerativeAI is None:
+            class _DevFallbackLLM:
+                async def ainvoke(self, messages):
+                    class _Resp:
+                        content = "[dev-fallback] LLM unavailable - install langchain_google_genai to enable"
+                    return _Resp()
+
+            self.llm = _DevFallbackLLM()
+            logger.warning("ChatGoogleGenerativeAI not installed - using development fallback LLM")
+        else:
+            self.llm = ChatGoogleGenerativeAI(
+                model=self.config.gemini.model,
+                temperature=self.config.gemini.temperature,
+                google_api_key=self.config.gemini.api_key
+            )
         self.personality_service = get_personality_service()
         logger.info("GeminiChatService initialized")
     

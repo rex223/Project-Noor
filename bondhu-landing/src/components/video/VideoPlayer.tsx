@@ -77,7 +77,8 @@ export function VideoPlayer({ video, onWatchComplete, onClose }: VideoPlayerProp
   const [totalWatchTime, setTotalWatchTime] = useState(0)
   const [isLiked, setIsLiked] = useState(false)
 
-  const controlsTimeoutRef = useRef<NodeJS.Timeout>()
+  // use number|null for browser setTimeout ID
+  const controlsTimeoutRef = useRef<number | null>(null)
 
   // Format time display
   const formatTime = (seconds: number) => {
@@ -150,7 +151,7 @@ export function VideoPlayer({ video, onWatchComplete, onClose }: VideoPlayerProp
       const oldTime = currentTime
       videoRef.current.currentTime = time
       setCurrentTime(time)
-      
+
       // Track seeking patterns
       if (lastSeekTime !== null && Math.abs(time - lastSeekTime) > 10) {
         const skipPattern: SkipPattern = {
@@ -160,7 +161,7 @@ export function VideoPlayer({ video, onWatchComplete, onClose }: VideoPlayerProp
         }
         setSkipPatterns(prev => [...prev, skipPattern])
       }
-      
+
       setLastSeekTime(time)
       addInteraction('seek', `Seeked to ${formatTime(time)}`)
     }
@@ -244,7 +245,7 @@ export function VideoPlayer({ video, onWatchComplete, onClose }: VideoPlayerProp
       emotionalResponse: [], // This could be enhanced with facial recognition or user feedback
       skipPatterns
     }
-    
+
     onWatchComplete(watchData)
   }, [video.id, sessionId, totalWatchTime, duration, currentTime, interactions, skipPatterns, onWatchComplete])
 
@@ -252,9 +253,9 @@ export function VideoPlayer({ video, onWatchComplete, onClose }: VideoPlayerProp
   const resetControlsTimeout = () => {
     setShowControls(true)
     if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current)
+      window.clearTimeout(controlsTimeoutRef.current)
     }
-    controlsTimeoutRef.current = setTimeout(() => {
+    controlsTimeoutRef.current = window.setTimeout(() => {
       if (isPlaying) {
         setShowControls(false)
       }
@@ -316,7 +317,7 @@ export function VideoPlayer({ video, onWatchComplete, onClose }: VideoPlayerProp
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div 
+        <div
           className="relative aspect-video bg-black"
           onMouseMove={resetControlsTimeout}
           onMouseLeave={() => setShowControls(false)}
@@ -381,11 +382,11 @@ export function VideoPlayer({ video, onWatchComplete, onClose }: VideoPlayerProp
                   <Button variant="ghost" size="sm" onClick={skipBackward}>
                     <SkipBack className="h-4 w-4" />
                   </Button>
-                  
+
                   <Button variant="ghost" size="sm" onClick={togglePlayPause}>
                     {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   </Button>
-                  
+
                   <Button variant="ghost" size="sm" onClick={skipForward}>
                     <SkipForward className="h-4 w-4" />
                   </Button>
@@ -394,7 +395,7 @@ export function VideoPlayer({ video, onWatchComplete, onClose }: VideoPlayerProp
                     <Button variant="ghost" size="sm" onClick={toggleMute}>
                       {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                     </Button>
-                    
+
                     <div className="w-20">
                       <Slider
                         value={[volume]}
@@ -415,7 +416,7 @@ export function VideoPlayer({ video, onWatchComplete, onClose }: VideoPlayerProp
                   >
                     <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
                   </Button>
-                  
+
                   <Button variant="ghost" size="sm" onClick={shareVideo}>
                     <Share2 className="h-4 w-4" />
                   </Button>
@@ -453,7 +454,7 @@ export function VideoPlayer({ video, onWatchComplete, onClose }: VideoPlayerProp
             ))}
           </div>
           <p className="text-sm text-gray-300">{video.description}</p>
-          
+
           {/* Analytics Preview */}
           <div className="mt-4 text-xs text-gray-400 space-y-1">
             <p>Watch Progress: {Math.round((currentTime / duration) * 100)}%</p>

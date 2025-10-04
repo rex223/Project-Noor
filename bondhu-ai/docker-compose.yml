@@ -1,111 +1,115 @@
-version: '3.8'
-
 services:
-  # Redis Service
+  # Redis Service - Ultra-lightweight for free tier
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
     container_name: bondhu-redis
     ports:
-      - "6379:6379"
-    restart: always
+      - "127.0.0.1:6379:6379"
+    restart: unless-stopped
     volumes:
       - redis-data:/data
+    command: redis-server --maxmemory 48mb --maxmemory-policy allkeys-lru --save "" --appendonly no --tcp-keepalive 60 --timeout 300
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 6h
+      timeout: 60s
+      retries: 1
+      start_period: 60s
     networks:
       - bondhu-network
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.1'
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Main Application Service
+  # Main Application Service - Free tier optimized
   bondhu-api:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: bondhu-api
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
+    # Use an env_file for secrets/overrides; keep non-breaking (file optional)
+    env_file: ../.env
     environment:
       - REDIS_URL=redis://redis:6379
       - CELERY_BROKER_URL=redis://redis:6379
       - CELERY_RESULT_BACKEND=redis://redis:6379
       - PYTHONPATH=/app
+      - ENVIRONMENT=production
+      - LOG_LEVEL=warning
+      # Rate Limiting Configuration
+      - ENABLE_RATE_LIMITING=true
+      - ENABLE_CACHING=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - MONITORING_ENABLED=true
+      # Replace the direct default with a placeholder and prefer .env or secret manager
+      - ALERT_EMAIL=${ALERT_EMAIL:-youremail@example.com}
     depends_on:
       redis:
         condition: service_healthy
-    restart: always
-    volumes:
-      - ./logs:/app/logs
+    restart: unless-stopped
     networks:
       - bondhu-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      # Use a single-line python stdlib check to avoid extra runtime deps
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)\"" ]
+      interval: 12h
+      timeout: 60s
+      retries: 1
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+    security_opt:
+      - no-new-privileges:true
 
-  # Celery Worker Service
+  # Celery Worker - Minimal resource usage
   celery-worker:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: bondhu-celery-worker
-    command: celery -A core.celery_app worker --loglevel=info
+    command: celery -A core.celery_app worker --loglevel=warning --concurrency=1 --max-tasks-per-child=500 --time-limit=180 --soft-time-limit=150 --without-gossip --without-mingle --without-heartbeat
     environment:
       - REDIS_URL=redis://redis:6379
       - CELERY_BROKER_URL=redis://redis:6379
       - CELERY_RESULT_BACKEND=redis://redis:6379
       - PYTHONPATH=/app
+      - ENVIRONMENT=production
+      - LOG_LEVEL=warning
     depends_on:
       redis:
         condition: service_healthy
-    restart: always
-    volumes:
-      - ./logs:/app/logs
+    restart: unless-stopped
     networks:
       - bondhu-network
-
-  # Celery Beat Service (for scheduled tasks)
-  celery-beat:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: bondhu-celery-beat
-    command: celery -A core.celery_app beat --loglevel=info
-    environment:
-      - REDIS_URL=redis://redis:6379
-      - CELERY_BROKER_URL=redis://redis:6379
-      - CELERY_RESULT_BACKEND=redis://redis:6379
-      - PYTHONPATH=/app
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: always
-    volumes:
-      - ./logs:/app/logs
-    networks:
-      - bondhu-network
-
-  # Flower - Celery Monitoring (Optional)
-  flower:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: bondhu-flower
-    command: celery -A core.celery_app flower --port=5555
-    ports:
-      - "5555:5555"
-    environment:
-      - REDIS_URL=redis://redis:6379
-      - CELERY_BROKER_URL=redis://redis:6379
-      - CELERY_RESULT_BACKEND=redis://redis:6379
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: always
-    networks:
-      - bondhu-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 80M
+          cpus: '0.1'
+    security_opt:
+      - no-new-privileges:true
+    # Add logging rotation to the API and Redis as well
 
 volumes:
   redis-data:

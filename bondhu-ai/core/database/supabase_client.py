@@ -22,6 +22,88 @@ class SupabaseClient:
             config.database.url,
             config.database.key
         )
+        # Backwards-compatibility: expose `.table(...)` proxy so older code that
+        # calls `supabase = get_supabase_client(); supabase.table(...)` continues
+        # to function. Internally we use `self.supabase` which is the real client.
+        # Some modules also reference `supabase.supabase` — keep that available
+        # by ensuring attribute access is straightforward.
+        # NOTE: supabase-py v2+ uses `from supabase import create_client` returning
+        # a client object with `.from_` and REST helpers. We provide `.table`
+        # as a convenience wrapper matching earlier code patterns in this repo.
+
+    def table(self, name: str):
+        """Proxy to the underlying Supabase client's table/select API.
+
+        Usage in repo expects `.table(...).select(...).eq(...).execute()`.
+        This method forwards the call to the wrapped client instance.
+        """
+        try:
+            return self.supabase.table(name)
+        except AttributeError:
+            # If the underlying client has different API (e.g., `.from_`), try
+            # a best-effort mapping by returning a small adapter object that
+            # exposes `select`, `eq`, `order`, `limit`, `execute`, and `insert`.
+            class _Adapter:
+                def __init__(self, client, table_name):
+                    self._client = client
+                    self._table = table_name
+                    self._query = None
+
+                def select(self, *args, **kwargs):
+                    # map to .from_(table).select(...)
+                    cols = args[0] if args else "*"
+                    self._query = self._client.from_(self._table).select(cols)
+                    return self
+
+                def eq(self, key, value):
+                    if self._query is None:
+                        self._query = self._client.from_(self._table).select("*")
+                    self._query = self._query.eq(key, value)
+                    return self
+
+                def order(self, key, desc=False):
+                    if self._query is None:
+                        self._query = self._client.from_(self._table).select("*")
+                    order_spec = f"{key}.desc" if desc else key
+                    # supabase-py uses order(column, desc=False)
+                    try:
+                        self._query = self._query.order(key, desc=desc)
+                    except Exception:
+                        # fallback: try chaining raw order string
+                        self._query = self._query.order(order_spec)
+                    return self
+
+                def limit(self, n: int):
+                    if self._query is None:
+                        self._query = self._client.from_(self._table).select("*")
+                    self._query = self._query.limit(n)
+                    return self
+
+                def insert(self, payload):
+                    # Use from_(table).insert(...).execute()
+                    return self._client.from_(self._table).insert(payload).execute()
+
+                def upsert(self, payload):
+                    return self._client.from_(self._table).upsert(payload).execute()
+
+                def execute(self):
+                    if self._query is None:
+                        self._query = self._client.from_(self._table).select("*")
+                    return self._query.execute()
+
+            return _Adapter(self.supabase, name)
+
+    def __getattr__(self, item: str):
+        """Forward attribute access to the underlying supabase client.
+
+        This allows code that expects the raw client API (e.g. `.from_`,
+        `.rpc`, etc.) to continue working when using the wrapped
+        SupabaseClient instance returned by `get_supabase_client()`.
+        """
+        # Prevent recursion
+        if item in self.__dict__:
+            return self.__dict__[item]
+        return getattr(self.supabase, item)
     
     async def close(self):
         """Close database connections (no-op for REST API)."""

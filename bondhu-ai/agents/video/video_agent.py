@@ -404,6 +404,10 @@ class VideoIntelligenceAgent(BaseAgent):
             if len(self.user_feedback_history) > 1000:
                 self.user_feedback_history = self.user_feedback_history[-800:]  # Keep recent 800
             
+            # Store watch history in database for persistent learning
+            if feedback_type in ['watch', 'like']:  # Only store positive interactions
+                await self._store_watch_history(video_id, additional_data)
+            
             # Update recommendation weights based on feedback
             await self._update_recommendation_weights(feedback_entry)
             
@@ -415,6 +419,43 @@ class VideoIntelligenceAgent(BaseAgent):
         except Exception as e:
             self.logger.error(f"Error processing user feedback: {e}")
             return False
+
+    async def _store_watch_history(self, video_id: str, additional_data: Dict[str, Any]):
+        """Store video watch history in database for persistent recommendations."""
+        try:
+            from core.database.supabase_client import get_supabase_client
+            
+            supabase = get_supabase_client()
+            
+            # Calculate completion rate
+            watch_time = additional_data.get('watch_time', 0)
+            total_duration = additional_data.get('duration', 0)
+            completion_rate = (watch_time / total_duration) if total_duration > 0 else 0.0
+            
+            # Fetch video metadata (you might want to get this from the video data passed in)
+            # For now, we'll use what we have and fetch additional data later
+            video_data = {
+                'user_id': self.user_id,
+                'video_id': video_id,
+                'video_title': additional_data.get('video_title', 'Unknown Title'),
+                'channel_title': additional_data.get('channel_title', 'Unknown Channel'),
+                'category_name': additional_data.get('category_name', 'Entertainment'),
+                'watch_time': watch_time,
+                'completion_rate': completion_rate,
+                'watched_at': datetime.now().isoformat(),
+                'created_at': datetime.now().isoformat()
+            }
+            
+            # Insert into user_video_history table
+            result = supabase.supabase.table('user_video_history').insert(video_data).execute()
+            
+            if result.data:
+                self.logger.info(f"Stored watch history for video {video_id}")
+            else:
+                self.logger.warning(f"Failed to store watch history for video {video_id}")
+                
+        except Exception as e:
+            self.logger.error(f"Error storing watch history: {e}")
 
     async def get_trending_videos_by_personality(self, personality_profile: Dict[PersonalityTrait, float], 
                                                region_code: str = "US", 

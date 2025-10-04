@@ -959,7 +959,7 @@ function GamingSection({
         'memory_palace': 'Memory Palace',
         'color_symphony': 'Color Symphony'
       };
-      
+
       await fetch('/api/activity-stats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1272,12 +1272,19 @@ function VideoSection({
         </Card>
       )}
 
-      {/* Render VideoRecommendations component here */}
-      <VideoRecommendations
-        userId={profile.id}
-        personalityProfile={personalityProfile}
-        onVideoInteraction={handleVideoInteraction}
-      />
+      {/* Enhanced Video Section with Genre-based Recommendations */}
+      <div className="space-y-8">
+        {/* Four-Genre Recommendations removed — using traditional recommendations only */}
+        {/* Traditional Video Recommendations */}
+        <div className="border-t pt-8">
+          <h3 className="text-xl font-semibold mb-4">More Recommendations</h3>
+          <VideoRecommendations
+            userId={profile.id}
+            personalityProfile={personalityProfile}
+            onVideoInteraction={handleVideoInteraction}
+          />
+        </div>
+      </div>
     </div>
   )
 }

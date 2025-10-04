@@ -58,7 +58,7 @@ const PersonalityCard = ({
   const isActive = i === currentCard
   const isCompleted = i < currentCard
   const isPending = i > currentCard
-  
+
   // Determine card transform properties
   const getCardTransform = () => {
     if (isActive) {
@@ -84,7 +84,7 @@ const PersonalityCard = ({
       }
     }
   }
-  
+
   const transform = getCardTransform()
 
   return (
@@ -106,15 +106,14 @@ const PersonalityCard = ({
           backgroundColor: 'white',
           boxShadow: `0 0 0 3px ${cardData.color}, 0 25px 50px -12px rgba(0, 0, 0, 0.3)`
         }}
-        className={`flex flex-col h-[80vh] w-[90%] max-w-6xl rounded-2xl shadow-2xl overflow-hidden bg-white dark:bg-gray-900 ${
-          isActive && !canProceed ? 'ring-2 ring-orange-400 ring-opacity-50' : ''
-        }`}
+        className={`flex flex-col h-[80vh] w-[90%] max-w-6xl rounded-2xl shadow-2xl overflow-hidden bg-white dark:bg-gray-900 ${isActive && !canProceed ? 'ring-2 ring-orange-400 ring-opacity-50' : ''
+          }`}
       >
         {/* Card Header */}
         <div className="p-8 border-b border-border/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div 
+              <div
                 className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
                 style={{ backgroundColor: cardData.color + '30' }}
               >
@@ -165,12 +164,12 @@ const PersonalityCard = ({
             {/* Trait Questions */}
             {cardData.type === 'trait' && cardData.trait && (
               <div className="space-y-4 flex-1">
-                {cardData.trait.questions.map((question, qIndex) => (
+                {cardData.trait?.questions?.map((question, qIndex) => (
                   <PersonalityQuestionCard
                     key={question.id}
-                    question={{...question, userResponse: responses[question.id]}}
+                    question={{ ...question, userResponse: responses[question.id] }}
                     questionIndex={qIndex}
-                    totalQuestions={cardData.trait.questions.length}
+                    totalQuestions={cardData.trait?.questions?.length ?? 0}
                     onResponseChange={onResponseChange}
                   />
                 ))}
@@ -235,7 +234,7 @@ const PersonalityCard = ({
                     </>
                   )}
                 </Button>
-                
+
                 {!canProceed && cardData.type === 'trait' && (
                   <p className="text-sm text-muted-foreground mt-2">
                     Please answer all questions to continue
@@ -246,7 +245,7 @@ const PersonalityCard = ({
           </div>
 
           {/* Right Panel - Visual */}
-          <div 
+          <div
             className="relative overflow-hidden hidden lg:block"
             style={{
               background: `linear-gradient(135deg, ${cardData.color}20 0%, ${cardData.color}10 100%)`
@@ -269,7 +268,7 @@ const PersonalityCard = ({
                 className="w-80 h-80 rounded-full opacity-20"
                 style={{ backgroundColor: cardData.color }}
               />
-              
+
               {/* Large Icon */}
               <div className="absolute text-8xl opacity-30">
                 {cardData.icon}
@@ -320,10 +319,10 @@ export function PersonalityStackingCards({
       trait,
       color: trait.color,
       icon: trait.id === 'openness' ? '🌳' :
-            trait.id === 'extraversion' ? '🎪' :
-            trait.id === 'agreeableness' ? '🤝' :
+        trait.id === 'extraversion' ? '🎪' :
+          trait.id === 'agreeableness' ? '🤝' :
             trait.id === 'conscientiousness' ? '⛰️' :
-            trait.id === 'neuroticism' ? '⛈️' : '✨'
+              trait.id === 'neuroticism' ? '⛈️' : '✨'
     }))
   ]
 
@@ -362,7 +361,7 @@ export function PersonalityStackingCards({
   return (
     <div className={cn("relative", className)}>
       {/* Fixed Progress Header */}
-        <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur border-b">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -373,43 +372,43 @@ export function PersonalityStackingCards({
               </div>
             </div>
             <div className="flex items-center space-x-4">
-                <div className="text-right" aria-live="polite">
-                  <p className="text-sm font-medium" aria-label={`${answeredQuestions} of ${totalQuestions} questions completed`}>
-                    {answeredQuestions}/{totalQuestions}
-                  </p>
+              <div className="text-right" aria-live="polite">
+                <p className="text-sm font-medium" aria-label={`${answeredQuestions} of ${totalQuestions} questions completed`}>
+                  {answeredQuestions}/{totalQuestions}
+                </p>
                 <p className="text-xs text-muted-foreground">Questions</p>
               </div>
-                <Progress 
-                  value={progress} 
-                  className="w-24" 
-                  aria-label={`Assessment progress: ${Math.round(progress)}% complete`}
-                />
+              <Progress
+                value={progress}
+                className="w-24"
+                aria-label={`Assessment progress: ${Math.round(progress)}% complete`}
+              />
             </div>
           </div>
         </div>
-        </header>
+      </header>
 
-        {/* Main Content */}
-        <main className="bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 dark:from-green-950/20 dark:via-blue-950/20 dark:to-purple-950/20 pt-20" ref={container}>
-          {/* Stacking Cards Section */}
-          <section className="h-screen relative overflow-hidden">
-            {cards.map((card, i) => (
-              <PersonalityCard
-                key={card.id}
-                i={i}
-                cardData={card}
-                currentCard={currentCard}
-                responses={responses}
-                onResponseChange={onResponseChange}
-                onContinue={handleContinue}
-                onPrevious={handlePrevious}
-                canProceed={canProceedFromCard(i)}
-                isLast={i === cards.length - 1}
-                onComplete={onComplete}
-              />
-            ))}
-          </section>
-        </main>
+      {/* Main Content */}
+      <main className="bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 dark:from-green-950/20 dark:via-blue-950/20 dark:to-purple-950/20 pt-20" ref={container}>
+        {/* Stacking Cards Section */}
+        <section className="h-screen relative overflow-hidden">
+          {cards.map((card, i) => (
+            <PersonalityCard
+              key={card.id}
+              i={i}
+              cardData={card}
+              currentCard={currentCard}
+              responses={responses}
+              onResponseChange={onResponseChange}
+              onContinue={handleContinue}
+              onPrevious={handlePrevious}
+              canProceed={canProceedFromCard(i)}
+              isLast={i === cards.length - 1}
+              onComplete={onComplete}
+            />
+          ))}
+        </section>
+      </main>
     </div>
   )
 }

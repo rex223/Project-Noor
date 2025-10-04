@@ -16,7 +16,7 @@ from agents.gaming.gaming_agent import GamingIntelligenceAgent
 from core.config.settings import get_config
 from core.database.models import PersonalityTrait  # Enum, not Pydantic model
 
-router = APIRouter(prefix="/api/v1", tags=["entertainment"])
+router = APIRouter(prefix="/api/v1/entertainment", tags=["entertainment"])
 logger = logging.getLogger("bondhu.entertainment")
 
 # Video Entertainment Endpoints
@@ -43,9 +43,9 @@ async def get_video_recommendations(
         # Get user's personality profile
         personality_service = get_personality_service()
         personality_context = await personality_service.get_user_personality_context(user_id)
-        personality_scores = personality_context.personality_scores if personality_context else None
+        personality_profile = personality_context.personality_profile if personality_context and personality_context.has_assessment else None
         
-        if not personality_scores:
+        if not personality_profile:
             # Use default balanced personality for new users
             personality_scores = {
                 PersonalityTrait.OPENNESS: 50.0,
@@ -53,6 +53,14 @@ async def get_video_recommendations(
                 PersonalityTrait.EXTRAVERSION: 50.0,
                 PersonalityTrait.AGREEABLENESS: 50.0,
                 PersonalityTrait.NEUROTICISM: 50.0
+            }
+        else:
+            personality_scores = {
+                PersonalityTrait.OPENNESS: float(personality_profile.openness),
+                PersonalityTrait.CONSCIENTIOUSNESS: float(personality_profile.conscientiousness),
+                PersonalityTrait.EXTRAVERSION: float(personality_profile.extraversion),
+                PersonalityTrait.AGREEABLENESS: float(personality_profile.agreeableness),
+                PersonalityTrait.NEUROTICISM: float(personality_profile.neuroticism)
             }
         
         # Get user's watch history (if available)
@@ -102,6 +110,109 @@ async def get_video_recommendations(
     except Exception as e:
         logger.error(f"Error getting video recommendations for user {user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get recommendations: {str(e)}")
+
+
+@router.get("/video/four-genre-recommendations/{user_id}")
+async def get_four_genre_recommendations(
+    user_id: str,
+    videos_per_genre: int = Query(6, ge=3, le=12),
+    force_refresh: bool = Query(False),
+    supabase=Depends(get_supabase_client)
+):
+    """
+    Get personalized video recommendations from exactly 4 different genres.
+    Each genre is selected based on user personality and watch history.
+    """
+    # Four-genre recommendations have been removed in favor of the legacy
+    # single-list personalized recommendations endpoint `/video/recommendations/{user_id}`.
+    # This route was intentionally left as a no-op to avoid breaking clients that
+    # might still call it. Returning a 404 communicates the removal to clients.
+    raise HTTPException(status_code=404, detail="Four-genre recommendations endpoint removed. Use /video/recommendations/{user_id} instead.")
+
+
+@router.get("/video/genre-preferences/{user_id}")
+async def get_user_genre_preferences(
+    user_id: str,
+    supabase=Depends(get_supabase_client)
+):
+    """
+    Get user's genre preferences based on personality and watch history.
+    Useful for understanding what genres the system recommends and why.
+    """
+    try:
+        logger.info(f"Getting genre preferences for user {user_id}")
+        
+        # Get user's personality profile
+        personality_service = get_personality_service()
+        personality_context = await personality_service.get_user_personality_context(user_id)
+        personality_profile = personality_context.personality_profile if personality_context.has_assessment else None
+        
+        if not personality_profile:
+            personality_scores = {
+                PersonalityTrait.OPENNESS: 50.0,
+                PersonalityTrait.CONSCIENTIOUSNESS: 50.0,
+                PersonalityTrait.EXTRAVERSION: 50.0,
+                PersonalityTrait.AGREEABLENESS: 50.0,
+                PersonalityTrait.NEUROTICISM: 50.0
+            }
+        else:
+            personality_scores = {
+                PersonalityTrait.OPENNESS: float(personality_profile.openness),
+                PersonalityTrait.CONSCIENTIOUSNESS: float(personality_profile.conscientiousness),
+                PersonalityTrait.EXTRAVERSION: float(personality_profile.extraversion),
+                PersonalityTrait.AGREEABLENESS: float(personality_profile.agreeableness),
+                PersonalityTrait.NEUROTICISM: float(personality_profile.neuroticism)
+            }
+        
+        # Use personality-genre matcher to analyze preferences
+        from core.services.personality_genre_matcher import create_personality_genre_matcher
+        matcher = create_personality_genre_matcher()
+        
+        # Get all genre matches
+        all_matches = matcher.calculate_genre_matches(personality_scores, top_k=15)
+        
+        # Get diverse selection for recommendations
+        diverse_selection = matcher.get_diverse_genre_selection(personality_scores, num_genres=4)
+        
+        # Format response
+        all_preferences = []
+        for match in all_matches:
+            all_preferences.append({
+                "genre": match.genre,
+                "match_score": round(match.match_score * 100, 1),
+                "confidence": round(match.confidence * 100, 1),
+                "reasoning": match.reasoning,
+                "contributing_traits": [
+                    {
+                        "trait": trait.value,
+                        "contribution": round(contribution * 100, 1)
+                    }
+                    for trait, contribution in match.contributing_traits[:3]  # Top 3
+                ]
+            })
+        
+        recommended_genres = []
+        for match in diverse_selection:
+            recommended_genres.append({
+                "genre": match.genre,
+                "match_score": round(match.match_score * 100, 1),
+                "reasoning": match.reasoning,
+                "selected_for_diversity": True
+            })
+        
+        return {
+            "user_id": user_id,
+            "personality_profile": personality_scores,
+            "all_genre_preferences": all_preferences,
+            "recommended_genres": recommended_genres,
+            "explanation": matcher.explain_genre_selection(personality_scores, diverse_selection),
+            "generated_at": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting genre preferences for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get genre preferences: {str(e)}")
+
 
 @router.post("/video/feedback")
 async def submit_video_feedback(

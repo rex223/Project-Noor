@@ -19,6 +19,7 @@ from api.routes.chat import router as chat_router
 from api.routes.entertainment import router as entertainment_router
 from api.routes.video_recommendations import router as video_router
 from core.database.supabase_client import cleanup_database
+from core.integration.rate_limiting_integration import add_rate_limiting_to_app, add_health_check_endpoint
 
 # Configure logging
 logging.basicConfig(
@@ -93,6 +94,10 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+
+# Add rate limiting middleware and health checks
+add_rate_limiting_to_app(app, default_user_tier="free")
+add_health_check_endpoint(app)
 
 # Include routers
 app.include_router(personality_router)

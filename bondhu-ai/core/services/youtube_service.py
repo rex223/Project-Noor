@@ -6,13 +6,19 @@ Integrates with personality system to provide personalized video recommendations
 import asyncio
 import aiohttp
 import logging
+import os
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 import random
+import time
+import json
+import hashlib
 
 from core.config import get_config
 from core.database.models import PersonalityTrait  # Enum for iteration
+from core.cache.redis_client import get_redis
+from core.services.youtube_rate_limiter import YouTubeRateLimiter, RateLimitConfig as YouTubeRateLimitConfig
 
 
 class YouTubeService:
@@ -26,6 +32,39 @@ class YouTubeService:
         self.api_key = api_key or self.config.youtube.api_key
         self.base_url = "https://www.googleapis.com/youtube/v3"
         self.logger = logging.getLogger("bondhu.youtube")
+        
+        # Redis cache client
+        self.redis_client = get_redis()
+        
+        # Cache TTL settings (in seconds)
+        self.cache_ttl = {
+            'search_results': 3600,  # 1 hour for search results
+            'trending_videos': 1800,  # 30 minutes for trending videos
+            'video_details': 7200,   # 2 hours for video details
+            'recommendations': 1800,  # 30 minutes for full recommendation sets
+            'fallback_content': 7200  # 2 hours for fallback content
+        }
+        
+        # Rate limiting properties
+        self.last_request_time = 0.0
+        self.max_retries = 3
+        self.base_retry_delay = 1.0  # Base delay for exponential backoff
+
+        per_minute_limit = getattr(self.config.rate_limits, "youtube_requests_per_minute", 100)
+        per_second_env = os.getenv("YOUTUBE_RPS")
+        if per_second_env:
+            per_second_limit = max(1, int(per_second_env))
+        else:
+            per_second_limit = max(1, per_minute_limit // 30)  # default to ~1/30th of per-minute limit
+
+        limiter_config = YouTubeRateLimitConfig(
+            api_key=self.api_key,
+            per_second=per_second_limit,
+            per_minute=per_minute_limit,
+        )
+        self.rate_limiter = YouTubeRateLimiter(config=limiter_config, redis_client=self.redis_client)
+        # Local smoothing between requests within this process
+        self.min_request_interval = max(0.05, 1.0 / (self.rate_limiter.config.per_second * 1.5))
 
         # YouTube category mappings (id -> name and reverse)
         self.category_map = {
@@ -168,40 +207,157 @@ class YouTubeService:
             }
         }
 
+    async def _rate_limited_request(self, session: aiohttp.ClientSession, url: str, params: Dict[str, Any] = None) -> aiohttp.ClientResponse:
+        """Make a rate-limited request to YouTube API with exponential backoff retry."""
+        await self.rate_limiter.acquire()
+
+        # Local smoothing to avoid burst from this process even with shared limiter
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        if time_since_last < self.min_request_interval:
+            await asyncio.sleep(self.min_request_interval - time_since_last)
+
+        self.last_request_time = time.time()
+
+        for attempt in range(self.max_retries):
+            try:
+                response = await session.get(url, params=params)
+                
+                # If successful or non-retryable error, return
+                if response.status == 200:
+                    return response
+                elif response.status == 403:
+                    error_data = await response.json()
+                    error_reason = error_data.get('error', {}).get('errors', [{}])[0].get('reason', '')
+                    
+                    if error_reason in ['quotaExceeded', 'rateLimitExceeded', 'userRateLimitExceeded']:
+                        if attempt < self.max_retries - 1:
+                            # Calculate exponential backoff delay
+                            delay = self.base_retry_delay * (2 ** attempt) + random.uniform(0, 1)
+                            self.logger.warning(f"Rate limit hit (reason: {error_reason}), retrying in {delay:.2f}s (attempt {attempt + 1}/{self.max_retries})")
+                            await asyncio.sleep(delay)
+                            continue
+                    
+                    # Non-retryable 403 error or max retries reached
+                    return response
+                else:
+                    # Other HTTP errors
+                    return response
+                    
+            except Exception as e:
+                if attempt < self.max_retries - 1:
+                    delay = self.base_retry_delay * (2 ** attempt)
+                    self.logger.warning(f"Request failed with {e}, retrying in {delay:.2f}s (attempt {attempt + 1}/{self.max_retries})")
+                    await asyncio.sleep(delay)
+                    continue
+                else:
+                    raise
+        
+        # This shouldn't be reached, but just in case
+        return response
+
+    def _generate_cache_key(self, prefix: str, *args) -> str:
+        """Generate a consistent cache key from prefix and arguments."""
+        # Create a hash of all arguments for consistent key generation
+        key_data = f"{prefix}:{':'.join(str(arg) for arg in args)}"
+        return hashlib.md5(key_data.encode()).hexdigest()
+
+    def _get_cached_data(self, cache_key: str) -> Optional[Dict[str, Any]]:
+        """Get data from Redis cache."""
+        try:
+            if self.redis_client:
+                cached_data = self.redis_client.get(cache_key)
+                if cached_data:
+                    return json.loads(cached_data.decode('utf-8') if isinstance(cached_data, bytes) else cached_data)
+        except Exception as e:
+            self.logger.warning(f"Cache get error for key {cache_key}: {e}")
+        return None
+
+    def _set_cached_data(self, cache_key: str, data: Dict[str, Any], ttl: int) -> None:
+        """Set data in Redis cache with TTL."""
+        try:
+            if self.redis_client:
+                self.redis_client.setex(cache_key, ttl, json.dumps(data))
+        except Exception as e:
+            self.logger.warning(f"Cache set error for key {cache_key}: {e}")
+
+    def _get_cached_videos_with_shuffle(self, cache_key: str, requested_count: int) -> Optional[List[Dict[str, Any]]]:
+        """Get cached videos and return a shuffled subset."""
+        cached_data = self._get_cached_data(cache_key)
+        if cached_data and 'videos' in cached_data:
+            videos = cached_data['videos']
+            if len(videos) >= requested_count:
+                # Return a random sample to provide variety on each refresh
+                return random.sample(videos, min(requested_count, len(videos)))
+        return None
+
     async def get_trending_videos(self, region_code: str = "US", max_results: int = 50) -> List[Dict[str, Any]]:
-        """Fetch trending videos from YouTube."""
+        """Fetch trending videos from YouTube with intelligent caching."""
+        cache_key = self._generate_cache_key("trending", region_code)
+        
+        # Try to get from cache first
+        cached_videos = self._get_cached_videos_with_shuffle(cache_key, max_results)
+        if cached_videos:
+            self.logger.info(f"Returning {len(cached_videos)} trending videos from cache")
+            return cached_videos
+        
         try:
             params = {
                 'part': 'snippet,statistics,contentDetails',
                 'chart': 'mostPopular',
                 'regionCode': region_code,
-                'maxResults': max_results,
+                'maxResults': min(50, max_results * 2),  # Get more videos to cache for variety
                 'key': self.api_key
             }
             
-            url = f"{self.base_url}/videos?" + urlencode(params)
+            url = f"{self.base_url}/videos"
             
             async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        return await self._process_video_data(data.get('items', []))
+                response = await self._rate_limited_request(session, url, params)
+                
+                if response.status == 200:
+                    data = await response.json()
+                    videos = await self._process_video_data(data.get('items', []))
+                    
+                    # Cache the full set of videos
+                    self._set_cached_data(cache_key, {'videos': videos}, self.cache_ttl['trending_videos'])
+                    
+                    # Return a random subset
+                    return random.sample(videos, min(max_results, len(videos)))
+                elif response.status == 403:
+                    error_data = await response.json()
+                    error_reason = error_data.get('error', {}).get('errors', [{}])[0].get('reason', '')
+                    
+                    if error_reason in ['quotaExceeded', 'rateLimitExceeded', 'userRateLimitExceeded']:
+                        self.logger.warning(f"YouTube API limit exceeded ({error_reason}) - using fallback content")
+                        return await self._get_fallback_trending_videos()
                     else:
-                        self.logger.error(f"YouTube API error: {response.status}")
-                        return []
+                        self.logger.error(f"YouTube API 403 error: {error_data}")
+                        return await self._get_fallback_trending_videos()
+                else:
+                    self.logger.error(f"YouTube API error: {response.status}")
+                    return await self._get_fallback_trending_videos()
                         
         except Exception as e:
             self.logger.error(f"Error fetching trending videos: {e}")
-            return []
+            return await self._get_fallback_trending_videos()
 
     async def search_videos(self, query: str, max_results: int = 25, category_id: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Search for videos based on query and optional category."""
+        """Search for videos based on query and optional category with intelligent caching."""
+        cache_key = self._generate_cache_key("search", query, category_id or "none")
+        
+        # Try to get from cache first
+        cached_videos = self._get_cached_videos_with_shuffle(cache_key, max_results)
+        if cached_videos:
+            self.logger.info(f"Returning {len(cached_videos)} search results from cache for query: {query}")
+            return cached_videos
+        
         try:
             params = {
                 'part': 'snippet',
                 'type': 'video',
                 'q': query,
-                'maxResults': max_results,
+                'maxResults': min(50, max_results * 2),  # Get more videos to cache for variety
                 'order': 'relevance',
                 'key': self.api_key
             }
@@ -209,23 +365,40 @@ class YouTubeService:
             if category_id:
                 params['videoCategoryId'] = category_id
             
-            url = f"{self.base_url}/search?" + urlencode(params)
+            url = f"{self.base_url}/search"
             
             async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        video_ids = [item['id']['videoId'] for item in data.get('items', [])]
-                        
-                        # Get detailed video information
-                        return await self.get_video_details(video_ids)
+                response = await self._rate_limited_request(session, url, params)
+                
+                if response.status == 200:
+                    data = await response.json()
+                    video_ids = [item['id']['videoId'] for item in data.get('items', [])]
+                    
+                    # Get detailed video information
+                    videos = await self.get_video_details(video_ids)
+                    
+                    # Cache the full set of videos
+                    self._set_cached_data(cache_key, {'videos': videos}, self.cache_ttl['search_results'])
+                    
+                    # Return a random subset
+                    return random.sample(videos, min(max_results, len(videos)))
+                elif response.status == 403:
+                    error_data = await response.json()
+                    error_reason = error_data.get('error', {}).get('errors', [{}])[0].get('reason', '')
+                    
+                    if error_reason in ['quotaExceeded', 'rateLimitExceeded', 'userRateLimitExceeded']:
+                        self.logger.warning(f"YouTube API limit exceeded ({error_reason}) for search query: {query}")
+                        return await self._get_fallback_search_results(query, max_results)
                     else:
-                        self.logger.error(f"YouTube search API error: {response.status}")
-                        return []
+                        self.logger.error(f"YouTube search API 403 error: {error_data}")
+                        return await self._get_fallback_search_results(query, max_results)
+                else:
+                    self.logger.error(f"YouTube search API error: {response.status}")
+                    return await self._get_fallback_search_results(query, max_results)
                         
         except Exception as e:
             self.logger.error(f"Error searching videos: {e}")
-            return []
+            return await self._get_fallback_search_results(query, max_results)
 
     async def get_video_details(self, video_ids: List[str]) -> List[Dict[str, Any]]:
         """Get detailed information for specific videos."""
@@ -239,20 +412,31 @@ class YouTubeService:
                 'key': self.api_key
             }
             
-            url = f"{self.base_url}/videos?" + urlencode(params)
+            url = f"{self.base_url}/videos"
             
             async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        return await self._process_video_data(data.get('items', []))
+                response = await self._rate_limited_request(session, url, params)
+                
+                if response.status == 200:
+                    data = await response.json()
+                    return await self._process_video_data(data.get('items', []))
+                elif response.status == 403:
+                    error_data = await response.json()
+                    error_reason = error_data.get('error', {}).get('errors', [{}])[0].get('reason', '')
+                    
+                    if error_reason in ['quotaExceeded', 'rateLimitExceeded', 'userRateLimitExceeded']:
+                        self.logger.warning(f"YouTube API limit exceeded ({error_reason}) for video details")
+                        return await self._get_fallback_video_details(video_ids)
                     else:
-                        self.logger.error(f"YouTube video details API error: {response.status}")
-                        return []
+                        self.logger.error(f"YouTube video details API 403 error: {error_data}")
+                        return await self._get_fallback_video_details(video_ids)
+                else:
+                    self.logger.error(f"YouTube video details API error: {response.status}")
+                    return await self._get_fallback_video_details(video_ids)
                         
         except Exception as e:
             self.logger.error(f"Error fetching video details: {e}")
-            return []
+            return await self._get_fallback_video_details(video_ids) if video_ids else []
 
     async def get_video_categories(self, region_code: str = "US") -> Dict[str, str]:
         """Get available video categories."""
@@ -355,7 +539,22 @@ class YouTubeService:
 
             scored_videos.sort(key=lambda x: x.get('personality_score', 0.0), reverse=True)
 
-            return scored_videos[:max_results]
+            # Add randomization to genre recommendations for variety
+            if len(scored_videos) > max_results:
+                # Take top 70% by score, then add some random variety
+                top_70_percent = int(len(scored_videos) * 0.7)
+                top_videos = scored_videos[:top_70_percent]
+                remaining_videos = scored_videos[top_70_percent:]
+                
+                random.shuffle(top_videos)
+                random.shuffle(remaining_videos)
+                
+                final_selection = (top_videos + remaining_videos)[:max_results]
+            else:
+                random.shuffle(scored_videos)
+                final_selection = scored_videos[:max_results]
+
+            return final_selection
 
         except Exception as e:
             self.logger.error(f"Error fetching genre recommendations for {genre_name}: {e}")
@@ -767,7 +966,256 @@ class YouTubeService:
     async def get_personalized_recommendations(self, personality_profile: Dict[PersonalityTrait, float], 
                                               user_history: List[Dict[str, Any]], 
                                               max_results: int = 20) -> List[Dict[str, Any]]:
-        """Get personalized video recommendations based on personality and history."""
+        """Get personalized video recommendations based on personality and history with intelligent caching."""
+        # Create cache key based on personality and history
+        personality_key = hashlib.md5(str(sorted(personality_profile.items())).encode()).hexdigest()[:8]
+        history_key = hashlib.md5(str([v.get('id', '') for v in user_history[-10:]]).encode()).hexdigest()[:8]  # Last 10 videos
+        cache_key = self._generate_cache_key("recommendations", personality_key, history_key)
+        
+        # Try to get from cache first and return shuffled subset for variety
+        cached_videos = self._get_cached_videos_with_shuffle(cache_key, max_results)
+        if cached_videos:
+            self.logger.info(f"Returning {len(cached_videos)} personalized recommendations from cache")
+            return cached_videos
+        
+        try:
+            recommendations = []
+            
+            # Part 1: Watch History-Based Recommendations (40% weight)
+            if user_history:
+                history_recommendations = await self._get_history_based_recommendations(
+                    user_history, int(max_results * 0.4)
+                )
+                recommendations.extend(history_recommendations)
+                self.logger.info(f"Added {len(history_recommendations)} history-based recommendations")
+            
+            # Part 2: Personality-Based Recommendations (40% weight)  
+            personality_recommendations = await self._get_personality_based_recommendations(
+                personality_profile, int(max_results * 0.4)
+            )
+            recommendations.extend(personality_recommendations)
+            self.logger.info(f"Added {len(personality_recommendations)} personality-based recommendations")
+            
+            # Part 3: Hybrid recommendations using both history and personality (20% weight)
+            if user_history:
+                hybrid_recommendations = await self._get_hybrid_recommendations(
+                    personality_profile, user_history, int(max_results * 0.2)
+                )
+                recommendations.extend(hybrid_recommendations)
+                self.logger.info(f"Added {len(hybrid_recommendations)} hybrid recommendations")
+            
+            # If no watch history, give more weight to personality
+            if not user_history:
+                extra_personality = await self._get_personality_based_recommendations(
+                    personality_profile, int(max_results * 0.6)
+                )
+                recommendations.extend(extra_personality)
+                self.logger.info(f"No watch history - added {len(extra_personality)} extra personality recommendations")
+            
+            # Remove duplicates and score videos
+            unique_videos = {video['id']: video for video in recommendations}
+            scored_videos = []
+            
+            for video in unique_videos.values():
+                # Enhanced scoring that considers both personality and history
+                score = self._calculate_enhanced_video_score(video, personality_profile, user_history)
+                video['personality_score'] = score
+                scored_videos.append(video)
+            
+            # Sort by enhanced score and add randomization for variety
+            scored_videos.sort(key=lambda x: x['personality_score'], reverse=True)
+            
+            # Add some randomization to prevent identical results every time
+            # Take top 70% by score, then shuffle for variety (more variety than before)
+            top_70_percent = int(len(scored_videos) * 0.7) if len(scored_videos) > 5 else len(scored_videos)
+            top_videos = scored_videos[:top_70_percent]
+            remaining_videos = scored_videos[top_70_percent:]
+            
+            random.shuffle(top_videos)
+            random.shuffle(remaining_videos)
+            
+            final_results = (top_videos + remaining_videos)[:max_results]
+            
+            # Add metadata about recommendation sources for debugging
+            source_counts = {}
+            for video in final_results:
+                source = video.get('source', 'unknown')
+                source_counts[source] = source_counts.get(source, 0) + 1
+            
+            self.logger.info(f"Final recommendations by source: {source_counts}")
+            
+            # If no personalized recommendations found, fallback to popular videos
+            if not final_results:
+                self.logger.warning("No personalized recommendations found. Falling back to popular videos.")
+                fallback_results = await self.get_trending_videos(max_results=max_results)
+                return fallback_results
+            
+            # Cache the larger set of recommendations for future variety
+            extended_results = scored_videos[:max_results * 2]  # Cache more for variety
+            self._set_cached_data(cache_key, {'videos': extended_results}, self.cache_ttl['recommendations'])
+            
+            return final_results
+            
+        except Exception as e:
+            self.logger.error(f"Error generating personalized recommendations: {e}")
+            # Try to return cached results even if fresh generation failed
+            cached_videos = self._get_cached_videos_with_shuffle(cache_key, max_results)
+            if cached_videos:
+                self.logger.info(f"Returning {len(cached_videos)} cached recommendations after error")
+                return cached_videos
+            return []
+
+    async def _get_fallback_trending_videos(self) -> List[Dict[str, Any]]:
+        """Provide fallback trending videos when YouTube API quota is exceeded."""
+        # Static fallback data with popular video categories
+        fallback_videos = [
+            {
+                'id': f'fallback_trending_{i}',
+                'title': f'Popular {category} Content - API Quota Exceeded',
+                'description': f'Trending {category.lower()} content. YouTube API quota exceeded, showing fallback recommendations.',
+                'channel_title': 'Bondhu AI Recommendations',
+                'thumbnail_url': 'https://via.placeholder.com/320x180?text=Video+Unavailable',
+                'youtube_url': f'https://youtube.com/watch?v=fallback_{i}',
+                'category_name': category,
+                'view_count': random.randint(100000, 1000000),
+                'like_count': random.randint(1000, 10000),
+                'duration_formatted': f'{random.randint(2, 15)}:00',
+                'duration_seconds': random.randint(120, 900),
+                'content_themes': [category.lower(), 'trending'],
+                'personality_score': random.uniform(0.6, 0.9)
+            }
+            for i, category in enumerate(['Music', 'Entertainment', 'Gaming', 'Education', 'Comedy', 'Technology'], 1)
+        ]
+        
+        random.shuffle(fallback_videos)
+        return fallback_videos
+
+    async def _get_fallback_search_results(self, query: str, max_results: int) -> List[Dict[str, Any]]:
+        """Provide fallback search results when YouTube API quota is exceeded."""
+        # Generate fallback results based on the search query
+        search_terms = query.lower().split()
+        main_term = search_terms[0] if search_terms else 'content'
+        
+        fallback_videos = [
+            {
+                'id': f'fallback_search_{query}_{i}',
+                'title': f'{main_term.title()} Video {i} - API Quota Exceeded',
+                'description': f'Content related to "{query}". YouTube API quota exceeded, showing fallback recommendations.',
+                'channel_title': 'Bondhu AI Search',
+                'thumbnail_url': 'https://via.placeholder.com/320x180?text=Search+Unavailable',
+                'youtube_url': f'https://youtube.com/watch?v=search_{query}_{i}',
+                'category_name': main_term.title(),
+                'view_count': random.randint(50000, 500000),
+                'like_count': random.randint(500, 5000),
+                'duration_formatted': f'{random.randint(3, 20)}:00',
+                'duration_seconds': random.randint(180, 1200),
+                'content_themes': search_terms + ['search_result'],
+                'personality_score': random.uniform(0.5, 0.8)
+            }
+            for i in range(1, min(max_results + 1, 11))  # Cap at 10 fallback results
+        ]
+        
+        return fallback_videos
+
+    async def _get_fallback_video_details(self, video_ids: List[str]) -> List[Dict[str, Any]]:
+        """Provide fallback video details when YouTube API quota is exceeded."""
+        fallback_videos = []
+        
+        for i, video_id in enumerate(video_ids[:10]):  # Limit to 10 videos
+            fallback_video = {
+                'id': video_id,
+                'title': f'Video {i+1} - API Quota Exceeded',
+                'description': 'Video details unavailable due to YouTube API quota limits. Please try again later.',
+                'channel_title': 'Unknown Channel',
+                'thumbnail_url': 'https://via.placeholder.com/320x180?text=Quota+Exceeded',
+                'youtube_url': f'https://youtube.com/watch?v={video_id}',
+                'category_name': 'Entertainment',
+                'view_count': random.randint(10000, 100000),
+                'like_count': random.randint(100, 1000),
+                'duration_formatted': f'{random.randint(2, 10)}:00',
+                'duration_seconds': random.randint(120, 600),
+                'content_themes': ['quota_exceeded'],
+                'personality_score': random.uniform(0.4, 0.7)
+            }
+            fallback_videos.append(fallback_video)
+        
+        return fallback_videos
+
+    async def _get_history_based_recommendations(self, user_history: List[Dict[str, Any]], max_results: int) -> List[Dict[str, Any]]:
+        """Get recommendations based on user's watch history patterns."""
+        if not user_history:
+            return []
+        
+        try:
+            # Analyze watch history to extract patterns
+            category_preferences = {}
+            channel_preferences = {}
+            keyword_frequency = {}
+            
+            for video in user_history:
+                # Track category preferences
+                category = video.get('category_name', 'Unknown')
+                watch_time = video.get('watch_time', 0)
+                completion_rate = video.get('completion_rate', 0.0)
+                
+                # Weight by engagement (watch time * completion rate)
+                engagement_score = watch_time * (completion_rate + 0.1)  # Add small base to avoid zero
+                
+                category_preferences[category] = category_preferences.get(category, 0) + engagement_score
+                
+                # Track channel preferences
+                channel = video.get('channel_title', '')
+                if channel:
+                    channel_preferences[channel] = channel_preferences.get(channel, 0) + engagement_score
+                
+                # Extract keywords from video titles
+                title = video.get('video_title', '')
+                if title:
+                    # Simple keyword extraction
+                    words = title.lower().split()
+                    for word in words:
+                        if len(word) > 3:  # Skip short words
+                            keyword_frequency[word] = keyword_frequency.get(word, 0) + engagement_score
+            
+            # Get top categories and keywords
+            top_categories = sorted(category_preferences.items(), key=lambda x: x[1], reverse=True)[:3]
+            top_keywords = sorted(keyword_frequency.items(), key=lambda x: x[1], reverse=True)[:5]
+            
+            recommendations = []
+            
+            # Search based on top categories
+            for category, score in top_categories:
+                if category != 'Unknown':
+                    query_results = await self.search_videos(
+                        query=category.lower().replace(' & ', ' '),
+                        max_results=max(2, max_results // len(top_categories))
+                    )
+                    # Tag these as history-based
+                    for video in query_results:
+                        video['source'] = 'watch_history'
+                        video['history_category'] = category
+                    recommendations.extend(query_results)
+            
+            # Search based on top keywords
+            if top_keywords:
+                keyword_query = ' OR '.join([kw[0] for kw in top_keywords[:3]])
+                keyword_results = await self.search_videos(
+                    query=keyword_query,
+                    max_results=max(2, max_results // 3)
+                )
+                # Tag these as keyword-based
+                for video in keyword_results:
+                    video['source'] = 'watch_history_keywords'
+                recommendations.extend(keyword_results)
+            
+            return recommendations[:max_results]
+            
+        except Exception as e:
+            self.logger.error(f"Error generating history-based recommendations: {e}")
+            return []
+
+    async def _get_personality_based_recommendations(self, personality_profile: Dict[PersonalityTrait, float], max_results: int) -> List[Dict[str, Any]]:
+        """Get recommendations based purely on personality profile."""
         try:
             # Analyze user's personality preferences
             preferred_categories = self._get_preferred_categories(personality_profile)
@@ -778,39 +1226,109 @@ class YouTubeService:
             recommendations = []
             
             # Search for videos in preferred categories
-            for category, score in preferred_categories:
+            for category, score in preferred_categories[:3]:  # Top 3 categories
                 if score > 0.3:  # Only include categories with decent match
                     query_results = await self.search_videos(
                         query=category.lower().replace('&', '').replace(' ', '+'),
-                        max_results=max(5, int(max_results * score / 2))
+                        max_results=max(2, int(max_results * score / 2))
                     )
+                    # Tag these as personality-based
+                    for video in query_results:
+                        video['source'] = 'personality'
+                        video['personality_category'] = category
                     recommendations.extend(query_results)
             
-            # Search for personality-based content
-            for query in search_queries[:3]:  # Limit to top 3 queries
-                query_results = await self.search_videos(query, max_results=5)
+            # Search for personality-based content themes
+            for query in search_queries[:2]:  # Limit to top 2 queries
+                query_results = await self.search_videos(query, max_results=max(1, max_results // 4))
+                # Tag these as personality themes
+                for video in query_results:
+                    video['source'] = 'personality_theme'
                 recommendations.extend(query_results)
             
-            # Remove duplicates and score videos
-            unique_videos = {video['id']: video for video in recommendations}
-            scored_videos = []
-            
-            for video in unique_videos.values():
-                score = self._calculate_video_score(video, personality_profile, user_history)
-                video['personality_score'] = score
-                scored_videos.append(video)
-            
-            # Sort by personality score and return top results
-            scored_videos.sort(key=lambda x: x['personality_score'], reverse=True)
-            
-            # If no personalized recommendations found, fallback to popular videos
-            if not scored_videos:
-                self.logger.warning("No personalized recommendations found. Falling back to popular videos.")
-                fallback_results = await self.get_trending_videos(max_results=max_results)
-                return fallback_results
-            
-            return scored_videos[:max_results]
+            return recommendations[:max_results]
             
         except Exception as e:
-            self.logger.error(f"Error generating personalized recommendations: {e}")
+            self.logger.error(f"Error generating personality-based recommendations: {e}")
             return []
+
+    async def _get_hybrid_recommendations(self, personality_profile: Dict[PersonalityTrait, float], 
+                                         user_history: List[Dict[str, Any]], max_results: int) -> List[Dict[str, Any]]:
+        """Get recommendations that combine both personality and watch history insights."""
+        try:
+            if not user_history:
+                return []
+            
+            # Analyze watch history to understand user's actual vs predicted preferences
+            history_categories = {}
+            for video in user_history:
+                category = video.get('category_name', '')
+                completion_rate = video.get('completion_rate', 0.0)
+                if category and completion_rate > 0.5:  # Only well-watched videos
+                    history_categories[category] = history_categories.get(category, 0) + 1
+            
+            # Get personality-predicted categories
+            personality_categories = dict(self._get_preferred_categories(personality_profile))
+            
+            # Find intersection - categories both predicted and actually watched
+            hybrid_categories = []
+            for category in history_categories:
+                if category in personality_categories:
+                    # Boost score for categories that match both
+                    combined_score = personality_categories[category] * (1 + history_categories[category] * 0.1)
+                    hybrid_categories.append((category, combined_score))
+            
+            # Sort by combined score
+            hybrid_categories.sort(key=lambda x: x[1], reverse=True)
+            
+            recommendations = []
+            
+            # Search for hybrid recommendations
+            for category, score in hybrid_categories[:2]:  # Top 2 hybrid categories
+                query_results = await self.search_videos(
+                    query=f"{category} tutorial OR {category} guide OR {category} tips",
+                    max_results=max(1, max_results // 2)
+                )
+                # Tag these as hybrid recommendations
+                for video in query_results:
+                    video['source'] = 'hybrid'
+                    video['hybrid_category'] = category
+                    video['hybrid_score'] = score
+                recommendations.extend(query_results)
+            
+            return recommendations[:max_results]
+            
+        except Exception as e:
+            self.logger.error(f"Error generating hybrid recommendations: {e}")
+            return []
+
+    def _calculate_enhanced_video_score(self, video: Dict[str, Any], 
+                                       personality_profile: Dict[PersonalityTrait, float], 
+                                       user_history: List[Dict[str, Any]]) -> float:
+        """Enhanced video scoring that considers both personality and watch history."""
+        base_score = self._calculate_video_score(video, personality_profile, user_history)
+        
+        # Bonus points based on recommendation source
+        source_bonus = 0.0
+        source = video.get('source', '')
+        
+        if source == 'watch_history':
+            source_bonus = 0.3  # Strong bonus for history-based recommendations
+        elif source == 'hybrid':
+            source_bonus = 0.4  # Highest bonus for hybrid recommendations
+        elif source == 'watch_history_keywords':
+            source_bonus = 0.2  # Medium bonus for keyword-based
+        elif source == 'personality':
+            source_bonus = 0.1  # Small bonus for pure personality
+        
+        # Additional bonus if video category matches user's historical preferences
+        if user_history:
+            watched_categories = [v.get('category_name', '') for v in user_history]
+            video_category = video.get('category_name', '')
+            
+            if video_category in watched_categories:
+                category_frequency = watched_categories.count(video_category) / len(watched_categories)
+                source_bonus += category_frequency * 0.2  # Up to 0.2 bonus for frequently watched categories
+        
+        final_score = min(base_score + source_bonus, 1.0)
+        return final_score

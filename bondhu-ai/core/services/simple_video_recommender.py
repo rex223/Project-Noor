@@ -16,15 +16,15 @@ from core.database.models import PersonalityTrait
 
 logger = logging.getLogger("bondhu.simple_recommender")
 
-# Cache single recommender instance (stateless besides API key)
-_recommender: Optional[SimpleYouTubeRecommender] = None
+# Cache recommender instances per user (for rate limiting)
+_recommenders: Dict[str, SimpleYouTubeRecommender] = {}
 
-def get_simple_recommender() -> SimpleYouTubeRecommender:
-    global _recommender
-    if _recommender is None:
+def get_simple_recommender(user_id: str = "default_user") -> SimpleYouTubeRecommender:
+    global _recommenders
+    if user_id not in _recommenders:
         api_key = os.getenv("YOUTUBE_API_KEY")
-        _recommender = SimpleYouTubeRecommender(api_key=api_key)
-    return _recommender
+        _recommenders[user_id] = SimpleYouTubeRecommender(api_key=api_key, user_id=user_id)
+    return _recommenders[user_id]
 
 async def build_personality_dict(user_id: str) -> Dict[str, float]:
     """Build a flat personality dict (0-1 floats) for simple recommender.
@@ -68,7 +68,7 @@ async def get_simple_recommendations(user_id: str, max_results: int = 20) -> Dic
 
     Structure mirrors existing advanced endpoint but simplified.
     """
-    recommender = get_simple_recommender()
+    recommender = get_simple_recommender(user_id)
     personality = await build_personality_dict(user_id)
 
     try:

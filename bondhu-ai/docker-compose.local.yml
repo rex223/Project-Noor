@@ -1,0 +1,111 @@
+services:
+  # Redis Service - Local development with Docker
+  redis:
+    image: redis:alpine
+    container_name: bondhu-redis-local
+    ports:
+      - "127.0.0.1:6379:6379"
+    restart: unless-stopped
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru --save ""
+    volumes:
+      - redis-data-local:/data
+    networks:
+      - bondhu-network
+
+  # Main Application Service - Local development optimized
+  bondhu-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bondhu-api
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379
+      - CELERY_RESULT_BACKEND=redis://redis:6379
+      - PYTHONPATH=/app
+      - ENVIRONMENT=development
+      - LOG_LEVEL=info
+      - SUPABASE_URL=https://eilvtjkqmvmhkfzocrzs.supabase.co
+      - SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbHZ0amtxbXZtaGtmem9jcnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDAxMDYsImV4cCI6MjA3NDA3NjEwNn0.mzQ52ds8H3LBDPjv7cIVai04AriswI2UXZPSDa3ldz0
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    # During development the API can require more memory while importing
+    # large ML/analysis libraries. Increase to 1G to avoid worker OOMs.
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+    # Override startup command to use a single gunicorn worker and a longer
+    # timeout so the process has time to import heavy libraries without being
+    # killed. For production you may want more workers and tighter limits.
+    command: [ "gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--timeout", "120", "--worker-class", "uvicorn.workers.UvicornWorker", "main:app" ]
+    networks:
+      - bondhu-network
+
+  # Celery Worker - Local development
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bondhu-celery-worker
+    command: celery -A core.celery_app worker --loglevel=info --concurrency=1 --max-tasks-per-child=500 --time-limit=180 --soft-time-limit=150
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379
+      - CELERY_RESULT_BACKEND=redis://redis:6379
+      - PYTHONPATH=/app
+      - ENVIRONMENT=development
+      - LOG_LEVEL=info
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.2'
+    networks:
+      - bondhu-network
+
+  # Frontend Service - Next.js Development Server
+  bondhu-frontend:
+    build:
+      context: ../bondhu-landing
+      dockerfile: Dockerfile.dev
+    container_name: bondhu-frontend
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ../bondhu-landing:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - bondhu-api
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+    networks:
+      - bondhu-network
+
+volumes:
+  redis-data-local:
+    driver: local
+
+networks:
+  bondhu-network:
+    driver: bridge

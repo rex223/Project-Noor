@@ -97,7 +97,14 @@ class BaseAgent(ABC):
     def _setup_logging(self) -> logging.Logger:
         """Setup logger for this agent."""
         logger = logging.getLogger(f"bondhu.agents.{self.agent_type.value}")
-        logger.setLevel(getattr(logging, self.config.logging.level))
+        # Resolve logging level from config (allow strings like 'info' or 'INFO')
+        level_name = (self.config.logging.level or "INFO").upper() if isinstance(self.config.logging.level, str) else None
+        try:
+            level = getattr(logging, level_name) if level_name else int(self.config.logging.level)
+        except Exception:
+            # Fallback to INFO if value is invalid
+            level = logging.INFO
+        logger.setLevel(level)
         
         if not logger.handlers:
             handler = logging.StreamHandler()

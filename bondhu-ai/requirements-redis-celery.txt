@@ -1,15 +1,23 @@
 # Redis and Celery Dependencies
 # Install with: pip install -r requirements-redis-celery.txt
 
-# Redis
-# celery[redis]==5.3.4 requires redis>=4.5.2,<5.0.0, so pin a compatible range instead
-redis>=4.5.2,<5.0.0
+# Note: Redis is already in main requirements.txt (redis==6.4.0)
+# We'll install celery without the [redis] extra to avoid version conflicts
 hiredis==2.3.2  # Optional but recommended for better performance
 
-# Celery
-celery[redis]==5.3.4
-flower==2.0.1  # Optional: Web-based monitoring for Celery
-
-# Additional utilities
+# Celery - Install without [redis] extra to avoid redis version pinning
+celery==5.3.4
 kombu==5.3.4  # Celery messaging library
 vine==5.1.0   # Celery promises/callbacks
+
+# Optional monitoring
+flower==2.0.1  # Web-based monitoring for Celery
+
+# Production server
+gunicorn==21.2.0
+uvicorn[standard]==0.24.0  # ASGI server for FastAPI
+
+# Production utilities
+psutil==5.9.6  # System monitoring
+# Use requests version that's compatible with langchain-community (>=2.32.5)
+# Note: Skip requests here as it's in main requirements.txt

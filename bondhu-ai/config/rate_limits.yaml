@@ -1,0 +1,206 @@
+# Bondhu AI - API Rate Limiting Configuration
+# Centralized configuration for user tiers, API costs, and caching settings
+
+# User subscription tiers with API quotas (per day unless specified)
+user_tiers:
+  free:
+    youtube: 300          # 300 YouTube API units per day (3 searches)
+    spotify: 20           # 20 Spotify requests per day  
+    openai: 100           # 100 OpenAI requests per day
+    gaming: 50            # 50 gaming API requests per day
+    chat_context_length: 4000   # Max context length for chat
+    
+  premium:
+    youtube: 500          # 500 YouTube API units per day
+    spotify: 180          # 180 Spotify requests per day (3 per minute)
+    openai: 1000          # 1000 OpenAI requests per day
+    gaming: 200           # 200 gaming API requests per day
+    chat_context_length: 8000   # Extended context length
+    
+  enterprise:
+    youtube: 2000         # 2000 YouTube API units per day
+    spotify: 500          # 500 Spotify requests per day
+    openai: 5000          # 5000 OpenAI requests per day
+    gaming: 1000          # 1000 gaming API requests per day
+    chat_context_length: 16000  # Maximum context length
+
+# API operation costs (in quota units)
+api_costs:
+  youtube:
+    search: 50            # YouTube search costs 50 units (more reasonable)
+    video_details: 1      # Video details cost 1 unit each
+    playlist_items: 1     # Playlist items cost 1 unit each  
+    channel_details: 1    # Channel details cost 1 unit
+    trending_videos: 50   # Trending videos (essentially a search)
+    video_categories: 1   # Category list costs 1 unit
+    
+  spotify:
+    search_tracks: 1      # Track search costs 1 unit
+    track_details: 1      # Track details cost 1 unit
+    artist_details: 1     # Artist details cost 1 unit
+    album_details: 1      # Album details cost 1 unit
+    playlist_details: 1   # Playlist details cost 1 unit
+    recommendations: 1    # Recommendations cost 1 unit
+    
+  openai:
+    gpt4: 1               # GPT-4 request costs 1 unit
+    gpt35_turbo: 1        # GPT-3.5-turbo request costs 1 unit  
+    embedding: 1          # Embedding request costs 1 unit
+    chat_completion: 1    # Chat completion costs 1 unit
+    
+  gaming:
+    steam_stats: 1        # Steam stats cost 1 unit
+    steam_games: 1        # Steam games cost 1 unit
+    leaderboard: 1        # Leaderboard query costs 1 unit
+    achievements: 1       # Achievements query costs 1 unit
+
+# Cache TTL settings (in seconds)
+cache_ttl:
+  youtube:
+    search_results: 86400     # 1 day for search results
+    video_details: 604800     # 7 days for video details
+    trending_videos: 3600     # 1 hour for trending (changes frequently)
+    channel_details: 259200   # 3 days for channel info
+    
+  spotify:
+    track_details: 2592000    # 30 days for track info (rarely changes)
+    artist_details: 604800    # 7 days for artist info
+    album_details: 604800     # 7 days for album info
+    search_results: 86400     # 1 day for search results
+    recommendations: 1800     # 30 minutes (personalized)
+    
+  openai:
+    chat_context: 1800        # 30 minutes for chat context
+    embeddings: 86400         # 1 day for embeddings
+    completions: 3600         # 1 hour for completions
+    
+  gaming:
+    player_stats: 3600        # 1 hour for player stats
+    game_details: 86400       # 1 day for game details  
+    leaderboards: 1800        # 30 minutes for leaderboards
+    achievements: 86400       # 1 day for achievements
+
+# Rate limiting thresholds and behaviors
+rate_limiting:
+  global_limits:
+    youtube_api_daily: 10000    # Total YouTube API quota per day
+    requests_per_second: 10     # Max requests per second globally
+    requests_per_minute: 100    # Max requests per minute globally
+    
+  user_limits:
+    concurrent_requests: 5      # Max concurrent requests per user
+    requests_per_minute: 20     # Max requests per minute per user
+    burst_allowance: 10         # Allow burst of requests
+    
+  queue_settings:
+    max_queue_size: 100         # Max queued requests per user
+    queue_timeout: 3600         # Queue items expire after 1 hour
+    priority_levels: ["critical", "high", "medium", "low"]
+    
+  backoff_strategy:
+    initial_delay: 1            # Initial backoff delay (seconds)
+    max_delay: 300              # Maximum backoff delay (seconds)  
+    backoff_multiplier: 2       # Exponential backoff multiplier
+    jitter: true                # Add random jitter to backoff
+
+# Redis configuration
+redis:
+  host: localhost
+  port: 6379
+  db: 0
+  decode_responses: true
+  socket_timeout: 5
+  socket_connect_timeout: 5
+  retry_on_timeout: true
+  health_check_interval: 30
+  
+  # Key prefixes for organization
+  key_prefixes:
+    cache: "cache"
+    quota: "quota"  
+    queue: "queue"
+    metrics: "metrics"
+    locks: "lock"
+
+# Monitoring and alerting configuration  
+monitoring:
+  enabled: true
+  
+  # Alert thresholds (as percentage of quota)
+  alert_thresholds:
+    warning: 0.7              # Alert at 70% quota usage
+    critical: 0.9             # Critical alert at 90% quota usage
+    
+  # Metrics collection
+  metrics:
+    collection_interval: 60   # Collect metrics every 60 seconds
+    retention_days: 7         # Keep metrics for 7 days
+    
+  # Dashboard refresh rates
+  dashboard:
+    real_time_refresh: 5      # Real-time metrics refresh (seconds)
+    historical_refresh: 300   # Historical data refresh (seconds)
+    
+  # Alerting conditions
+  alerts:
+    quota_exceeded: true      # Alert when quota exceeded
+    queue_depth_high: 50      # Alert when queue depth > 50
+    cache_hit_rate_low: 0.4   # Alert when cache hit rate < 40%
+    api_error_rate_high: 0.1  # Alert when API error rate > 10%
+    response_time_high: 5000  # Alert when avg response time > 5s
+
+# Performance optimization settings
+optimization:
+  # Cache warming strategies
+  cache_warming:
+    enabled: true
+    popular_content_threshold: 10   # Warm cache for content requested >10 times
+    warming_schedule: "0 2 * * *"   # Warm cache at 2 AM daily
+    
+  # Batch processing settings  
+  batching:
+    youtube_video_details_batch_size: 50   # YouTube allows up to 50 video IDs per request
+    spotify_tracks_batch_size: 20          # Spotify allows up to 20 track IDs
+    batch_timeout: 100                     # Max wait time for batching (ms)
+    
+  # Connection pooling
+  connection_pools:
+    max_connections: 100        # Max connections per API
+    connection_timeout: 30      # Connection timeout (seconds)
+    read_timeout: 60           # Read timeout (seconds)
+
+# Feature flags for gradual rollout
+feature_flags:
+  enable_rate_limiting: true      # Master switch for rate limiting
+  enable_caching: true           # Master switch for caching  
+  enable_queue_processing: true   # Enable request queueing
+  enable_metrics_collection: true # Enable metrics collection
+  enable_cache_warming: false    # Cache warming (disabled by default)
+  enable_intelligent_routing: true # Route to best API endpoints
+  
+# Environment-specific overrides
+environments:
+  development:
+    user_tiers:
+      free:
+        youtube: 100            # Higher limits for development
+        openai: 200
+    redis:
+      db: 1                     # Use different Redis DB for dev
+      
+  staging:
+    monitoring:
+      alert_thresholds:
+        warning: 0.8            # Less aggressive alerting in staging
+        critical: 0.95
+        
+  production:
+    rate_limiting:
+      global_limits:
+        requests_per_second: 20  # Higher limits for production
+      user_limits:
+        concurrent_requests: 10
+    monitoring:
+      enabled: true
+      alerts:
+        quota_exceeded: true     # Full alerting in production

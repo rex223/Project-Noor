@@ -3,15 +3,16 @@
  * Provides personalized video suggestions with like/dislike feedback and personality learning
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import * as React from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Image from 'next/image'
-import { apiClient, ApiError } from '@/lib/api-client'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { apiClient, ApiError } from '../lib/api-client'
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
+import { Button } from "./ui/button"
+import { Badge } from "./ui/badge"
+import { Progress } from "./ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
+import { Alert, AlertDescription } from "./ui/alert"
 import {
     ThumbsUp, ThumbsDown, Play, ExternalLink, RefreshCw,
     Clock, TrendingUp, Sparkles, Brain, Target,
@@ -50,6 +51,10 @@ interface VideoFeedback {
     total_duration?: number
     interactions?: string[]
     time_to_click?: number
+    // Additional metadata for watch history storage
+    video_title?: string
+    channel_title?: string
+    category_name?: string
 }
 
 interface GenreCluster {
@@ -322,13 +327,12 @@ const VideoRecommendations: React.FC<VideoRecommendationsProps> = ({
             return null
         }
 
-        const [trait, score] = entries.sort((a, b) => b[1] - a[1])[0]
+        const [trait, score] = entries.sort((a, b) => Number(b[1]) - Number(a[1]))[0]
         return { trait, score }
     }, [personalityProfile])
 
     const formatTraitLabel = useCallback((trait: string) =>
-        trait.replace(/_/g, ' ').toLowerCase()
-        , [])
+        trait.replace(/_/g, ' ').toLowerCase(), [])
 
     const fetchRecommendations = useCallback(async (forceRefresh = false) => {
         if (!userId) return
@@ -418,11 +422,16 @@ const VideoRecommendations: React.FC<VideoRecommendationsProps> = ({
         // Open YouTube video in new tab
         window.open(video.youtube_url, '_blank')
 
-        // Track watch event
+        // Track watch event with full video metadata for proper history storage
         const feedback: VideoFeedback = {
             video_id: video.id,
             feedback_type: 'watch',
-            total_duration: video.duration_seconds
+            total_duration: video.duration_seconds,
+            // Include video metadata for database storage
+            video_title: video.title,
+            channel_title: video.channel_title,
+            category_name: video.category_name,
+            watch_time: video.duration_seconds // Assume full watch for now
         }
         handleVideoFeedback(feedback)
     }, [handleVideoFeedback])

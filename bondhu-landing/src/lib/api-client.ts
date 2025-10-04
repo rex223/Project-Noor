@@ -65,8 +65,17 @@ class ApiClient {
     }
   }
 
-  async get<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'GET' })
+  async get<T>(endpoint: string, options?: { params?: Record<string, any>; headers?: Record<string, string> }): Promise<T> {
+    // Build query string if params provided
+    let finalEndpoint = endpoint
+    if (options?.params) {
+      const qs = Object.entries(options.params)
+        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+        .join('&')
+      finalEndpoint = endpoint.includes('?') ? `${endpoint}&${qs}` : `${endpoint}?${qs}`
+    }
+
+    return this.request<T>(finalEndpoint, { method: 'GET', headers: options?.headers })
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
